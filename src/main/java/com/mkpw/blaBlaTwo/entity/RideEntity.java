@@ -15,21 +15,29 @@ public class RideEntity {
     @Column (name = "ID", updatable = false, nullable = false)
     private UUID id;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "DRIVER_ID", referencedColumnName = "ID")
     private UserEntity driver;
 
-    @Column(name = "price")
+    @ManyToOne
+    @JoinColumn(name = "START_CITY_ID", referencedColumnName = "ID")
+    private CityEntity startCity;
+
+    @ManyToOne
+    @JoinColumn(name = "DESTINATION_CITY_ID", referencedColumnName = "ID")
+    private CityEntity destinationCity;
+
+    @Column(name = "PRICE")
     private BigDecimal price;
 
-    @Column(name = "pet_friendly")
+    @Column(name = "PET_FRIENDLY")
     private boolean petFriendly;
 
-    @Column(name = "status")
+    @Column(name = "STATUS")
     @Enumerated(EnumType.STRING)
     private StatusEnum status;
 
-    @Column(name = "departure_time")
+    @Column(name = "DEPARTURE_TIME")
     private Timestamp departureTime;
 
     public UUID getId() {
@@ -50,12 +58,30 @@ public class RideEntity {
         return this;
     }
 
+    public CityEntity getStartCity() {
+        return startCity;
+    }
+
+    public RideEntity setStartCity(CityEntity startCity) {
+        this.startCity = startCity;
+        return this;
+    }
+
     public BigDecimal getPrice() {
         return price;
     }
 
     public RideEntity setPrice(BigDecimal price) {
         this.price = price;
+        return this;
+    }
+
+    public CityEntity getDestinationCity() {
+        return destinationCity;
+    }
+
+    public RideEntity setDestinationCity(CityEntity destinationCity) {
+        this.destinationCity = destinationCity;
         return this;
     }
 
@@ -84,5 +110,19 @@ public class RideEntity {
     public RideEntity setDepartureTime(Timestamp departureTime) {
         this.departureTime = departureTime;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return "RideEntity{" +
+                "startCity=" + startCity +
+                ", destinationCity=" + destinationCity +
+                ", departureTime=" + departureTime +
+                ", driver=" + driver +
+                ", id=" + id +
+                ", status=" + status +
+                ", price=" + price +
+                ", petFriendly=" + petFriendly +
+                '}';
     }
 }

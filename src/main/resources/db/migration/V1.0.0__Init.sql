@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS ride_sharing.cities (
 CREATE TABLE IF NOT EXISTS ride_sharing.users (
     id UUID NOT NULL DEFAULT random_uuid(),
     name VARCHAR(56),
+	email varchar(24),
+	phone varchar(24),
     role VARCHAR(16) CHECK (role IN ('DRIVER', 'PASSENGER')),
     PRIMARY KEY (id)
 );
@@ -111,13 +113,13 @@ INSERT INTO ride_sharing.cities (id, name) VALUES
   ('11111111-1111-1111-1111-111111111120', 'Torun');
 
 -- Seed data for users table
-INSERT INTO ride_sharing.users (id, name, role) VALUES
-  ('22222222-2222-2222-2222-222222222221', 'John Doe', 'DRIVER'),
-  ('22222222-2222-2222-2222-222222222222', 'Jane Smith', 'PASSENGER'),
-  ('22222222-2222-2222-2222-222222222223', 'Adam Nowak', 'DRIVER'),
-  ('22222222-2222-2222-2222-222222222224', 'Ewa Kowalska', 'PASSENGER'),
-  ('22222222-2222-2222-2222-222222222225', 'Pawel Mazur', 'DRIVER'),
-  ('22222222-2222-2222-2222-222222222226', 'Anna Zielinska', 'PASSENGER');
+INSERT INTO ride_sharing.users (id, name, email, phone, role) VALUES
+  ('22222222-2222-2222-2222-222222222221', 'John Doe', 'john@example.com', '+48444555666', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222222', 'Jane Smith', 'Jane@example.com', '+49444555666', 'PASSENGER'),
+  ('22222222-2222-2222-2222-222222222223', 'Adam Nowak', 'Adam@example.com', '+40444555666', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222224', 'Ewa Kowalska', 'Ewa@example.com', '+47444555666', 'PASSENGER'),
+  ('22222222-2222-2222-2222-222222222225', 'Pawel Mazur', 'Pawel@example.com', '+46444555666', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222226', 'Anna Zielinska', 'Anna@example.com', '+45444555666', 'PASSENGER');
 
 -- Seed data for rides table
 INSERT INTO ride_sharing.rides (id, driver_id, start_city_id, destination_city_id, departure_time, price, pet_friendly, status) VALUES

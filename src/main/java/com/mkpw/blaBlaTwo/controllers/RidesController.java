@@ -1,6 +1,6 @@
 package com.mkpw.blaBlaTwo.controllers;
 
-import com.mkpw.blaBlaTwo.RidesApi;
+import com.mkpw.blaBlaTwo.RideApi;
 import com.mkpw.blaBlaTwo.hateoas.RideRepresentationModelAssembler;
 import com.mkpw.blaBlaTwo.model.Ride;
 import com.mkpw.blaBlaTwo.services.RideService;
@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class RidesController implements RidesApi {
+public class RidesController implements RideApi {
     private static final Logger log = LoggerFactory.getLogger(RidesController.class);
     private final RideService service;
     private final RideRepresentationModelAssembler assembler;

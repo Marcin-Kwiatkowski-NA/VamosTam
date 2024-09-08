@@ -15,7 +15,7 @@ paths:
       summary: Search for available rides
       operationId: searchRides
       tags:
-        - Rides
+        - Ride
       parameters:
         - name: startCity
           in: query
@@ -76,7 +76,7 @@ paths:
       summary: Create a new ride
       operationId: createRide
       tags:
-        - Rides
+        - Ride
       requestBody:
         required: true
         content:
@@ -96,7 +96,7 @@ paths:
       summary: Get detailed information about a specific ride
       operationId: getRideById
       tags:
-        - Rides
+        - Ride
       parameters:
         - name: rideId
           in: path
@@ -118,7 +118,7 @@ paths:
       summary: Edit an existing ride offer
       operationId: updateRide
       tags:
-        - Rides
+        - Ride
       parameters:
         - name: rideId
           in: path
@@ -146,7 +146,7 @@ paths:
       summary: Delete an existing ride offer
       operationId: deleteRide
       tags:
-        - Rides
+        - Ride
       parameters:
         - name: rideId
           in: path
@@ -168,7 +168,7 @@ paths:
       operationId: listPassengers
       description: Allows drivers to search for passengers looking for a ride between cities.
       tags:
-        - Passengers
+        - Passenger
       parameters:
         - name: startCity
           in: query
@@ -201,7 +201,7 @@ paths:
       operationId: createPassengerRequest
       description: Allows a passenger to post a request for a ride.
       tags:
-        - Passengers
+        - Passenger
       requestBody:
         required: true
         content:
@@ -221,7 +221,7 @@ paths:
       summary: Get detailed information about a specific passenger
       operationId: getPassengerById
       tags:
-        - Passengers
+        - Passenger
       parameters:
         - name: passengerId
           in: path
@@ -243,7 +243,7 @@ paths:
       summary: Edit an existing passenger request
       operationId: updatePassengerRequest
       tags:
-        - Passengers
+        - Passenger
       parameters:
         - name: passengerId
           in: path
@@ -271,7 +271,7 @@ paths:
       summary: Delete an existing passenger request
       operationId: deletePassengerRequest
       tags:
-        - Passengers
+        - Passenger
       parameters:
         - name: passengerId
           in: path
@@ -312,7 +312,7 @@ paths:
       summary: Fetch all notifications for the user
       operationId: fetchNotifications
       tags:
-        - Notifications
+        - Notification
       parameters:
         - name: userId
           in: query
@@ -341,7 +341,7 @@ paths:
       summary: Retrieve message history between a driver and a passenger
       operationId: getMessageHistory
       tags:
-        - Messages
+        - Message
       parameters:
         - name: conversationId
           in: query
@@ -365,7 +365,7 @@ paths:
       summary: Send a message between a driver and a passenger
       operationId: sendMessage
       tags:
-        - Messages
+        - Message
       requestBody:
         required: true
         content:
@@ -380,72 +380,158 @@ paths:
         '404':
           description: Conversation not found
 
+  /api/v1/users:
+    get:
+      tags:
+        - user
+      summary: Returns all users
+      description: Returns all users, or empty collection if no use found
+      operationId: getAllusers
+      responses:
+        200:
+          description: For successful fetch.
+          content:
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - user
+      summary: Returns a user
+      description: Returns a users identifiable by given ID
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          description: User Identifier
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: For successful fetch.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - user
+      summary: Deletes the user
+      description: Deletes the user identifiable by given ID
+      operationId: deleteuserById
+      parameters:
+        - name: id
+          in: path
+          description: user Identifier
+          required: true
+          schema:
+            type: string
+      responses:
+        202:
+          description: Request accepted, returns this status even if user does not exist
+          content: {}
+
+  /Cities:
+    get:
+      tags:
+        - city
+      summary: Returns all cities
+      description: Returns all all cities in database
+      operationId: getAllCities
+      responses:
+        200:
+          description: For successful fetch.
+          content:
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+
 components:
   schemas:
     City:
       type: object
       properties:
         id:
+          description: Unique identifier for the city
           type: string
           format: uuid
-          description: Unique identifier for the city
         name:
-          type: string
           description: Name of the city
+          type: string
 
     User:
       type: object
       properties:
         id:
+          description: Unique identifier for the user
           type: string
           format: uuid
-          description: Unique identifier for the user
         name:
-          type: string
           description: Name of the user
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
         role:
+          description: Role of the user in the application
           type: string
           enum:
             - DRIVER
             - PASSENGER
-          description: Role of the user in the application
 
     Ride:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
           description: Unique identifier for the ride
-        driver_id:
           type: string
           format: uuid
+        driver:
           description: Reference to the driver (User ID)
-        start_city_id:
-          type: string
-          format: uuid
+          $ref: '#/components/schemas/User'
+        start_city:
           description: Reference to the city where the ride starts
-        destination_city_id:
-          type: string
-          format: uuid
+          $ref: '#/components/schemas/City'
+        destination_city:
           description: Reference to the destination city
+          $ref: '#/components/schemas/City'
         departure_time:
+          description: Departure time of the ride
           type: string
           format: date-time
-          description: Departure time of the ride
         price:
           description: Price of the ride
           $ref: '#/components/schemas/BigDecimal'
         pet_friendly:
-          type: boolean
           description: Whether the ride is pet-friendly
+          type: boolean
         status:
+          description: Current status of the ride
           type: string
           enum:
             - ACTIVE
             - CANCELLED
             - COMPLETED
-          description: Current status of the ride
 
     CityStop:
       type: object
@@ -567,8 +653,6 @@ components:
           description: Timestamp of when the message was sent
     BigDecimal:
       type: BigDecimal
-
-
 
 
     Error:
