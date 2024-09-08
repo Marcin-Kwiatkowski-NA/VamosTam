@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.3.3</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.mkpw</groupId>
+	<artifactId>BlaBlaTwo</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>BlaBlaTwo</name>
+	<description>BlaBlaTwo ride sharing App</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>21</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openapitools</groupId>
+			<artifactId>openapi-generator-cli</artifactId>
+			<version>7.8.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-annotations</artifactId>
+			<version>2.2.22</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openapitools</groupId>
+			<artifactId>jackson-databind-nullable</artifactId>
+			<version>0.2.6</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-xml</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-hateoas</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-oas</artifactId>
+			<version>3.0.0</version>
+		</dependency>
+
+		<!-- Spring Boot Data JPA -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- Flyway Core for database migrations -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+
+		<!-- H2 Database for in-memory testing (runtime only) -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- OpenAPI Generator Plugin -->
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>7.8.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/api/openapi.yaml</inputSpec>
+							<generatorName>spring</generatorName>
+							<configOptions>
+								<sourceFolder>src/main/java</sourceFolder>
+								<dateLibrary>java8</dateLibrary>
+								<library>spring-boot</library>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+								<modelPackage>com.mkpw.blaBlaTwo.model</modelPackage>
+								<apiPackage>com.mkpw.blaBlaTwo</apiPackage>
+								<invokerPackage>com.mkpw.blaBlaTwo</invokerPackage>
+								<serializableModel>true</serializableModel>
+								<useTags>true</useTags>
+								<useGzipFeature>true</useGzipFeature>
+								<hateoas>true</hateoas>
+								<unhandledException>true</unhandledException>
+								<useSpringBoot3>true</useSpringBoot3>
+								<useSwaggerUI>true</useSwaggerUI>
+								<importMappings>
+									<importMapping>ResourceSupport=org.springframework.hateoas.RepresentationModel</importMapping>
+									<importMapping>Link=org.springframework.hateoas.Link</importMapping>
+								</importMappings>
+								<ignoreFileOverride>${project.basedir}/src/main/resources/api/.openapi-generator-ignore</ignoreFileOverride>
+								<interfaceOnly>true</interfaceOnly>
+							</configOptions>
+							<output>${project.basedir}/target/openapi-code-blaBlaTwo</output>
+							<supportingFilesToGenerate>
+								ApiUtil.java
+							</supportingFilesToGenerate>
+							<generateModels>true</generateModels>
+							<generateApis>true</generateApis>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<!-- Build Helper Plugin to add generated sources -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<goals>
+							<goal>add-source</goal>
+							<goal>add-resource</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.basedir}/target/openapi-code-blaBlaTwo/src/main/java</source>
+							</sources>
+							<resources>
+								<resource>
+									<directory>${project.basedir}/target/openapi-code-blaBlaTwo/src/main/resources</directory>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+		<resources>
+<!--			<resource>-->
+<!--				<directory>${project.build.directory}/target/generated-sources/openapi/src/main/resources</directory>-->
+<!--			</resource>-->
+		</resources>
+	</build>
+
+</project>
