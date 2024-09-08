@@ -5,11 +5,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
-import javax.inject.Qualifier;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface RideRepository extends CrudRepository<RideEntity, UUID> {
-    @Query("select c from RideEntity c join c.user u where u.id = :driverID")
+    @Query("select c from RideEntity c join c.driver u where u.id = :driverId")
     Iterable<RideEntity> findByDriverId(@Param("driverId") UUID driverID);
 }

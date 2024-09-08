@@ -3,10 +3,11 @@ package com.mkpw.blaBlaTwo.services;
 import com.mkpw.blaBlaTwo.entity.RideEntity;
 import com.mkpw.blaBlaTwo.repository.RideRepository;
 import com.mkpw.blaBlaTwo.repository.UserRepository;
+import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.UUID;
 
+@Service
 public class RideServiceImpl implements RideService {
     private final RideRepository repository;
     private final UserRepository userRepo;
@@ -22,9 +23,9 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Optional<RideEntity> getRideByRideId(String rideId) {
+    public RideEntity getRideByRideId(String rideId) {
 
-        return repository.findById(UUID.fromString(rideId));
+        return repository.findById(UUID.fromString(rideId)).orElseThrow();
     }
 
 }

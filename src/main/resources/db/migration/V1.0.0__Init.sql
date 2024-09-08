@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS ride_sharing.cities (
 CREATE TABLE IF NOT EXISTS ride_sharing.users (
     id UUID NOT NULL DEFAULT random_uuid(),
     name VARCHAR(56),
-    role VARCHAR(16) CHECK (role IN ('Driver', 'Passenger')),
+    role VARCHAR(16) CHECK (role IN ('DRIVER', 'PASSENGER')),
     PRIMARY KEY (id)
 );
 
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS ride_sharing.rides (
     departure_time TIMESTAMP NOT NULL,
     price NUMERIC(16, 2) DEFAULT 100.00 NOT NULL,
     pet_friendly BOOLEAN,
-    status VARCHAR(16) CHECK (status IN ('Active', 'Cancelled', 'Completed')),
+    status VARCHAR(16) CHECK (status IN ('ACTIVE', 'CANCELLED', 'COMPLETED')),
     PRIMARY KEY (id),
     FOREIGN KEY (driver_id) REFERENCES ride_sharing.users(id),
     FOREIGN KEY (start_city_id) REFERENCES ride_sharing.cities(id),
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS ride_sharing.passengers (
     id UUID NOT NULL DEFAULT random_uuid(),
     ride_id UUID NOT NULL,
     passenger_id UUID NOT NULL,  -- Reference to users (passengers)
-    status VARCHAR(16) CHECK (status IN ('Pending', 'Confirmed', 'Cancelled')),
+    status VARCHAR(16) CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED')),
     PRIMARY KEY (id),
     FOREIGN KEY (ride_id) REFERENCES ride_sharing.rides(id),
     FOREIGN KEY (passenger_id) REFERENCES ride_sharing.users(id)
@@ -112,18 +112,18 @@ INSERT INTO ride_sharing.cities (id, name) VALUES
 
 -- Seed data for users table
 INSERT INTO ride_sharing.users (id, name, role) VALUES
-  ('22222222-2222-2222-2222-222222222221', 'John Doe', 'Driver'),
-  ('22222222-2222-2222-2222-222222222222', 'Jane Smith', 'Passenger'),
-  ('22222222-2222-2222-2222-222222222223', 'Adam Nowak', 'Driver'),
-  ('22222222-2222-2222-2222-222222222224', 'Ewa Kowalska', 'Passenger'),
-  ('22222222-2222-2222-2222-222222222225', 'Pawel Mazur', 'Driver'),
-  ('22222222-2222-2222-2222-222222222226', 'Anna Zielinska', 'Passenger');
+  ('22222222-2222-2222-2222-222222222221', 'John Doe', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222222', 'Jane Smith', 'PASSENGER'),
+  ('22222222-2222-2222-2222-222222222223', 'Adam Nowak', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222224', 'Ewa Kowalska', 'PASSENGER'),
+  ('22222222-2222-2222-2222-222222222225', 'Pawel Mazur', 'DRIVER'),
+  ('22222222-2222-2222-2222-222222222226', 'Anna Zielinska', 'PASSENGER');
 
 -- Seed data for rides table
 INSERT INTO ride_sharing.rides (id, driver_id, start_city_id, destination_city_id, departure_time, price, pet_friendly, status) VALUES
-  ('33333333-3333-3333-3333-333333333331', '22222222-2222-2222-2222-222222222221', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111112', '2024-09-12 09:00:00', 50.00, true, 'Active'),
-  ('33333333-3333-3333-3333-333333333332', '22222222-2222-2222-2222-222222222223', '11111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111114', '2024-09-15 14:30:00', 70.00, false, 'Active'),
-  ('33333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222225', '11111111-1111-1111-1111-111111111116', '11111111-1111-1111-1111-111111111117', '2024-09-20 10:00:00', 45.00, true, 'Active');
+  ('33333333-3333-3333-3333-333333333331', '22222222-2222-2222-2222-222222222221', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111112', '2024-09-12 09:00:00', 50.00, true, 'ACTIVE'),
+  ('33333333-3333-3333-3333-333333333332', '22222222-2222-2222-2222-222222222223', '11111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111114', '2024-09-15 14:30:00', 70.00, false, 'ACTIVE'),
+  ('33333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222225', '11111111-1111-1111-1111-111111111116', '11111111-1111-1111-1111-111111111117', '2024-09-20 10:00:00', 45.00, true, 'ACTIVE');
 
 -- Seed data for city_stops table
 INSERT INTO ride_sharing.city_stops (id, ride_id, city_id, position) VALUES
@@ -132,8 +132,8 @@ INSERT INTO ride_sharing.city_stops (id, ride_id, city_id, position) VALUES
 
 -- Seed data for passengers table
 INSERT INTO ride_sharing.passengers (id, ride_id, passenger_id, status) VALUES
-  ('55555555-5555-5555-5555-555555555551', '33333333-3333-3333-3333-333333333331', '22222222-2222-2222-2222-222222222222', 'Confirmed'),
-  ('55555555-5555-5555-5555-555555555552', '33333333-3333-3333-3333-333333333332', '22222222-2222-2222-2222-222222222224', 'Pending');
+  ('55555555-5555-5555-5555-555555555551', '33333333-3333-3333-3333-333333333331', '22222222-2222-2222-2222-222222222222', 'CONFIRMED'),
+  ('55555555-5555-5555-5555-555555555552', '33333333-3333-3333-3333-333333333332', '22222222-2222-2222-2222-222222222224', 'PENDING');
 
 -- Seed data for feedback table
 INSERT INTO ride_sharing.feedback (id, ride_id, user_id, driver_id, rating, comment) VALUES

@@ -127,7 +127,7 @@
 								<modelPackage>com.mkpw.blaBlaTwo.model</modelPackage>
 								<apiPackage>com.mkpw.blaBlaTwo</apiPackage>
 								<invokerPackage>com.mkpw.blaBlaTwo</invokerPackage>
-								<serializableModel>true</serializableModel>
+								<serializableModel>false</serializableModel>
 								<useTags>true</useTags>
 								<useGzipFeature>true</useGzipFeature>
 								<hateoas>true</hateoas>

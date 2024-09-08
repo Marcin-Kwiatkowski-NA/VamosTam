@@ -406,8 +406,8 @@ components:
         role:
           type: string
           enum:
-            - Driver
-            - Passenger
+            - DRIVER
+            - PASSENGER
           description: Role of the user in the application
 
     Ride:
@@ -434,19 +434,17 @@ components:
           format: date-time
           description: Departure time of the ride
         price:
-          type: number
-          format: float
-          default: 100.00
           description: Price of the ride
+          $ref: '#/components/schemas/BigDecimal'
         pet_friendly:
           type: boolean
           description: Whether the ride is pet-friendly
         status:
           type: string
           enum:
-            - Active
-            - Cancelled
-            - Completed
+            - ACTIVE
+            - CANCELLED
+            - COMPLETED
           description: Current status of the ride
 
     CityStop:
@@ -486,9 +484,9 @@ components:
         status:
           type: string
           enum:
-            - Pending
-            - Confirmed
-            - Cancelled
+            - PENDING
+            - CONFIRMED
+            - CANCELLED
           description: Current status of the passenger booking
 
     Feedback:
@@ -567,6 +565,8 @@ components:
           type: string
           format: date-time
           description: Timestamp of when the message was sent
+    BigDecimal:
+      type: BigDecimal
 
 
 
