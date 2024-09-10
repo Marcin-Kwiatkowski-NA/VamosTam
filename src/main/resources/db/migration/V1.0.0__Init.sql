@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS ride_sharing.rides (
     start_city_id UUID NOT NULL,
     destination_city_id UUID NOT NULL,
     departure_time TIMESTAMP NOT NULL,
-    price NUMERIC(16, 2) DEFAULT 100.00 NOT NULL,
+    price NUMERIC(16, 4) DEFAULT 0 NOT NULL,
     pet_friendly BOOLEAN,
     status VARCHAR(16) CHECK (status IN ('ACTIVE', 'CANCELLED', 'COMPLETED')),
     PRIMARY KEY (id),

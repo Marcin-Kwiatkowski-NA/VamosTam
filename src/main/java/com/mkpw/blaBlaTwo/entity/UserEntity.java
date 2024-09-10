@@ -1,8 +1,11 @@
 package com.mkpw.blaBlaTwo.entity;
 
+import com.mkpw.blaBlaTwo.model.Ride;
 import com.mkpw.blaBlaTwo.model.User.RoleEnum;
 import jakarta.persistence.*;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -22,6 +25,9 @@ public class UserEntity {
 
     @Column(name = "PHONE")
     private String phone;
+
+    @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RideEntity> rides;
 
     public UUID getId() {
         return id;

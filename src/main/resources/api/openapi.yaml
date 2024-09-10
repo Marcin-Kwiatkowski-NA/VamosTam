@@ -498,6 +498,11 @@ components:
           enum:
             - DRIVER
             - PASSENGER
+        rides:
+          description: Collection of rides
+          type: array
+          items:
+            $ref: '#/components/schemas/Ride'
 
     Ride:
       type: object
