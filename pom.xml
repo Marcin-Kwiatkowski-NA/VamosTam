@@ -45,6 +45,7 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- Dependency management as a Bill of Materials (BOM) -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>
@@ -52,24 +53,36 @@
 				<version>3.3.3</version>
 				<scope>import</scope>
 			</dependency>
+
+			<!-- Swagger codegen-->
 			<dependency>
 				<groupId>io.swagger.core.v3</groupId>
 				<artifactId>swagger-annotations</artifactId>
 				<version>2.2.22</version>
 				<scope>provided</scope>
 			</dependency>
-
 			<dependency>
 				<groupId>org.openapitools</groupId>
 				<artifactId>jackson-databind-nullable</artifactId>
 				<version>0.2.6</version>
 				<scope>provided</scope>
 			</dependency>
-
 			<dependency>
 				<groupId>org.springdoc</groupId>
 				<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 				<version>2.6.0</version>
+			</dependency>
+
+			<!-- Logging -->
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>2.0.16</version>
+			</dependency>
+			<dependency>
+				<groupId>org.tinylog</groupId>
+				<artifactId>slf4j-tinylog</artifactId>
+				<version>2.7.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
