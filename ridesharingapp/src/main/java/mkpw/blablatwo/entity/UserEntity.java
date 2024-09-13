@@ -1,6 +1,9 @@
 package mkpw.blablatwo.entity;
 
 import jakarta.persistence.*;
+import mkpw.blablatwo.model.Passenger;
+import mkpw.blablatwo.model.Ride;
+import mkpw.blablatwo.model.User;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +25,10 @@ public class UserEntity {
 
     @Column(name = "PHONE")
     private String phone;
+
+    @Column(name = "ROLE")
+    @Enumerated(EnumType.STRING)
+    private User.RoleEnum role;
 
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RideEntity> rides;
@@ -59,6 +66,15 @@ public class UserEntity {
 
     public UserEntity setPhone(String phone) {
         this.phone = phone;
+        return this;
+    }
+
+    public User.RoleEnum getRole() {
+        return role;
+    }
+
+    public UserEntity setRole(User.RoleEnum role) {
+        this.role = role;
         return this;
     }
 

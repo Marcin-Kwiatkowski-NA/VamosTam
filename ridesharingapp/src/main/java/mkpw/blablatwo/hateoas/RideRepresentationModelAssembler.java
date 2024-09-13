@@ -2,7 +2,7 @@ package mkpw.blablatwo.hateoas;
 
 import mkpw.blablatwo.controllers.RidesController;
 import mkpw.blablatwo.entity.RideEntity;
-import mkpw.blaBlaTwo.model.Ride;
+import mkpw.blablatwo.model.Ride;
 import org.springframework.beans.BeanUtils;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.stereotype.Component;
@@ -40,8 +40,8 @@ public class RideRepresentationModelAssembler extends RepresentationModelAssembl
     @Override
     public Ride toModel(RideEntity entity) {
         String rideId = Objects.nonNull(entity.getId()) ? entity.getId().toString() : null;
-        Ride resource = new Ride();
-        BeanUtils.copyProperties(entity, resource);
+        Ride resource = createModelWithId(entity.getId(), entity);
+        BeanUtils.copyProperties(entity, resource);  // I can use  ModelMapper as well
         resource.departureTime(entity.getDepartureTime().toInstant().atOffset(ZoneOffset.UTC))
                 .driver(userAssembler.toModel(entity.getDriver()))
                 .startCity(cityAssembler.toModel(entity.getStartCity()))

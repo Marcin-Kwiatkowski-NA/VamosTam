@@ -2,6 +2,10 @@ package mkpw.blablatwo.exeptions;
 
 
 import com.fasterxml.jackson.core.JsonParseException;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Locale;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
@@ -17,13 +24,23 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
-@ControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice (basePackages = "mkpw.blablatwo.controllers")
 public class RestApiErrorHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RestApiErrorHandler.class);
     private final MessageSource messageSource;
+
+    public ProblemDetail handleAllExeption(HttpServletRequest request, Exception ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Exception occured");
+        pd.setProperty("key", "value"); //additional fields
+        pd.setProperty("timestamp", ZonedDateTime.now().toString());
+        pd.setType(URI.create("https://www.someurl.com/errors/bad-request")); //client can visit and ride about the problem
+        return pd;
+    }
 
     @Autowired
     public RestApiErrorHandler(MessageSource messageSource) {

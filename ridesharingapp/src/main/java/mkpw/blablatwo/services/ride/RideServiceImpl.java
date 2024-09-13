@@ -1,8 +1,8 @@
-package mkpw.blablatwo.services;
+package mkpw.blablatwo.services.ride;
 
 import mkpw.blablatwo.entity.RideEntity;
+import mkpw.blablatwo.exeptions.runtime.NoSuchRideException;
 import mkpw.blablatwo.repository.RideRepository;
-import mkpw.blablatwo.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -10,11 +10,9 @@ import java.util.UUID;
 @Service
 public class RideServiceImpl implements RideService {
     private final RideRepository repository;
-    private final UserRepository userRepo;
 
-    public RideServiceImpl(RideRepository repository, UserRepository userRepo) {
+    public RideServiceImpl(RideRepository repository) {
         this.repository = repository;
-        this.userRepo = userRepo;
     }
 
     @Override
@@ -23,9 +21,9 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public RideEntity getRideByRideId(String rideId) {
+    public RideEntity getRideById(String rideId) {
 
-        return repository.findById(UUID.fromString(rideId)).orElseThrow();
+        return repository.findById(UUID.fromString(rideId))
+                .orElseThrow(NoSuchRideException::new);
     }
-
 }

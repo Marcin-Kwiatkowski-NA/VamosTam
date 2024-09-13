@@ -3,7 +3,7 @@ package mkpw.blablatwo.hateoas;
 import mkpw.blablatwo.controllers.CityController;
 import mkpw.blablatwo.controllers.RidesController;
 import mkpw.blablatwo.entity.CityEntity;
-import mkpw.blaBlaTwo.model.City;
+import mkpw.blablatwo.model.City;
 import org.springframework.beans.BeanUtils;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;

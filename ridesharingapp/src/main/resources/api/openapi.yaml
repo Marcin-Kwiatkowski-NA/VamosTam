@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: BlaBlaTwo Ride Sharing Service
+  title: blablatwo
   description: >
     BlaBlaTwo facilitates ride-sharing across Poland, allowing users to post and search for rides, rate their experiences, and communicate with drivers or passengers.
   version: 1.0.0
@@ -443,27 +443,115 @@ paths:
           description: Request accepted, returns this status even if user does not exist
           content: {}
 
-  /Cities:
+  /cities:
     get:
-      tags:
-        - city
-      summary: Returns all cities
-      description: Returns all all cities in database
+      summary: Retrieve all cities
       operationId: getAllCities
+      tags:
+        - City
       responses:
         200:
-          description: For successful fetch.
+          description: List of cities fetched successfully
           content:
-            application/xml:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/City'
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/City'
+        400:
+          description: Invalid input
+        422:
+          description: Unprocessable Entity
+
+    post:
+      summary: Add a new city
+      operationId: createCity
+      tags:
+        - City
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/City'
+      responses:
+        '201':
+          description: City successfully created
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /cities/{cityId}:
+    get:
+      summary: Get details of a specific city
+      operationId: getCityById
+      tags:
+        - City
+      parameters:
+        - name: cityId
+          in: path
+          description: Unique identifier of the city
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: City details fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/City'
+        '404':
+          description: City not found
+
+    put:
+      summary: Update an existing city
+      operationId: updateCity
+      tags:
+        - City
+      parameters:
+        - name: cityId
+          in: path
+          description: Unique identifier of the city
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/City'
+      responses:
+        '200':
+          description: City updated successfully
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: City not found
+
+    delete:
+      summary: Delete a specific city
+      operationId: deleteCity
+      tags:
+        - City
+      parameters:
+        - name: cityId
+          in: path
+          description: Unique identifier of the city
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: City deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: City not found
 
 components:
   schemas:

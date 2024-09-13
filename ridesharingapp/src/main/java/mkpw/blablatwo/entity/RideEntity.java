@@ -1,6 +1,6 @@
 package mkpw.blablatwo.entity;
 
-import mkpw.blaBlaTwo.model.Ride.StatusEnum;
+import mkpw.blablatwo.model.Ride.StatusEnum;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;

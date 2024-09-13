@@ -1,17 +1,22 @@
 package mkpw.blablatwo.controllers;
 
-import mkpw.blaBlaTwo.api.RideApi;
-import mkpw.blaBlaTwo.model.Ride;
+import mkpw.blablatwo.api.RideApi;
+import mkpw.blablatwo.model.Ride;
 import mkpw.blablatwo.hateoas.RideRepresentationModelAssembler;
-import mkpw.blablatwo.services.RideService;
+import mkpw.blablatwo.services.ride.RideService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+
 @RestController
+//@RequestMapping(value = "/rides")
 public class RidesController implements RideApi {
-    private static final Logger log = LoggerFactory.getLogger(RidesController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RidesController.class);
     private final RideService service;
     private final RideRepresentationModelAssembler assembler;
 
@@ -21,9 +26,9 @@ public class RidesController implements RideApi {
     }
 
     @Override
+//    @GetMapping(path = "/rides/{rideId}")
     public ResponseEntity<Ride> getRideById (String rideId) {
-        log.info("Request for rideId: {}",  rideId);
-        return ResponseEntity.ok(assembler.toModel(service.getRideByRideId(rideId)));
+        LOGGER.info("Request for rideId: {}",  rideId);
+        return ResponseEntity.ok(assembler.toModel(service.getRideById(rideId)));
     }
-
 }

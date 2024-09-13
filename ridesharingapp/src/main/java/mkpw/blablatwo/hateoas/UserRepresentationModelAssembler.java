@@ -3,7 +3,7 @@ package mkpw.blablatwo.hateoas;
 import mkpw.blablatwo.controllers.RidesController;
 import mkpw.blablatwo.controllers.UserController;
 import mkpw.blablatwo.entity.UserEntity;
-import mkpw.blaBlaTwo.model.User;
+import mkpw.blablatwo.model.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.stereotype.Component;

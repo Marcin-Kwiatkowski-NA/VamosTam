@@ -23,7 +23,7 @@
         <!-- Spring Boot-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -40,19 +40,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
         <!-- Swagger codegen-->
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>jackson-databind-nullable</artifactId>
@@ -78,16 +70,6 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.tinylog</groupId>
-            <artifactId>slf4j-tinylog</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -96,7 +78,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            
+
             <!-- OpenAPI Generator Plugin -->
             <plugin>
                 <groupId>org.openapitools</groupId>
@@ -109,20 +91,22 @@
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/api/openapi.yaml</inputSpec>
                             <generatorName>spring</generatorName>
+                            <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
                             <configOptions>
                                 <sourceFolder>src/main/java</sourceFolder>
                                 <dateLibrary>java8</dateLibrary>
                                 <library>spring-boot</library>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
-                                <modelPackage>mkpw.blaBlaTwo.model</modelPackage>
-                                <apiPackage>mkpw.blaBlaTwo.api</apiPackage>
-                                <invokerPackage>mkpw.blaBlaTwo.api</invokerPackage>
+                                <modelPackage>mkpw.blablatwo.model</modelPackage>
+                                <apiPackage>mkpw.blablatwo.api</apiPackage>
+                                <invokerPackage>mkpw.blablatwo.api</invokerPackage>
                                 <serializableModel>false</serializableModel>
                                 <useTags>true</useTags>
                                 <useGzipFeature>true</useGzipFeature>
                                 <hateoas>true</hateoas>
                                 <unhandledException>true</unhandledException>
                                 <useSpringBoot3>true</useSpringBoot3>
+                                <requestMappingMode>none</requestMappingMode>
                                 <useSwaggerUI>true</useSwaggerUI>
                                 <importMappings>
                                     <importMapping>ResourceSupport=org.springframework.hateoas.RepresentationModel</importMapping>
@@ -131,7 +115,7 @@
                                 <ignoreFileOverride>${project.basedir}/src/main/resources/api/.openapi-generator-ignore</ignoreFileOverride>
                                 <interfaceOnly>true</interfaceOnly>
                             </configOptions>
-                            <output>${project.basedir}/target/openapi-code-blaBlaTwo</output>
+                            <output>${project.build.directory}/openapi-code-blaBlaTwo</output>
                             <supportingFilesToGenerate>
                                 ApiUtil.java
                             </supportingFilesToGenerate>
@@ -165,7 +149,15 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- This tells the JVM that dynamic loading of agents is expected and prevents the warning from being shown. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-
 </project>
