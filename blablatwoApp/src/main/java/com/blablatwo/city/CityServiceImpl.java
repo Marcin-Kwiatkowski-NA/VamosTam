@@ -7,8 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+
 @Service
 public class CityServiceImpl implements CityService{
 
@@ -22,7 +21,7 @@ public class CityServiceImpl implements CityService{
     }
 
     @Override
-    public CityDTO getById(int id) {
+    public CityDTO getById(long id) {
         return mapper.toCityDTO(
                 repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("City not found with ID " + id)));

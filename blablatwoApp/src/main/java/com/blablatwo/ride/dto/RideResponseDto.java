@@ -1,4 +1,4 @@
-package com.blablatwo.ride.DTO;
+package com.blablatwo.ride.dto;
 
 import com.blablatwo.city.CityDTO;
 import com.blablatwo.traveler.DriverProfileDto;
@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RideResponseDto(Long id,
+public record RideResponseDto(long id,
                               DriverProfileDto driver,
                               VehicleResponseDTO vehicle,
                               CityDTO origin,
@@ -22,4 +22,3 @@ public record RideResponseDto(Long id,
                               Instant lastModified,
                               List<DriverProfileDto> passengers) {
 }
-

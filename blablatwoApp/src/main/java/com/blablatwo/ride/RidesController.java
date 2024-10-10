@@ -1,8 +1,8 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.ride.DTO.RideResponseDto;
+import com.blablatwo.ride.dto.RideCreationDto;
+import com.blablatwo.ride.dto.RideResponseDto;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ public class RidesController {
     }
 
     @PostMapping("/rides")
-    public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideCreationDTO ride) {
+    public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideCreationDto ride) {
         var newRide = rideService.create(ride);
         return ResponseEntity.created(getUriFromId(newRide.id()))
                 .eTag(getEtag(newRide))
@@ -40,15 +40,13 @@ public class RidesController {
     }
 
     @PutMapping("/rides/{id}")
-    public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDTO rideDTO,
+    public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
                                                @PathVariable long id,
                                                @RequestHeader ("If-Match") String ifMatch) {
 
-        if(! rideService.ifMatch(id, ifMatch)) {
-            throw new ETagMismatchException();
-        }
 
-        var updatedRide = rideService.update(rideDTO, id);
+
+        var updatedRide = rideService.update(rideDTO, id, ifMatch);
         return ResponseEntity.ok()
                 .location(getUriFromId(id))
                 .eTag(getEtag(updatedRide))

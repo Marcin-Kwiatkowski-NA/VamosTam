@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -23,6 +24,11 @@ public class TravelerEntity {
 
     @Column(name = "password", nullable = false, length = 255)
     private String password;
+
+    @Column(name = "enabled", nullable = false)
+    private int enabled;
+
+    String authority;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;

@@ -3,7 +3,7 @@ package com.blablatwo.city;
 import java.util.Collection;
 
 public interface CityService {
-    CityDTO getById(int id);
+    CityDTO getById(long id);
 
     Collection<CityDTO> getAllCities();
 }

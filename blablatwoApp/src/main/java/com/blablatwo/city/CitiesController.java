@@ -30,8 +30,6 @@ public class CitiesController {
         return rideService.getAllCities();
     }
 
-
-
     private URI getUriFromId(String id) {
         return ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -39,5 +37,4 @@ public class CitiesController {
                 .buildAndExpand(id)
                 .toUri();
     }
-
 }

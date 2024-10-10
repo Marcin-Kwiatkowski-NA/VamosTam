@@ -1,0 +1,215 @@
+package com.blablatwo.ride;
+
+import com.blablatwo.exceptions.ETagMismatchException;
+import com.blablatwo.exceptions.NoSuchRideException;
+import com.blablatwo.ride.dto.RideCreationDto;
+import com.blablatwo.ride.dto.RideResponseDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static com.blablatwo.util.Constants.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+
+@WebMvcTest(RidesController.class)
+class RidesControllerTest {
+
+    private static final String BASE_URL = "/rides";
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private RideService rideService;
+
+
+    private RideEntity rideEntity;
+    private RideCreationDto rideCreationDTO;
+    RideResponseDto rideResponseDto;
+
+    @BeforeEach
+    void setUp() {
+        rideEntity = new RideEntity();
+        rideEntity.setId(ID_100)
+                .setLastModified(INSTANT);
+
+        rideCreationDTO = new RideCreationDto(
+                ID_ONE, ID_100, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100, List.of(ID_100)
+        );
+
+        rideResponseDto = new RideResponseDto(
+                ID_100, null, null, null, null, null, LOCAL_DATE_TIME,
+                ONE, BIG_DECIMAL, null, INSTANT, null);
+    }
+
+    @Test
+    @DisplayName("GET /rides/{id} - Found")
+    void getRideById() throws Exception {
+        // Arrange
+        when(rideService.getById(ID_100)).thenReturn(Optional.of(rideResponseDto));
+
+        // Act & Assert
+        mockMvc.perform(get(BASE_URL + "/" + ID_100)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ID_100));
+
+    }
+
+    @Test
+    @DisplayName("GET /rides/{id} - Not Found")
+    void GetRideById_NotFound() throws Exception {
+        // Arrange
+        when(rideService.getById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Create ride - Success")
+    void testCreateRide_Success() throws Exception {
+        // Arrange
+        when(rideService.create(rideCreationDTO)).thenReturn(rideResponseDto);
+
+        // Act & Assert
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                .andExpect(status().isCreated())
+                .andExpect(header().exists("Location"))
+                .andExpect(header().string("ETag", String.valueOf(ETAG)))
+                .andExpect(jsonPath("$.id").value(ID_100));
+    }
+
+    @Test
+    @DisplayName("Create ride - Validation Error")
+    void testCreateRide_ValidationError() throws Exception {
+        // Arrange
+        RideCreationDto invalidRide = new RideCreationDto(
+                0,0, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0,null
+        );
+
+        // Act & Assert
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRide)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Delete ride - Success")
+    public void testDeleteRide_Success() throws Exception {
+        // Arrange
+        doNothing().when(rideService).delete(ID_100);
+
+        // Act & Assert
+        mockMvc.perform(delete(BASE_URL + "/" + ID_100)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Delete ride - Not Found")
+    void testDeleteRide_NotFound() throws Exception {
+        // Arrange
+        doThrow(new NoSuchRideException(NON_EXISTENT_ID)).when(rideService).delete(NON_EXISTENT_ID);
+
+        // Act & Assert
+        mockMvc.perform(delete(BASE_URL + "/" + NON_EXISTENT_ID)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /rides/{id} - Update ride - Success")
+    void updateRide_Success() throws Exception {
+        // Arrange
+        String ifMatch = ETAG;
+        when(rideService.update(any(RideCreationDto.class), eq(ID_100), eq(ifMatch)))
+                .thenReturn(rideResponseDto);
+
+        // Act & Assert
+        mockMvc.perform(put(BASE_URL + "/" + ID_100)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", ifMatch)
+                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Location"))
+                .andExpect(header().string("ETag", ETAG))
+                .andExpect(jsonPath("$.id").value(ID_100));
+    }
+
+    @Test
+    @DisplayName("PUT /rides/{id} - Update ride - Not Found")
+    void updateRide_NotFound() throws Exception {
+        // Arrange
+        String ifMatch = ETAG;
+        when(rideService.update(any(RideCreationDto.class), eq(NON_EXISTENT_ID), eq(ifMatch)))
+                .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
+
+        // Act & Assert
+        mockMvc.perform(put(BASE_URL + "/" + NON_EXISTENT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", ifMatch)
+                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /rides/{id} - Update ride - ETag Mismatch")
+    void updateRide_ETagMismatch() throws Exception {
+        // Arrange
+        String ifMatch = ETAG;
+        when(rideService.update(any(RideCreationDto.class), eq(ID_100), eq(ifMatch)))
+                .thenThrow(new ETagMismatchException());
+
+        // Act & Assert
+        mockMvc.perform(put(BASE_URL + "/" + ID_100)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", ifMatch)
+                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                .andExpect(status().isPreconditionFailed());
+    }
+
+    @Test
+    @DisplayName("PUT /rides/{id} - Update ride - Validation Error")
+    void updateRide_ValidationError() throws Exception {
+        // Arrange
+        String ifMatch = ETAG;
+        RideCreationDto invalidRide = new RideCreationDto(
+                0,0, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0,null
+        );
+
+        // Act & Assert
+        mockMvc.perform(put(BASE_URL + "/" + ID_100)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", ifMatch)
+                        .content(objectMapper.writeValueAsString(invalidRide)))
+                .andExpect(status().isBadRequest());
+    }
+}

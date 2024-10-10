@@ -9,5 +9,4 @@ class BlablatwoApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }

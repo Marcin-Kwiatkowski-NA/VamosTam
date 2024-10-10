@@ -11,16 +11,16 @@ public class CityEntity {
     @Id
     @GeneratedValue
     @Column(name = "ID", updatable = false, nullable = false)
-    private int id;
+    private long id;
 
     @Column(name = "NAME")
     private  String name;
 
-    public Integer getId() {
+    public long getId() {
         return id;
     }
 
-    public CityEntity setId(Integer id) {
+    public CityEntity setId(long id) {
         this.id = id;
         return this;
     }

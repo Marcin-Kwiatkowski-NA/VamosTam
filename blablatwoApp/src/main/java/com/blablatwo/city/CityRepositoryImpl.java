@@ -31,7 +31,7 @@ public class CityRepositoryImpl implements CityRepository{
     }
 
     @Override
-    public Optional<CityEntity> findById(int id) {
+    public Optional<CityEntity> findById(long id) {
         String sql = "SELECT * FROM city WHERE id = ?";
         try {
             CityEntity city = jdbcTemplate.queryForObject(sql, new CityRowMapper(), id);
@@ -56,7 +56,7 @@ public class CityRepositoryImpl implements CityRepository{
     }
 
     @Override
-    public boolean deleteById(int id) {
+    public boolean deleteById(long id) {
         return jdbcTemplate.update("DELETE FROM city WHERE id = ?", id) == 1;
     }
 

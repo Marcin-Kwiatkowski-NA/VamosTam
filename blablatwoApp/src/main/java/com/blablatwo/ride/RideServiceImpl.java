@@ -1,8 +1,10 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.MissingETagHeaderException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.ride.DTO.RideResponseDto;
+import com.blablatwo.ride.dto.RideCreationDto;
+import com.blablatwo.ride.dto.RideResponseDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +30,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto create(RideCreationDTO ride) {
+    public RideResponseDto create(RideCreationDto ride) {
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
         return rideMapper.rideEntityToRideResponseDto(
                 rideRepository.save(newRideEntity));
@@ -36,22 +38,16 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto update(RideCreationDTO ride, long id) {
+    public RideResponseDto update(RideCreationDto ride, long id, String ifMatch) {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
-        rideMapper.update(existingRide, ride);
-        return rideMapper.rideEntityToRideResponseDto(existingRide);
-    }
+        var existingETag = String.valueOf(existingRide.getLastModified());
 
-    @Override
-    @Transactional(readOnly = true)
-    public boolean ifMatch(long id, String ifMatch) {
-        if (ifMatch == null) {
-            throw new MissingETagHeaderException();
-        }
-        var existingRide = getById(id)
-                .orElseThrow(() -> new NoSuchRideException(id));
-        return existingRide.lastModified().toString().equals(ifMatch);
+        eTagCheck(ifMatch, existingETag);
+
+        rideMapper.update(existingRide, ride);
+        rideRepository.save(existingRide);
+        return rideMapper.rideEntityToRideResponseDto(existingRide);
     }
 
     @Override
@@ -61,6 +57,16 @@ public class RideServiceImpl implements RideService {
             rideRepository.deleteById(id);
         } else {
             throw new NoSuchRideException(id);
+        }
+    }
+
+    void eTagCheck(String ifMatch, String existingETag) {
+        if (ifMatch == null) {
+            throw new MissingETagHeaderException();
+        }
+
+        if(! existingETag.equals(ifMatch)) {
+            throw new ETagMismatchException();
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.blablatwo.ride;
+package com.blablatwo.ride.dto;
 
 import jakarta.validation.constraints.*;
 
@@ -6,15 +6,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RideCreationDTO(
-        @NotNull(message = "Please provide vehicle")
-        Long vehicleId,
+public record RideCreationDto(
 
         @NotNull(message = "Please provide origin city")
-        Long originCityId,
+        long originCityId,
 
         @NotNull(message = "Please provide destination city")
-        Long destinationCityId,
+        long destinationCityId,
 
         @NotNull(message = "Please provide departure time")
         @Future(message = "Departure time must be in the future")
@@ -25,6 +23,9 @@ public record RideCreationDTO(
 
         @DecimalMin(value = "0.0", inclusive = false, message = "Price per seat must be greater than 0")
         BigDecimal pricePerSeat,
+
+        @NotNull(message = "Please provide vehicle")
+        long vehicleId,
 
         @NotNull(message = "Please provide stop city IDs")
         @Size(min = 1, message = "Please provide at least one stop city ID")

@@ -34,7 +34,7 @@ class CityRepositoryImplTest {
     @DisplayName("Find a city by valid ID")
     @Order(1)
     void findCityById() {
-        Optional<CityEntity> retrievedCity = cityRepository.findById(ID_100_INT);
+        Optional<CityEntity> retrievedCity = cityRepository.findById(ID_100);
 
         assertTrue(retrievedCity.isPresent(), "City should be found by ID");
         assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getName(), "City name should match");
@@ -59,7 +59,7 @@ class CityRepositoryImplTest {
     @Test
     @DisplayName("Return empty when finding by non-existent ID")
     void returnEmptyForNonExistentId() {
-        Optional<CityEntity> retrievedCity = cityRepository.findById(NON_EXISTENT_ID_INT);
+        Optional<CityEntity> retrievedCity = cityRepository.findById(NON_EXISTENT_ID);
 
         assertFalse(retrievedCity.isPresent(), "No city should be found with non-existent ID");
     }
@@ -79,7 +79,7 @@ class CityRepositoryImplTest {
         CityEntity city = new CityEntity();
         String newName = "New Name";
         city.setName(newName);
-        city.setId(ID_100_INT);
+        city.setId(ID_100);
 
         // Act
         var updatedCity = cityRepository.update(city);
@@ -92,8 +92,8 @@ class CityRepositoryImplTest {
     @Test
     @DisplayName("Delete a city successfully")
     void shouldDeleteCity() {
-        boolean deletedSuccessfully = cityRepository.deleteById(ID_100_INT);
-        Optional<CityEntity> deletedCity = cityRepository.findById(ID_100_INT);
+        boolean deletedSuccessfully = cityRepository.deleteById(ID_100);
+        Optional<CityEntity> deletedCity = cityRepository.findById(ID_100);
 
         assertTrue(deletedSuccessfully, "Deleting should return true");
         assertFalse(deletedCity.isPresent(), "City should be deleted successfully");
@@ -104,7 +104,7 @@ class CityRepositoryImplTest {
     void updateNonExistentCity() {
         // Arrange
         CityEntity nonExistentCity = new CityEntity();
-        nonExistentCity.setId(NON_EXISTENT_ID_INT);
+        nonExistentCity.setId(NON_EXISTENT_ID);
         nonExistentCity.setName("Non-Existent City");
 
         // Act

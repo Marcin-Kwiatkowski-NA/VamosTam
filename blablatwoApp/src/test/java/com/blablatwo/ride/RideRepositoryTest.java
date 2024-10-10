@@ -43,16 +43,16 @@ class RideRepositoryTest {
   @DisplayName("Find a ride by valid ID")
   @Order(1)
   void findRideById() {
-    Optional<RideEntity> retrievedRide = rideRepository.findById(ID_100_L);
+    Optional<RideEntity> retrievedRide = rideRepository.findById(ID_100);
 
     assertTrue(retrievedRide.isPresent(), "Ride should be found by ID");
-    assertEquals(ID_100_L, retrievedRide.get().getId(), "Ride ID should match");
+    assertEquals(ID_100, retrievedRide.get().getId(), "Ride ID should match");
   }
 
   @Test
   @DisplayName("Return empty when finding by non-existent ID")
   void returnEmptyForNonExistentId() {
-    Optional<RideEntity> retrievedRide = rideRepository.findById(NON_EXISTENT_ID_LONG);
+    Optional<RideEntity> retrievedRide = rideRepository.findById(NON_EXISTENT_ID);
 
     assertFalse(retrievedRide.isPresent(), "No ride should be found with non-existent ID");
   }
@@ -88,7 +88,7 @@ class RideRepositoryTest {
     // Arrange
     var newPrice = new BigDecimal("45.00");
     int newSeats = 2;
-    Optional<RideEntity> rideOptional = rideRepository.findById(ID_100_L);
+    Optional<RideEntity> rideOptional = rideRepository.findById(ID_100);
     assertTrue(rideOptional.isPresent(), "Ride should exist for update");
     RideEntity ride = rideOptional.get();
 
@@ -109,8 +109,8 @@ class RideRepositoryTest {
   @Test
   @DisplayName("Delete a ride successfully")
   void shouldDeleteRide() {
-    rideRepository.deleteById(ID_100_L);
-    Optional<RideEntity> deletedRide = rideRepository.findById(ID_100_L);
+    rideRepository.deleteById(ID_100);
+    Optional<RideEntity> deletedRide = rideRepository.findById(ID_100);
 
     assertFalse(deletedRide.isPresent(), "Ride should be deleted successfully");
   }
@@ -120,7 +120,7 @@ class RideRepositoryTest {
   void updateNonExistentRide() {
     // Arrange
     RideEntity nonExistentRide = new RideEntity();
-    nonExistentRide.setId(NON_EXISTENT_ID_LONG);
+    nonExistentRide.setId(NON_EXISTENT_ID);
 
     // Act & Assert
     assertThrows(DataIntegrityViolationException.class, () -> {

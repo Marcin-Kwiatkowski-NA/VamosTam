@@ -3,7 +3,7 @@ SET REFERENTIAL_INTEGRITY FALSE;
 
 -- 2. Cities Table
 CREATE TABLE IF NOT EXISTS city (
-    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     latitude DOUBLE,
     longitude DOUBLE
@@ -13,11 +13,20 @@ CREATE TABLE IF NOT EXISTS traveler (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    enabled INT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
     first_name VARCHAR(255),
     last_name VARCHAR(255),
     traveler_type VARCHAR(10) CHECK (traveler_type IN ('DRIVER', 'PASSENGER', 'BOTH'))
+);
+
+CREATE TABLE IF NOT EXISTS authorities (
+    id INT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(45) NULL,
+    authority VARCHAR(45) NULL,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (username) REFERENCES traveler(username)
 );
 
 
