@@ -47,17 +47,17 @@ public class TravelerEntity {
     private TravelerType travelerType; // Enum: DRIVER, PASSENGER, BOTH
 
     // Vehicles owned by the traveler
+
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VehicleEntity> vehicles;
-
     // Rides where the traveler is the driver
+
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RideEntity> ridesAsDriver;
-
     // Rides where the traveler is a passenger
+
     @ManyToMany(mappedBy = "passengers")
     private List<RideEntity> ridesAsPassenger;
-
     public Long getId() {
         return id;
     }
@@ -82,6 +82,24 @@ public class TravelerEntity {
 
     public TravelerEntity setPassword(String password) {
         this.password = password;
+        return this;
+    }
+
+    public String getAuthority() {
+        return authority;
+    }
+
+    public TravelerEntity setAuthority(String authority) {
+        this.authority = authority;
+        return this;
+    }
+
+    public int getEnabled() {
+        return enabled;
+    }
+
+    public TravelerEntity setEnabled(int enabled) {
+        this.enabled = enabled;
         return this;
     }
 

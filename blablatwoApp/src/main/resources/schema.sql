@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS traveler (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    enabled INT NULL,
+    enabled INT NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(20),
     first_name VARCHAR(255),
