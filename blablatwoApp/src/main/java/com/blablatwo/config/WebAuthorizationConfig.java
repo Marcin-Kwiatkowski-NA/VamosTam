@@ -29,10 +29,16 @@ public class WebAuthorizationConfig {
         http.httpBasic(Customizer.withDefaults());
 
         http.authorizeHttpRequests(
-                c -> c.requestMatchers("/cities").hasRole("DRIVER")
-                        .anyRequest().hasRole("ADMIN")
-//                        .anyRequest().permitAll()
+                c -> c
+//                        .requestMatchers("/cities")
+//                        .hasRole("DRIVER")
+//                        .anyRequest().hasRole("ADMIN")
+                        .anyRequest().permitAll()
 //                        .anyRequest().authenticated()
+        );
+
+        http.csrf(
+                c -> c.disable()
         );
 
         return http.build();
