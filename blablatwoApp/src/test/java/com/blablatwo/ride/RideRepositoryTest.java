@@ -3,8 +3,8 @@ package com.blablatwo.ride;
 import com.blablatwo.RepositoryTest;
 import com.blablatwo.city.City;
 import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.VehicleEntity;
 import com.blablatwo.util.TestConfig;
+import com.blablatwo.vehicle.Vehicle;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class RideRepositoryTest extends RepositoryTest {
   @Mock
   City destination;
   @Mock
-  VehicleEntity vehicle;
+  Vehicle vehicle;
 
 
   @Test

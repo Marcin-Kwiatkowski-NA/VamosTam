@@ -2,6 +2,7 @@ package com.blablatwo.traveler;
 
 import com.blablatwo.config.Roles;
 import com.blablatwo.ride.Ride;
+import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -49,8 +50,8 @@ public class Traveler {
     @Column(name = "type", length = 10)
     private TravelerType type = PASSENGER; // Enum: DRIVER, PASSENGER, BOTH
 
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<VehicleEntity> vehicles;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Vehicle> vehicles;
     // Rides where the traveler is the driver
 
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

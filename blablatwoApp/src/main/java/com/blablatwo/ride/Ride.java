@@ -2,7 +2,7 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.VehicleEntity;
+import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,7 +40,7 @@ public class Ride {
     private BigDecimal pricePerSeat;
 
     @ManyToOne
-    private VehicleEntity vehicle;
+    private Vehicle vehicle;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ride_status", length = 10)

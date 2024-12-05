@@ -2,7 +2,7 @@ package com.blablatwo.util;
 
 import com.blablatwo.city.City;
 import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.VehicleEntity;
+import com.blablatwo.vehicle.Vehicle;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -33,8 +33,8 @@ import static com.blablatwo.util.Constants.ID_ONE;
     }
 
     @Bean
-    VehicleEntity vehicle() {
-        var vehicle = new VehicleEntity();
+    Vehicle vehicle() {
+        var vehicle = new Vehicle();
         vehicle.setId(ID_100);
         return vehicle;
     }

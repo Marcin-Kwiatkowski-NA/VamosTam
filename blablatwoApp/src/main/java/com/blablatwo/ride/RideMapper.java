@@ -4,8 +4,8 @@ import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.VehicleEntity;
-import com.blablatwo.traveler.VehicleResponseDTO;
+import com.blablatwo.vehicle.Vehicle;
+import com.blablatwo.vehicle.VehicleResponseDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 
@@ -17,7 +17,7 @@ public interface RideMapper {
 
     Ride rideCreationDtoToEntity(RideCreationDto ride);
 
-    VehicleResponseDTO map(VehicleEntity value);
+    VehicleResponseDTO map(Vehicle value);
     DriverProfileDto map(Traveler value);
     void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 }

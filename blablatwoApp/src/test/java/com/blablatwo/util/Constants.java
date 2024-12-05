@@ -57,6 +57,23 @@ public class Constants {
     public static final String TRAVELER_PASSWORD_USER2 = "pass2";
     public static final String TRAVELER_EMAIL_USER2 = "user2@example.com";
 
+    public static final String VEHICLE_MAKE_TESLA = "Tesla";
+    public static final String VEHICLE_MAKE_BMW = "BMW";
+
+    public static final String VEHICLE_MODEL_MODEL_S = "Model S";
+    public static final String VEHICLE_MODEL_X5 = "X5";
+
+    public static final Integer VEHICLE_PRODUCTION_YEAR_2021 = 2021;
+    public static final Integer VEHICLE_PRODUCTION_YEAR_2020 = 2020;
+
+    public static final String VEHICLE_COLOR_RED = "Red";
+    public static final String VEHICLE_COLOR_BLACK = "Black";
+    public static final String VEHICLE_COLOR_BLUE = "Blue";
+
+    public static final String VEHICLE_LICENSE_PLATE_1 = "123-ABC";
+    public static final String VEHICLE_LICENSE_PLATE_2 = "456-DEF";
+    public static final String VEHICLE_LICENSE_PLATE_3 = "789-GHI";
+
     private Constants() {
     }
 }
