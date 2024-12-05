@@ -3,6 +3,7 @@ package com.blablatwo.city;
 import com.blablatwo.RepositoryTest;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.ConstraintViolationException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 class CityRepositoryImplTest extends RepositoryTest {
+
+    @BeforeAll
+    void setUp() {
+        var origin = City.builder()
+                .name(CITY_NAME_ORIGIN)
+                .build();
+        var destination = City.builder()
+                .name(CITY_NAME_DESTINATION)
+                .build();
+        cityRepository.save(origin);
+        cityRepository.save(destination);
+    }
 
     @Autowired
     private EntityManager entityManager;

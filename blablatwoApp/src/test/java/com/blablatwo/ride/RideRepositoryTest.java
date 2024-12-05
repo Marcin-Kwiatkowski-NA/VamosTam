@@ -1,11 +1,15 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.RepositoryTest;
+import com.blablatwo.city.City;
+import com.blablatwo.traveler.Traveler;
+import com.blablatwo.traveler.VehicleEntity;
 import com.blablatwo.util.TestConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -26,6 +30,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class RideRepositoryTest extends RepositoryTest {
   @Autowired
   RideRepository rideRepository;
+
+  @Mock
+  Traveler driver;
+
+  @Mock
+  City origin;
+  @Mock
+  City destination;
+  @Mock
+  VehicleEntity vehicle;
+
 
   @Test
   @DisplayName("Find a ride by valid ID")

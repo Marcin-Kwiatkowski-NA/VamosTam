@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "ride")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,29 +20,26 @@ import java.util.List;
 public class Ride {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     private Long id;
 
-    // Driver of the ride
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private Traveler driver;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private City origin;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private City destination;
 
-    @Column(name = "departure_time", nullable = false)
     private LocalDateTime departureTime;
 
-    @Column(name = "available_seats", nullable = false)
     private int availableSeats;
 
     @Column(name = "price_per_seat", precision = 10, scale = 2)
     private BigDecimal pricePerSeat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private VehicleEntity vehicle;
 
     @Enumerated(EnumType.STRING)

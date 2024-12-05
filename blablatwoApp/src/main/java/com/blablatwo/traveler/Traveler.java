@@ -3,6 +3,7 @@ package com.blablatwo.traveler;
 import com.blablatwo.config.Roles;
 import com.blablatwo.ride.Ride;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.List;
@@ -13,22 +14,22 @@ import static com.blablatwo.traveler.TravelerType.PASSENGER;
 @Entity
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Traveler {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     private Long id;
 
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name = "password", nullable = false)
+    @NotNull
     private String password;
 
-    @Column(name = "enabled", nullable = false)
+    @NotNull
     private int enabled = 1;
 
     @Column(name = "authority", nullable = false)
@@ -47,8 +48,6 @@ public class Traveler {
     @Enumerated(EnumType.STRING)
     @Column(name = "type", length = 10)
     private TravelerType type = PASSENGER; // Enum: DRIVER, PASSENGER, BOTH
-
-    // Vehicles owned by the traveler
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VehicleEntity> vehicles;
