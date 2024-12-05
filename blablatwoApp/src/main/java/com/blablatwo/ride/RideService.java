@@ -6,10 +6,10 @@ import com.blablatwo.ride.dto.RideResponseDto;
 import java.util.Optional;
 
 public interface RideService {
-    Optional<RideResponseDto> getById(long id);
+    Optional<RideResponseDto> getById(Long id);
     RideResponseDto create(RideCreationDto ride);
 
-    RideResponseDto update(RideCreationDto ride, long id, String ifMatch);
+    RideResponseDto update(RideCreationDto ride, Long id, String ifMatch);
 
-    void delete(long id);
+    void delete(Long id);
 }

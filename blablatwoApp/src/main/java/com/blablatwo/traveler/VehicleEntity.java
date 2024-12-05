@@ -1,6 +1,6 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.ride.RideEntity;
+import com.blablatwo.ride.Ride;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -30,10 +30,10 @@ public class VehicleEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    private TravelerEntity owner;
+    private Traveler owner;
 
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RideEntity> rides;
+    private List<Ride> rides;
 
     public Long getId() {
         return id;
@@ -89,20 +89,20 @@ public class VehicleEntity {
         return this;
     }
 
-    public TravelerEntity getOwner() {
+    public Traveler getOwner() {
         return owner;
     }
 
-    public VehicleEntity setOwner(TravelerEntity owner) {
+    public VehicleEntity setOwner(Traveler owner) {
         this.owner = owner;
         return this;
     }
 
-    public List<RideEntity> getRides() {
+    public List<Ride> getRides() {
         return rides;
     }
 
-    public VehicleEntity setRides(List<RideEntity> rides) {
+    public VehicleEntity setRides(List<Ride> rides) {
         this.rides = rides;
         return this;
     }

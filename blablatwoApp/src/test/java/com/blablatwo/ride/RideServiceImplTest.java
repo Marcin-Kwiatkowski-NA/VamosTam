@@ -33,15 +33,16 @@ class RideServiceImplTest {
   @InjectMocks
   private RideServiceImpl rideService;
 
-  private RideEntity rideEntity;
+  private Ride ride;
   private RideCreationDto rideCreationDTO;
   RideResponseDto rideResponseDto;
 
   @BeforeEach
   void setUp() {
-    rideEntity = new RideEntity();
-    rideEntity.setId(ID_100)
-            .setLastModified(INSTANT);
+    ride = Ride.builder()
+            .id(ID_100)
+            .lastModified(INSTANT)
+            .build();
 
     rideCreationDTO = new RideCreationDto(
             ID_ONE, ID_100, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100, List.of(ID_100)
@@ -56,8 +57,8 @@ class RideServiceImplTest {
   @DisplayName("Return ride when finding by existing ID")
   void returnRideWhenFindingByExistingId() {
     // Arrange
-    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(rideEntity));
-    when(rideMapper.rideEntityToRideResponseDto(rideEntity)).thenReturn(rideResponseDto);
+    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
+    when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
 
     // Act
     Optional<RideResponseDto> result = rideService.getById(ID_100);
@@ -83,33 +84,33 @@ class RideServiceImplTest {
   @DisplayName("Save a new ride successfully")
   void shouldSaveNewRideSuccessfully() {
     // Arrange
-    when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(rideEntity);
-    when(rideRepository.save(rideEntity)).thenReturn(rideEntity);
-    when(rideMapper.rideEntityToRideResponseDto(rideEntity)).thenReturn(rideResponseDto);
+    when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
+    when(rideRepository.save(ride)).thenReturn(ride);
+    when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
 
     // Act
     RideResponseDto result = rideService.create(rideCreationDTO);
 
     // Assert
     assertEquals(rideResponseDto, result, "Saved ride should match the expected ride");
-    verify(rideRepository).save(rideEntity);
+    verify(rideRepository).save(ride);
   }
 
   @Test
   @DisplayName("Update a ride's details successfully")
   void updateRideDetailsSuccessfully() {
     // Arrange
-    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(rideEntity));
-    when(rideMapper.rideEntityToRideResponseDto(rideEntity)).thenReturn(rideResponseDto);
-    doNothing().when(rideMapper).update(rideEntity, rideCreationDTO);
+    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
+    when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+    doNothing().when(rideMapper).update(ride, rideCreationDTO);
 
     // Act
-    RideResponseDto result = rideService.update(rideCreationDTO, rideEntity.getId(), ETAG);
+    RideResponseDto result = rideService.update(rideCreationDTO, ride.getId(), ETAG);
 
     // Assert
     assertEquals(rideResponseDto, result, "Updated ride should match the expected ride");
-    verify(rideMapper).update(rideEntity, rideCreationDTO);
-    verify(rideRepository).save(rideEntity);
+    verify(rideMapper).update(ride, rideCreationDTO);
+    verify(rideRepository).save(ride);
   }
 
   @Test

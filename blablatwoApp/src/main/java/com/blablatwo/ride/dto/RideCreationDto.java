@@ -9,10 +9,10 @@ import java.util.List;
 public record RideCreationDto(
 
         @NotNull(message = "Please provide origin city")
-        long originCityId,
+        Long originCityId,
 
         @NotNull(message = "Please provide destination city")
-        long destinationCityId,
+        Long destinationCityId,
 
         @NotNull(message = "Please provide departure time")
         @Future(message = "Departure time must be in the future")
@@ -25,7 +25,7 @@ public record RideCreationDto(
         BigDecimal pricePerSeat,
 
         @NotNull(message = "Please provide vehicle")
-        long vehicleId,
+        Long vehicleId,
 
         @NotNull(message = "Please provide stop city IDs")
         @Size(min = 1, message = "Please provide at least one stop city ID")

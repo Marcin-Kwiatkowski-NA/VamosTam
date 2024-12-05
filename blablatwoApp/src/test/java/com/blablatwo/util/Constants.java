@@ -6,11 +6,12 @@ import java.time.LocalDateTime;
 
 public class Constants {
     public static final int ONE = 1;
-    public static final long ID_100 = 100L;
-    public static final long ID_ONE = 1L;
-    public static final int TEST_CITY_TABLE_SIZE = 3;
-    public static final long NON_EXISTENT_ID = -2L;
+    public static final Long ID_100 = 100L;
+    public static final Long ID_ONE = 1L;
+    public static final Long NON_EXISTENT_ID = -2L;
 
+    public static final String CITY_NAME_DESTINATION = "Destination";
+    public static final String CITY_NAME_ORIGIN = "Origin";
     public static final String CITY_NAME_KRAKOW = "Kraków";
     public static final String CITY_NAME_WARSZAWA = "Warszawa";
     public static final String CITY_NAME_LODZ = "Łódź";
@@ -28,6 +29,12 @@ public class Constants {
     public static final String VEHICLE_MODEL = "Model S";
     public static final String VEHICLE_LICENSE_PLATE = "KR-1234";
 
+    public static final String USERNAME = "user1";
+    public static final String PASSWORD = "pwd";
+    public static final int ENABLED = 1;
+
+
+
     public static final String PASSENGER_ONE_NAME = "Passenger One";
     public static final String PASSENGER_ONE_EMAIL = "passenger1@example.com";
     public static final String PASSENGER_ONE_TELEPHONE = "+48-111-222-333";
@@ -39,4 +46,7 @@ public class Constants {
     public static final String RIDE_STATUS_ACTIVE = "ACTIVE";
 
     public static final LocalDateTime LOCAL_DATE_TIME = LocalDateTime.of(2025, 9, 12, 10, 30, 0);
+
+    private Constants() {
+    }
 }

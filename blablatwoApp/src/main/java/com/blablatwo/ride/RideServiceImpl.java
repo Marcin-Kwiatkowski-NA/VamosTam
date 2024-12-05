@@ -23,7 +23,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<RideResponseDto> getById(long id) {
+    public Optional<RideResponseDto> getById(Long id) {
         return rideRepository.findById(id)
                 .map(rideMapper::rideEntityToRideResponseDto);
     }
@@ -38,7 +38,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto update(RideCreationDto ride, long id, String ifMatch) {
+    public RideResponseDto update(RideCreationDto ride, Long id, String ifMatch) {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
         var existingETag = String.valueOf(existingRide.getLastModified());
@@ -52,7 +52,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public void delete(long id) {
+    public void delete(Long id) {
         if (rideRepository.existsById(id)) {
             rideRepository.deleteById(id);
         } else {

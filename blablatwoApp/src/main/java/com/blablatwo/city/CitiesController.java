@@ -21,7 +21,7 @@ public class CitiesController {
     }
 
     @GetMapping("/cities/{id}")
-    public ResponseEntity<CityDTO> getCityById(@PathVariable int id){
+    public ResponseEntity<CityDTO> getCityById(@PathVariable long id){
         return ResponseEntity.ok(rideService.getById(id));
     }
 

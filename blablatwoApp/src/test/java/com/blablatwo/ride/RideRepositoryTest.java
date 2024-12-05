@@ -1,8 +1,6 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.CityEntity;
-import com.blablatwo.traveler.TravelerEntity;
-import com.blablatwo.traveler.VehicleEntity;
+import com.blablatwo.RepositoryTest;
 import com.blablatwo.util.TestConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
@@ -13,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -24,26 +21,17 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith({SpringExtension.class, MockitoExtension.class})
-@TestPropertySource("/application-test.properties")
 @Import(TestConfig.class)
 @DataJpaTest
-class RideRepositoryTest {
+class RideRepositoryTest extends RepositoryTest {
   @Autowired
   RideRepository rideRepository;
-  @Autowired
-  public TravelerEntity driver;
-  @Autowired
-  private CityEntity origin;
-  @Autowired
-  private CityEntity destination;
-  @Autowired
-  private VehicleEntity vehicle;
 
   @Test
   @DisplayName("Find a ride by valid ID")
   @Order(1)
   void findRideById() {
-    Optional<RideEntity> retrievedRide = rideRepository.findById(ID_100);
+    Optional<Ride> retrievedRide = rideRepository.findById(ID_100);
 
     assertTrue(retrievedRide.isPresent(), "Ride should be found by ID");
     assertEquals(ID_100, retrievedRide.get().getId(), "Ride ID should match");
@@ -52,7 +40,7 @@ class RideRepositoryTest {
   @Test
   @DisplayName("Return empty when finding by non-existent ID")
   void returnEmptyForNonExistentId() {
-    Optional<RideEntity> retrievedRide = rideRepository.findById(NON_EXISTENT_ID);
+    Optional<Ride> retrievedRide = rideRepository.findById(NON_EXISTENT_ID);
 
     assertFalse(retrievedRide.isPresent(), "No ride should be found with non-existent ID");
   }
@@ -61,7 +49,7 @@ class RideRepositoryTest {
   @DisplayName("Save a new ride successfully")
   void saveNewRide() {
     // Arrange
-    RideEntity ride = new RideEntity();
+    Ride ride = new Ride();
     ride.setDriver(driver);
     ride.setOrigin(origin);
     ride.setDestination(destination);
@@ -73,7 +61,7 @@ class RideRepositoryTest {
     ride.setLastModified(INSTANT);
 
     // Act
-    RideEntity savedRide = rideRepository.save(ride);
+    Ride savedRide = rideRepository.save(ride);
 
     // Assert
     assertNotNull(savedRide.getId(), "Saved ride should have an ID");
@@ -88,9 +76,9 @@ class RideRepositoryTest {
     // Arrange
     var newPrice = new BigDecimal("45.00");
     int newSeats = 2;
-    Optional<RideEntity> rideOptional = rideRepository.findById(ID_100);
+    Optional<Ride> rideOptional = rideRepository.findById(ID_100);
     assertTrue(rideOptional.isPresent(), "Ride should exist for update");
-    RideEntity ride = rideOptional.get();
+    Ride ride = rideOptional.get();
 
     // Modify ride details
     ride.setAvailableSeats(2);
@@ -98,7 +86,7 @@ class RideRepositoryTest {
     ride.setRideStatus(RideStatus.FULL);
 
     // Act
-    RideEntity updatedRide = rideRepository.save(ride);
+    Ride updatedRide = rideRepository.save(ride);
 
     // Assert
     assertEquals(newSeats, updatedRide.getAvailableSeats(), "Available seats should be updated");
@@ -110,7 +98,7 @@ class RideRepositoryTest {
   @DisplayName("Delete a ride successfully")
   void shouldDeleteRide() {
     rideRepository.deleteById(ID_100);
-    Optional<RideEntity> deletedRide = rideRepository.findById(ID_100);
+    Optional<Ride> deletedRide = rideRepository.findById(ID_100);
 
     assertFalse(deletedRide.isPresent(), "Ride should be deleted successfully");
   }
@@ -119,7 +107,7 @@ class RideRepositoryTest {
   @DisplayName("Attempt to update a non-existent ride throws exception")
   void updateNonExistentRide() {
     // Arrange
-    RideEntity nonExistentRide = new RideEntity();
+    Ride nonExistentRide = new Ride();
     nonExistentRide.setId(NON_EXISTENT_ID);
 
     // Act & Assert
@@ -132,7 +120,7 @@ class RideRepositoryTest {
   @DisplayName("Save a ride with null driver throws exception")
   void saveRideWithNullDriver() {
     // Arrange
-    RideEntity ride = new RideEntity();
+    Ride ride = new Ride();
     ride.setOrigin(origin);
     ride.setDestination(destination);
     ride.setDepartureTime(LOCAL_DATE_TIME);
@@ -152,7 +140,7 @@ class RideRepositoryTest {
   @Sql(scripts = "/datasets/clear_ride_data.sql")
   void findAllRidesWhenNoneExist() {
     // Act
-    Iterable<RideEntity> rides = rideRepository.findAll();
+    Iterable<Ride> rides = rideRepository.findAll();
 
     // Assert
     assertFalse(rides.iterator().hasNext(), "Should return an empty list when no rides exist");

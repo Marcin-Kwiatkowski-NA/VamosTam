@@ -17,18 +17,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.blablatwo.util.Constants.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static com.blablatwo.util.Constants.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
@@ -46,16 +41,16 @@ class RidesControllerTest {
     @MockBean
     private RideService rideService;
 
-
-    private RideEntity rideEntity;
+    private Ride ride;
     private RideCreationDto rideCreationDTO;
     RideResponseDto rideResponseDto;
 
     @BeforeEach
     void setUp() {
-        rideEntity = new RideEntity();
-        rideEntity.setId(ID_100)
-                .setLastModified(INSTANT);
+        ride = Ride.builder()
+                .id(ID_100)
+                .lastModified(INSTANT)
+                .build();
 
         rideCreationDTO = new RideCreationDto(
                 ID_ONE, ID_100, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100, List.of(ID_100)
@@ -118,7 +113,7 @@ class RidesControllerTest {
     void testCreateRide_ValidationError() throws Exception {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
-                0,0, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0,null
+                0L,0L, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L,null
         );
 
         // Act & Assert
@@ -220,7 +215,7 @@ class RidesControllerTest {
         // Arrange
         String ifMatch = ETAG;
         RideCreationDto invalidRide = new RideCreationDto(
-                0,0, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0,null
+                0L,0L, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L,null
         );
 
         // Act & Assert

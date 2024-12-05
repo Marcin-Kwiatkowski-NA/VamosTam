@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RideResponseDto(long id,
+public record RideResponseDto(Long id,
                               DriverProfileDto driver,
                               VehicleResponseDTO vehicle,
                               CityDTO origin,
