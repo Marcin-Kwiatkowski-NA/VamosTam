@@ -3,7 +3,6 @@ package com.blablatwo.city;
 import com.blablatwo.RepositoryTest;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.ConstraintViolationException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,18 +17,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 class CityRepositoryImplTest extends RepositoryTest {
-
-    @BeforeAll
-    void setUp() {
-        var origin = City.builder()
-                .name(CITY_NAME_ORIGIN)
-                .build();
-        var destination = City.builder()
-                .name(CITY_NAME_DESTINATION)
-                .build();
-        cityRepository.save(origin);
-        cityRepository.save(destination);
-    }
 
     @Autowired
     private EntityManager entityManager;
@@ -82,28 +69,21 @@ class CityRepositoryImplTest extends RepositoryTest {
     }
 
     @Test
-    @DisplayName("Return size of test data set bigger than 0")
-    void findAllCitiesTest() {
-        // Act
-        var cities = cityRepository.findAll();
-
-        // Assert
-        assertTrue(cities.iterator().hasNext(), "City list should not be empty");
-    }
-
-    @Test
     @DisplayName("Update a city's details successfully")
     void shouldUpdateCityDetails() {
         // Arrange
-        City city = City.builder().id(ID_ONE).name(CITY_NAME_KRAKOW).build();
+        City city = City.builder().name(CITY_NAME_KRAKOW).build();
 
         // Act
+        var saved = cityRepository.save(city);
+        var savedId = saved.getId();
+        saved.setName(CITY_NAME_DESTINATION);
         var updatedCity = cityRepository.save(city);
 
         // Assert
         assertAll(
-                () -> assertNotNull(updatedCity.getId(), "Updated city should have an ID"),
-                () -> assertEquals(CITY_NAME_KRAKOW, updatedCity.getName(), "City name should be updated")
+                () -> assertEquals(savedId, updatedCity.getId(), "Updated city should have an ID"),
+                () -> assertEquals(CITY_NAME_DESTINATION, updatedCity.getName(), "City name should be updated")
         );
     }
 

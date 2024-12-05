@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +26,7 @@ class TravelerRepositoryTest extends RepositoryTest {
 
     @BeforeAll
     void setUp() {
+        var vehicle = Vehicle.builder().model("911").make("Porsche").build();
         var driver = Traveler.builder()
                 .username(USERNAME)
                 .password(PASSWORD)
@@ -46,8 +46,6 @@ class TravelerRepositoryTest extends RepositoryTest {
     @Autowired
     private TravelerRepository travelerRepository;
 
-    @MockitoBean
-    Vehicle vehicle;
 
     @Test
     @DisplayName("Save a new traveler successfully")

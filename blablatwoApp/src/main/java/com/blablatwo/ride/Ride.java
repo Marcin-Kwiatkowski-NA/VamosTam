@@ -4,6 +4,7 @@ import com.blablatwo.city.City;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -27,12 +28,16 @@ public class Ride {
     private Traveler driver;
 
     @ManyToOne
+    @NotNull
     private City origin;
 
     @ManyToOne
+    @NotNull
     private City destination;
 
+    @NotNull
     private LocalDateTime departureTime;
+
 
     private int availableSeats;
 
@@ -43,16 +48,15 @@ public class Ride {
     private Vehicle vehicle;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ride_status", length = 10)
-    private RideStatus rideStatus;
+    private RideStatus rideStatus; //     OPEN,    FULL,    COMPLETED,    CANCELLED
 
     @Column(name = "last_modified")
     private Instant lastModified;
 
+    @Version
+    int version;
+
     // Passengers
     @ManyToMany
-    @JoinTable(name = "ride_passengers",
-            joinColumns = @JoinColumn(name = "ride_id"),
-            inverseJoinColumns = @JoinColumn(name = "traveler_id"))
     private List<Traveler> passengers;
 }
