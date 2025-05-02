@@ -1,6 +1,5 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.RepositoryTest;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityRepository;
 import com.blablatwo.traveler.Traveler;
@@ -8,7 +7,7 @@ import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.ConstraintViolationException;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,7 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class RideRepositoryTest extends RepositoryTest {
+class RideRepositoryTest {
 
   @Autowired
   private EntityManager entityManager;
@@ -41,7 +40,7 @@ class RideRepositoryTest extends RepositoryTest {
   private City destination;
   private City origin;
 
-  @BeforeAll
+  @BeforeEach
   void setUp() {
     origin = City.builder()
             .name(CITY_NAME_ORIGIN)

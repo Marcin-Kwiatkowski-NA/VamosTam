@@ -6,6 +6,7 @@ import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import static com.blablatwo.traveler.TravelerType.PASSENGER;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Component
 public class Traveler {
 
     @Id

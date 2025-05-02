@@ -11,6 +11,7 @@ import java.util.List;
 public class SecurityUser implements UserDetails {
     private final Traveler user;
 
+
     public SecurityUser(Traveler user) {
         this.user = user;
     }

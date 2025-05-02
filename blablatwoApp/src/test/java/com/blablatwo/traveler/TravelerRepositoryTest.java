@@ -1,10 +1,9 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.RepositoryTest;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.EntityManager;
 import org.hibernate.exception.ConstraintViolationException;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +21,9 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class TravelerRepositoryTest extends RepositoryTest {
+class TravelerRepositoryTest {
 
-    @BeforeAll
+    @BeforeEach
     void setUp() {
         var vehicle = Vehicle.builder().model("911").make("Porsche").build();
         var driver = Traveler.builder()

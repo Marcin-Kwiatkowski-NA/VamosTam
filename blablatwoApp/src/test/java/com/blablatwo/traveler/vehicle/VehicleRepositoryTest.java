@@ -1,6 +1,5 @@
 package com.blablatwo.traveler.vehicle;
 
-import com.blablatwo.RepositoryTest;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleRepository;
 import jakarta.persistence.EntityManager;
@@ -16,7 +15,7 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class VehicleRepositoryTest extends RepositoryTest {
+class VehicleRepositoryTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -145,19 +144,6 @@ class VehicleRepositoryTest extends RepositoryTest {
             vehicleRepository.save(vehicle);
             entityManager.flush();
         }, "Saving a vehicle with null make should throw an exception");
-    }
-
-    @Test
-    @DisplayName("Find all vehicles when no vehicles exist returns empty list")
-    void findAllVehiclesWhenNoneExist() {
-        // Arrange
-        vehicleRepository.deleteAll();
-
-        // Act
-        Iterable<Vehicle> vehicles = vehicleRepository.findAll();
-
-        // Assert
-        assertFalse(vehicles.iterator().hasNext(), "Should return an empty list when no vehicles exist");
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.blablatwo.city;
 
-import com.blablatwo.RepositoryTest;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +15,7 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class CityRepositoryImplTest extends RepositoryTest {
+class CityRepositoryImplTest  {
 
     @Autowired
     private EntityManager entityManager;
