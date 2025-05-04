@@ -2,14 +2,17 @@ package com.blablatwo.traveler;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
 
+@Component
 public class SecurityUser implements UserDetails {
-    private final TravelerEntity user;
+    private final Traveler user;
 
-    public SecurityUser(TravelerEntity user) {
+
+    public SecurityUser(Traveler user) {
         this.user = user;
     }
 

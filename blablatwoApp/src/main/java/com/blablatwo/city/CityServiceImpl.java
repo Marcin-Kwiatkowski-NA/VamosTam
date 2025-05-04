@@ -12,16 +12,16 @@ import java.util.Collection;
 public class CityServiceImpl implements CityService{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CityServiceImpl.class);
-    CityRepository repository;
+    CityRepositoryJdbc repository;
     CityMapper mapper;
 
-    public CityServiceImpl(CityRepository repository, CityMapper mapper) {
+    public CityServiceImpl(CityRepositoryJdbc repository, CityMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
 
     @Override
-    public CityDTO getById(long id) {
+    public CityDTO getById(Long id) {
         return mapper.toCityDTO(
                 repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("City not found with ID " + id)));

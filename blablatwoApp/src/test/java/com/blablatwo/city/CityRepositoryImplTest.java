@@ -1,139 +1,141 @@
 package com.blablatwo.city;
 
+import jakarta.persistence.EntityManager;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
-import java.util.List;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
-@TestPropertySource("/application-test.properties")
-@JdbcTest
-class CityRepositoryImplTest {
-
-    CityRepository cityRepository;
+@DataJpaTest
+class CityRepositoryImplTest  {
 
     @Autowired
-    public CityRepositoryImplTest(JdbcTemplate jdbcTemplate) {
-        cityRepository = new CityRepositoryImpl(jdbcTemplate);
-    }
+    private EntityManager entityManager;
+
+    @Autowired
+    private CityRepository cityRepository;
 
     @Test
     @DisplayName("Find a city by valid ID")
-    @Order(1)
     void findCityById() {
-        Optional<CityEntity> retrievedCity = cityRepository.findById(ID_100);
+        // Arrange
+        City city = City.builder().name(CITY_NAME_KRAKOW).build();
+        var savedCity = cityRepository.save(city);
 
-        assertTrue(retrievedCity.isPresent(), "City should be found by ID");
-        assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getName(), "City name should match");
+        // Act
+        Optional<City> retrievedCity = cityRepository.findById(savedCity.getId());
+
+        // Assert
+        assertAll(
+                () -> assertTrue(retrievedCity.isPresent(), "City should be found by ID"),
+                () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getName(), "City name should match")
+        );
     }
 
     @Test
     @DisplayName("Save a new city successfully")
+    @Order(1)
     void saveNewCity() {
         // Arrange
-        String gdansk = "Gdańsk";
-        CityEntity city = new CityEntity();
-        city.setName(gdansk);
+        City city = City.builder().name(CITY_NAME_KRAKOW).build();
 
         // Act
         var savedCity = cityRepository.save(city);
 
         // Assert
-        assertNotNull(savedCity.getId(), "Saved city should have an ID");
-        assertEquals(gdansk, savedCity.getName(), "City name should match");
+        assertAll(
+                () -> assertNotNull(savedCity.getId(), "Saved city should have an ID"),
+                () -> assertEquals(CITY_NAME_KRAKOW, savedCity.getName(), "City name should match")
+        );
     }
 
     @Test
     @DisplayName("Return empty when finding by non-existent ID")
     void returnEmptyForNonExistentId() {
-        Optional<CityEntity> retrievedCity = cityRepository.findById(NON_EXISTENT_ID);
+        // Act
+        Optional<City> retrievedCity = cityRepository.findById(NON_EXISTENT_ID);
 
+        // Assert
         assertFalse(retrievedCity.isPresent(), "No city should be found with non-existent ID");
-    }
-
-    @Test
-    @DisplayName("Return size of test data set")
-    void findAllCitiesTest() {
-        var cities = cityRepository.findAll();
-
-        assertEquals(TEST_CITY_TABLE_SIZE, cities.size());
     }
 
     @Test
     @DisplayName("Update a city's details successfully")
     void shouldUpdateCityDetails() {
         // Arrange
-        CityEntity city = new CityEntity();
-        String newName = "New Name";
-        city.setName(newName);
-        city.setId(ID_100);
+        City city = City.builder().name(CITY_NAME_KRAKOW).build();
 
         // Act
-        var updatedCity = cityRepository.update(city);
+        var saved = cityRepository.save(city);
+        var savedId = saved.getId();
+        saved.setName(CITY_NAME_DESTINATION);
+        var updatedCity = cityRepository.save(city);
 
         // Assert
-        assertTrue(updatedCity.isPresent(), "returns updated city");
-        assertEquals(newName, updatedCity.get().getName(), "City name should be updated");
+        assertAll(
+                () -> assertEquals(savedId, updatedCity.getId(), "Updated city should have an ID"),
+                () -> assertEquals(CITY_NAME_DESTINATION, updatedCity.getName(), "City name should be updated")
+        );
     }
 
     @Test
     @DisplayName("Delete a city successfully")
     void shouldDeleteCity() {
-        boolean deletedSuccessfully = cityRepository.deleteById(ID_100);
-        Optional<CityEntity> deletedCity = cityRepository.findById(ID_100);
+        // Arrange
+        cityRepository.deleteById(ID_100);
 
-        assertTrue(deletedSuccessfully, "Deleting should return true");
+        // Act
+        Optional<City> deletedCity = cityRepository.findById(ID_100);
+
+        // Assert
         assertFalse(deletedCity.isPresent(), "City should be deleted successfully");
     }
 
     @Test
-    @DisplayName("Attempt to update a non-existent city returns empty Optional")
+    @DisplayName("Attempt to update a non-existent city returns exception")
     void updateNonExistentCity() {
         // Arrange
-        CityEntity nonExistentCity = new CityEntity();
+        City nonExistentCity = new City();
         nonExistentCity.setId(NON_EXISTENT_ID);
         nonExistentCity.setName("Non-Existent City");
 
-        // Act
-        Optional<CityEntity> updatedCity = cityRepository.update(nonExistentCity);
-
-        // Assert
-        assertFalse(updatedCity.isPresent(), "Updating non-existent city should return empty Optional");
+        // Act & Assert
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
+            cityRepository.save(nonExistentCity);
+        }, "Updating non-existent city should throw exception");
     }
 
     @Test
     @DisplayName("Save a city with null name throws exception")
     void saveCityWithNullName() {
         // Arrange
-        CityEntity city = new CityEntity();
+        City city = new City();
 
         // Act & Assert
-        assertThrows(DataIntegrityViolationException.class, () -> {
+        assertThrows(ConstraintViolationException.class, () -> {
             cityRepository.save(city);
+            entityManager.flush();
         }, "Saving a city with null name should throw an exception");
     }
 
     @Test
     @DisplayName("Find all cities when no cities exist returns empty list")
-    @Sql(scripts = "/datasets/clear_city_data.sql")
     void findAllCitiesWhenNoneExist() {
+        // Arrange
+        cityRepository.deleteAll();
+
         // Act
-        List<CityEntity> cities = cityRepository.findAll();
+        Iterable<City> cities = cityRepository.findAll();
 
         // Assert
-        assertTrue(cities.isEmpty(), "Should return an empty list when no cities exist");
+        assertFalse(cities.iterator().hasNext(), "Should return an empty list when no cities exist");
     }
 }

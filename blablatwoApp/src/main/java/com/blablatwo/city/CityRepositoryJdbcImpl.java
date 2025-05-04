@@ -16,13 +16,13 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class CityRepositoryImpl implements CityRepository{
-    private static final Logger LOGGER = LoggerFactory.getLogger(CityRepositoryImpl.class);
+public class CityRepositoryJdbcImpl implements CityRepositoryJdbc {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CityRepositoryJdbcImpl.class);
 
     private final JdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert simpleJdbcInsert;
 
-    public CityRepositoryImpl(JdbcTemplate jdbcTemplate) {
+    public CityRepositoryJdbcImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
 
         this.simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
@@ -31,10 +31,10 @@ public class CityRepositoryImpl implements CityRepository{
     }
 
     @Override
-    public Optional<CityEntity> findById(long id) {
+    public Optional<City> findById(Long id) {
         String sql = "SELECT * FROM city WHERE id = ?";
         try {
-            CityEntity city = jdbcTemplate.queryForObject(sql, new CityRowMapper(), id);
+            City city = jdbcTemplate.queryForObject(sql, new CityRowMapper(), id);
             return Optional.ofNullable(city);
         } catch (DataAccessException e) {
             return Optional.empty();
@@ -42,26 +42,26 @@ public class CityRepositoryImpl implements CityRepository{
     }
 
     @Override
-    public List<CityEntity> findAll() {
+    public List<City> findAll() {
         return jdbcTemplate.query("SELECT * FROM city", new CityRowMapper());
     }
 
     @Override
-    public CityEntity save(CityEntity city) {
+    public City save(City city) {
         Map<String, Object> data = new HashMap<>();
         data.put("name", city.getName());
         Number id = simpleJdbcInsert.executeAndReturnKey(data);
-        city.setId(id.intValue());
+        city.setId(id.longValue());
         return city;
     }
 
     @Override
-    public boolean deleteById(long id) {
+    public boolean deleteById(Long id) {
         return jdbcTemplate.update("DELETE FROM city WHERE id = ?", id) == 1;
     }
 
     @Override
-    public Optional<CityEntity> update(CityEntity city) {
+    public Optional<City> update(City city) {
         int rowsAffected = jdbcTemplate.update(
                 "UPDATE city SET name = ? WHERE id = ?",
                 city.getName(),
@@ -73,11 +73,11 @@ public class CityRepositoryImpl implements CityRepository{
         return Optional.of(city);
     }
 
-    private static class CityRowMapper implements RowMapper<CityEntity> {
+    private static class CityRowMapper implements RowMapper<City> {
         @Override
-        public CityEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
-            CityEntity city = new CityEntity();
-            city.setId(rs.getInt("ID"));
+        public City mapRow(ResultSet rs, int rowNum) throws SQLException {
+            City city = new City();
+            city.setId(rs.getLong("ID"));
             city.setName(rs.getString("NAME"));
             return city;
         }

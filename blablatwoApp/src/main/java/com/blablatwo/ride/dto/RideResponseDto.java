@@ -2,14 +2,14 @@ package com.blablatwo.ride.dto;
 
 import com.blablatwo.city.CityDTO;
 import com.blablatwo.traveler.DriverProfileDto;
-import com.blablatwo.traveler.VehicleResponseDTO;
+import com.blablatwo.vehicle.VehicleResponseDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RideResponseDto(long id,
+public record RideResponseDto(Long id,
                               DriverProfileDto driver,
                               VehicleResponseDTO vehicle,
                               CityDTO origin,

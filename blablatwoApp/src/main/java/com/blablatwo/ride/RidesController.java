@@ -25,7 +25,7 @@ public class RidesController {
     }
 
     @GetMapping("/rides/{id}")
-    public ResponseEntity<RideResponseDto> getRideById(@PathVariable long id){
+    public ResponseEntity<RideResponseDto> getRideById(@PathVariable Long id){
         Optional<RideResponseDto> rideResp = rideService.getById(id);
         return rideResp.map(ResponseEntity::ok)
                 .orElseThrow(() -> new NoSuchRideException(id));
@@ -41,7 +41,7 @@ public class RidesController {
 
     @PutMapping("/rides/{id}")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
-                                               @PathVariable long id,
+                                               @PathVariable Long id,
                                                @RequestHeader ("If-Match") String ifMatch) {
 
 
@@ -54,7 +54,7 @@ public class RidesController {
     }
 
     @DeleteMapping("/rides/{id}")
-    public ResponseEntity<Void> deleteRide (@PathVariable long id) {
+    public ResponseEntity<Void> deleteRide (@PathVariable Long id) {
         rideService.delete(id);
         return ResponseEntity.noContent().build();
     }

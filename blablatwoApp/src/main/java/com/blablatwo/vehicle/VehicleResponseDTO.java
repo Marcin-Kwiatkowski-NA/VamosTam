@@ -1,4 +1,4 @@
-package com.blablatwo.traveler;
+package com.blablatwo.vehicle;
 
 public class VehicleResponseDTO {
 }
