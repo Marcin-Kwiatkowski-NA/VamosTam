@@ -53,7 +53,7 @@ class RidesControllerTest {
                 .build();
 
         rideCreationDTO = new RideCreationDto(
-                ID_ONE, ID_100, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100, List.of(ID_100)
+                CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100
         );
 
         rideResponseDto = new RideResponseDto(
@@ -113,7 +113,7 @@ class RidesControllerTest {
     void testCreateRide_ValidationError() throws Exception {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
-                0L,0L, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L,null
+                "","0L", LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L
         );
 
         // Act & Assert
@@ -215,7 +215,7 @@ class RidesControllerTest {
         // Arrange
         String ifMatch = ETAG;
         RideCreationDto invalidRide = new RideCreationDto(
-                0L,0L, LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L,null
+                "","", LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L
         );
 
         // Act & Assert

@@ -5,6 +5,7 @@ import com.blablatwo.exceptions.MissingETagHeaderException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
+import org.antlr.v4.runtime.DefaultErrorStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class RideServiceImplTest {
             .build();
 
     rideCreationDTO = new RideCreationDto(
-            ID_ONE, ID_100, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100, List.of(ID_100)
+            CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100
     );
 
     rideResponseDto = new RideResponseDto(
