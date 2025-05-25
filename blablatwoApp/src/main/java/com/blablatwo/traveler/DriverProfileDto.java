@@ -1,4 +1,9 @@
 package com.blablatwo.traveler;
 
-public class DriverProfileDto {
-}
+public record DriverProfileDto(
+        Long id,
+        String username,
+        String name,
+        String email,
+        String phoneNumber
+) {}

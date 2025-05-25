@@ -1,38 +1,80 @@
 package com.blablatwo.city;
 
+import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
-public class CityServiceImpl implements CityService{
+public class CityServiceImpl implements CityService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CityServiceImpl.class);
-    CityRepositoryJdbc repository;
-    CityMapper mapper;
+    private final CityRepository cityRepository;
+    private final CityMapper cityMapper;
 
-    public CityServiceImpl(CityRepositoryJdbc repository, CityMapper mapper) {
-        this.repository = repository;
-        this.mapper = mapper;
+    @Autowired
+    public CityServiceImpl(CityRepository cityRepository, CityMapper cityMapper) {
+        this.cityRepository = cityRepository;
+        this.cityMapper = cityMapper;
     }
 
     @Override
-    public CityDTO getById(Long id) {
-        return mapper.toCityDTO(
-                repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("City not found with ID " + id)));
+    @Transactional
+    public Optional<City> getById(Long id) {
+        return cityRepository.findById(id);
     }
 
     @Override
-    public Collection<CityDTO> getAllCities() {
-        Collection<CityDTO> list = new ArrayList<>();
-        for (var city : repository.findAll()) {
-            list.add(mapper.toCityDTO(city));
+    @Transactional
+    public Optional<City> findByName(String name) {
+        return cityRepository.findByName(name);
+    }
+
+    @Override
+    @Transactional
+    public List<City> getAllCities() {
+        return StreamSupport.stream(cityRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public CityResponseDto create(CityCreationDto cityDto) {
+        if (cityRepository.existsByName(cityDto.name())) {
+            throw new EntityExistsException("City with name '" + cityDto.name() + "' already exists.");
         }
-        return list;
+        City newCity = cityMapper.cityCreationDtoToEntity(cityDto);
+        return cityMapper.cityEntityToCityResponseDto(cityRepository.save(newCity));
+    }
+
+    @Override
+    @Transactional
+    public CityResponseDto update(CityCreationDto cityDto, Long id) {
+        City existingCity = cityRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("City with ID " + id + " not found."));
+
+        if (cityRepository.findByName(cityDto.name())
+                .filter(city -> !city.getId().equals(id))
+                .isPresent()) {
+            throw new EntityExistsException("City with name '" + cityDto.name() + "' already exists for another ID.");
+        }
+
+        cityMapper.update(existingCity, cityDto);
+        return cityMapper.cityEntityToCityResponseDto(cityRepository.save(existingCity));
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!cityRepository.existsById(id)) {
+            throw new NoSuchElementException("City with ID " + id + " not found.");
+        }
+        cityRepository.deleteById(id);
     }
 }

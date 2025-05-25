@@ -10,24 +10,26 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Optional;
 
 @RestController
 public class CitiesController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CitiesController.class);
-    private final CityService rideService;
+    private final CityService cityService;
 
-    public CitiesController(CityService rideService) {
-        this.rideService = rideService;
+    public CitiesController(CityService cityService) {
+        this.cityService = cityService;
     }
 
     @GetMapping("/cities/{id}")
-    public ResponseEntity<CityDTO> getCityById(@PathVariable long id){
-        return ResponseEntity.ok(rideService.getById(id));
+    public ResponseEntity<City> getCityById(@PathVariable long id){
+        Optional<City> cityOptional = cityService.getById(id);
+        return cityOptional.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/cities")
-    public Collection<CityDTO> getAllCities(){
-        return rideService.getAllCities();
+    public ResponseEntity<Collection<City>> getAllCities(){
+        return ResponseEntity.ok(cityService.getAllCities());
     }
 
     private URI getUriFromId(String id) {

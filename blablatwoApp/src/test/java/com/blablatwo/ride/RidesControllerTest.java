@@ -1,9 +1,15 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.city.City;
+import com.blablatwo.city.CityResponseDto;
 import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
+import com.blablatwo.traveler.DriverProfileDto;
+import com.blablatwo.traveler.Traveler;
+import com.blablatwo.vehicle.Vehicle;
+import com.blablatwo.vehicle.VehicleResponseDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,22 +50,50 @@ class RidesControllerTest {
 
     private Ride ride;
     private RideCreationDto rideCreationDTO;
-    RideResponseDto rideResponseDto;
+    private RideResponseDto rideResponseDto;
 
     @BeforeEach
     void setUp() {
+        // Prepare Ride entity
         ride = Ride.builder()
                 .id(ID_100)
+                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
+                .origin(City.builder().id(ID_ONE).name(CITY_NAME_ORIGIN).build())
+                .destination(City.builder().id(2L).name(CITY_NAME_DESTINATION).build())
+                .departureTime(LOCAL_DATE_TIME)
+                .availableSeats(ONE)
+                .pricePerSeat(BIG_DECIMAL)
+                .vehicle(Vehicle.builder().id(ID_ONE).licensePlate(VEHICLE_LICENSE_PLATE_1).build())
+                .rideStatus(RideStatus.OPEN)
                 .lastModified(INSTANT)
+                .passengers(Collections.emptyList())
                 .build();
 
+        // Prepare RideCreationDto
         rideCreationDTO = new RideCreationDto(
-                CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LOCAL_DATE_TIME, ONE, BIG_DECIMAL, ID_100
+                ID_ONE,                   // driverId
+                CITY_NAME_ORIGIN,         // origin
+                CITY_NAME_DESTINATION,    // destination
+                LOCAL_DATE_TIME,          // departureTime
+                ONE,                      // availableSeats
+                BIG_DECIMAL,              // pricePerSeat
+                ID_ONE                    // vehicleId
         );
 
+        // Prepare RideResponseDto
         rideResponseDto = new RideResponseDto(
-                ID_100, null, null, null, null, null, LOCAL_DATE_TIME,
-                ONE, BIG_DECIMAL, null, INSTANT, null);
+                ID_100,
+                new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, EMAIL, TELEPHONE, CRISTIANO),
+                new CityResponseDto(ID_ONE, CITY_NAME_ORIGIN),
+                new CityResponseDto(2L, CITY_NAME_DESTINATION),
+                LOCAL_DATE_TIME,
+                ONE,
+                BIG_DECIMAL,
+                new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
+                RideStatus.OPEN,
+                INSTANT,
+                Collections.emptyList()
+        );
     }
 
     @Test
@@ -72,14 +107,14 @@ class RidesControllerTest {
         mockMvc.perform(get(BASE_URL + "/" + ID_100)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(ID_100));
-
+                .andExpect(jsonPath("$.id").value(ID_100))
+                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN));
     }
 
     @Test
     @DisplayName("GET /rides/{id} - Not Found")
     @WithMockUser
-    void GetRideById_NotFound() throws Exception {
+    void getRideById_NotFound() throws Exception {
         // Arrange
         when(rideService.getById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
@@ -90,11 +125,11 @@ class RidesControllerTest {
     }
 
     @Test
-    @DisplayName("Create ride - Success")
+    @DisplayName("POST /rides - Create ride - Success")
     @WithMockUser
     void testCreateRide_Success() throws Exception {
         // Arrange
-        when(rideService.create(rideCreationDTO)).thenReturn(rideResponseDto);
+        when(rideService.create(any(RideCreationDto.class))).thenReturn(rideResponseDto);
 
         // Act & Assert
         mockMvc.perform(post(BASE_URL)
@@ -103,17 +138,22 @@ class RidesControllerTest {
                         .content(objectMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
-//                .andExpect(header().string("ETag", String.valueOf(ETAG)))
                 .andExpect(jsonPath("$.id").value(ID_100));
     }
 
     @Test
-    @DisplayName("Create ride - Validation Error")
+    @DisplayName("POST /rides - Create ride - Validation Error")
     @WithMockUser
     void testCreateRide_ValidationError() throws Exception {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
-                "","0L", LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L
+                null,
+                "",
+                "",
+                LocalDateTime.now().minusDays(1),
+                0,
+                BigDecimal.valueOf(-1),
+                null
         );
 
         // Act & Assert
@@ -125,9 +165,9 @@ class RidesControllerTest {
     }
 
     @Test
-    @DisplayName("Delete ride - Success")
+    @DisplayName("DELETE /rides/{id} - Delete ride - Success")
     @WithMockUser
-    public void testDeleteRide_Success() throws Exception {
+    void testDeleteRide_Success() throws Exception {
         // Arrange
         doNothing().when(rideService).delete(ID_100);
 
@@ -139,7 +179,7 @@ class RidesControllerTest {
     }
 
     @Test
-    @DisplayName("Delete ride - Not Found")
+    @DisplayName("DELETE /rides/{id} - Delete ride - Not Found")
     @WithMockUser
     void testDeleteRide_NotFound() throws Exception {
         // Arrange
@@ -169,7 +209,6 @@ class RidesControllerTest {
                         .content(objectMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Location"))
-//                .andExpect(header().string("ETag", ETAG))
                 .andExpect(jsonPath("$.id").value(ID_100));
     }
 
@@ -215,7 +254,13 @@ class RidesControllerTest {
         // Arrange
         String ifMatch = ETAG;
         RideCreationDto invalidRide = new RideCreationDto(
-                "","", LocalDateTime.MIN, 0, BigDecimal.ZERO, 0L
+                null,
+                "",
+                "",
+                LocalDateTime.now().minusDays(1),
+                0,
+                BigDecimal.valueOf(-1),
+                null
         );
 
         // Act & Assert

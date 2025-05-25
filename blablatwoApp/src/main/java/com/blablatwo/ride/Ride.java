@@ -16,8 +16,8 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@Builder
 @AllArgsConstructor
+@Builder
 public class Ride {
 
     @Id
@@ -38,7 +38,6 @@ public class Ride {
     @NotNull
     private LocalDateTime departureTime;
 
-
     private int availableSeats;
 
     @Column(name = "price_per_seat", precision = 10, scale = 2)
@@ -56,7 +55,6 @@ public class Ride {
     @Version
     int version;
 
-    // Passengers
     @ManyToMany
     private List<Traveler> passengers;
 }

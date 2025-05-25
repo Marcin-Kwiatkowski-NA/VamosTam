@@ -54,12 +54,13 @@ public class Traveler {
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Vehicle> vehicles;
-    // Rides where the traveler is the driver
 
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ride> ridesAsDriver;
-    // Rides where the traveler is a passenger
 
     @ManyToMany(mappedBy = "passengers")
     private List<Ride> ridesAsPassenger;
+
+    @Version
+    int version;
 }

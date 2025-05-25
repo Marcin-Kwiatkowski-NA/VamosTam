@@ -16,13 +16,12 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class CityRepositoryJdbcImpl implements CityRepositoryJdbc {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CityRepositoryJdbcImpl.class);
+public abstract class CityRepositoryJdbcImpl implements CityRepositoryJdbc {
 
     private final JdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert simpleJdbcInsert;
 
-    public CityRepositoryJdbcImpl(JdbcTemplate jdbcTemplate) {
+    protected CityRepositoryJdbcImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
 
         this.simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
