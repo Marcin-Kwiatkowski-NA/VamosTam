@@ -26,7 +26,6 @@ public class WebAuthorizationConfig {
                 .failureHandler(authenticationFailureHandler)
         );
 
-        http.httpBasic(Customizer.withDefaults());
 
         http.authorizeHttpRequests(
                 c -> c
