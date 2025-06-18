@@ -1,10 +1,7 @@
 package com.blablatwo.city;
 
 import jakarta.persistence.EntityExistsException;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +30,7 @@ public class CityServiceImpl implements CityService {
     @Override
     @Transactional
     public Optional<City> findByName(String name) {
-        return cityRepository.findByName(name);
+        return cityRepository.findByNameIgnoreCase(name);
     }
 
     @Override
@@ -59,7 +56,7 @@ public class CityServiceImpl implements CityService {
         City existingCity = cityRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("City with ID " + id + " not found."));
 
-        if (cityRepository.findByName(cityDto.name())
+        if (cityRepository.findByNameIgnoreCase(cityDto.name())
                 .filter(city -> !city.getId().equals(id))
                 .isPresent()) {
             throw new EntityExistsException("City with name '" + cityDto.name() + "' already exists for another ID.");

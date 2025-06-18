@@ -38,15 +38,11 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto update(RideCreationDto ride, Long id, String ifMatch) {
+    public RideResponseDto update(RideCreationDto ride, Long id) {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
-        var existingETag = String.valueOf(existingRide.getLastModified());
-
-        eTagCheck(ifMatch, existingETag);
 
         rideMapper.update(existingRide, ride);
-        rideRepository.save(existingRide);
         return rideMapper.rideEntityToRideResponseDto(existingRide);
     }
 
@@ -57,16 +53,6 @@ public class RideServiceImpl implements RideService {
             rideRepository.deleteById(id);
         } else {
             throw new NoSuchRideException(id);
-        }
-    }
-
-    void eTagCheck(String ifMatch, String existingETag) {
-        if (ifMatch == null) {
-            throw new MissingETagHeaderException();
-        }
-
-        if(! existingETag.equals(ifMatch)) {
-            throw new ETagMismatchException();
         }
     }
 }

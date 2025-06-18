@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -86,25 +85,25 @@ class CityServiceTest {
     @Test
     @DisplayName("Return city when finding by existing name")
     void findByNameReturnsCity() {
-        when(cityRepository.findByName(CITY_NAME)).thenReturn(Optional.of(city));
+        when(cityRepository.findByNameIgnoreCase(CITY_NAME)).thenReturn(Optional.of(city));
 
         Optional<City> result = cityService.findByName(CITY_NAME);
 
         assertTrue(result.isPresent());
         assertEquals(city, result.get());
-        verify(cityRepository).findByName(CITY_NAME);
+        verify(cityRepository).findByNameIgnoreCase(CITY_NAME);
         verify(cityMapper, never()).cityEntityToCityResponseDto(any());
     }
 
     @Test
     @DisplayName("Return empty when finding by non-existent name")
     void findByNameReturnsEmptyForNonExistentName() {
-        when(cityRepository.findByName(ANOTHER_CITY_NAME)).thenReturn(Optional.empty());
+        when(cityRepository.findByNameIgnoreCase(ANOTHER_CITY_NAME)).thenReturn(Optional.empty());
 
         Optional<City> result = cityService.findByName(ANOTHER_CITY_NAME);
 
         assertFalse(result.isPresent());
-        verify(cityRepository).findByName(ANOTHER_CITY_NAME);
+        verify(cityRepository).findByNameIgnoreCase(ANOTHER_CITY_NAME);
         verify(cityMapper, never()).cityEntityToCityResponseDto(any());
     }
 
@@ -160,7 +159,7 @@ class CityServiceTest {
         CityResponseDto updatedResponseDto = new CityResponseDto(ID_100, ANOTHER_CITY_NAME);
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
-        when(cityRepository.findByName(ANOTHER_CITY_NAME)).thenReturn(Optional.empty());
+        when(cityRepository.findByNameIgnoreCase(ANOTHER_CITY_NAME)).thenReturn(Optional.empty());
         doNothing().when(cityMapper).update(city, updateDto);
         when(cityRepository.save(city)).thenReturn(updatedCity);
         when(cityMapper.cityEntityToCityResponseDto(updatedCity)).thenReturn(updatedResponseDto);
@@ -170,7 +169,7 @@ class CityServiceTest {
         assertNotNull(result);
         assertEquals(updatedResponseDto, result);
         verify(cityRepository).findById(ID_100);
-        verify(cityRepository).findByName(ANOTHER_CITY_NAME);
+        verify(cityRepository).findByNameIgnoreCase(ANOTHER_CITY_NAME);
         verify(cityMapper).update(city, updateDto);
         verify(cityRepository).save(city);
         verify(cityMapper).cityEntityToCityResponseDto(updatedCity);
@@ -195,12 +194,12 @@ class CityServiceTest {
         CityCreationDto updateDto = new CityCreationDto(ANOTHER_CITY_NAME);
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
-        when(cityRepository.findByName(ANOTHER_CITY_NAME)).thenReturn(Optional.of(existingOtherCity));
+        when(cityRepository.findByNameIgnoreCase(ANOTHER_CITY_NAME)).thenReturn(Optional.of(existingOtherCity));
 
         assertThrows(EntityExistsException.class,
                 () -> cityService.update(updateDto, ID_100));
         verify(cityRepository).findById(ID_100);
-        verify(cityRepository).findByName(ANOTHER_CITY_NAME);
+        verify(cityRepository).findByNameIgnoreCase(ANOTHER_CITY_NAME);
         verify(cityMapper, never()).update(any(), any());
         verify(cityRepository, never()).save(any());
     }

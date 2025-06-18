@@ -13,9 +13,6 @@ public interface TravelerMapper {
 
     TravelerResponseDto travelerEntityToTravelerResponseDto(Traveler traveler);
 
-    List<VehicleResponseDto> mapVehicles(List<Vehicle> vehicles);
-    VehicleResponseDto map(Vehicle vehicle);
-
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "enabled", constant = "1")
     @Mapping(target = "authority", defaultValue = "ROLE_PASSENGER")

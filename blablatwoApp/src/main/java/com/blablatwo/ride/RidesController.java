@@ -35,7 +35,6 @@ public class RidesController {
     public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideCreationDto ride) {
         var newRide = rideService.create(ride);
         return ResponseEntity.created(getUriFromId(newRide.id()))
-                .eTag(getEtag(newRide))
                 .body(newRide);
     }
 
@@ -46,10 +45,9 @@ public class RidesController {
 
 
 
-        var updatedRide = rideService.update(rideDTO, id, ifMatch);
+        var updatedRide = rideService.update(rideDTO, id);
         return ResponseEntity.ok()
                 .location(getUriFromId(id))
-                .eTag(getEtag(updatedRide))
                 .body(updatedRide);
     }
 
@@ -57,9 +55,5 @@ public class RidesController {
     public ResponseEntity<Void> deleteRide (@PathVariable Long id) {
         rideService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private static String getEtag(RideResponseDto newRide) {
-        return String.valueOf(newRide.lastModified());
     }
 }

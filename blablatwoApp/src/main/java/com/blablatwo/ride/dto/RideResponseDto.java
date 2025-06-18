@@ -1,6 +1,5 @@
 package com.blablatwo.ride.dto;
 
-import com.blablatwo.city.CityDTO;
 import com.blablatwo.city.CityResponseDto;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.traveler.DriverProfileDto;
