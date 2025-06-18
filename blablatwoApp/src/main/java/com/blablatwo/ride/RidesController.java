@@ -40,8 +40,7 @@ public class RidesController {
 
     @PutMapping("/rides/{id}")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
-                                               @PathVariable Long id,
-                                               @RequestHeader ("If-Match") String ifMatch) {
+                                               @PathVariable Long id) {
 
 
 

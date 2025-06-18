@@ -14,6 +14,7 @@ public class Constants {
     public static final String CITY_NAME_ORIGIN = "Origin";
     public static final String CITY_NAME_KRAKOW = "Kraków";
 
+    public static final String RIDE_DESCRIPTION = "A scenic ride through the countryside.";
 
     public static final BigDecimal BIG_DECIMAL = BigDecimal.valueOf(99.99d);
     public static final Instant INSTANT = Instant.parse("2021-01-01T00:00:00Z");

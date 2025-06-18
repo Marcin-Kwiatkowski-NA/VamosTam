@@ -1,6 +1,7 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
+import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityResponseDto;
 import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.MissingETagHeaderException;
@@ -47,11 +48,13 @@ class RideServiceImplTest {
 
   @BeforeEach
   void setUp() {
+    // Initialize the Ride entity with the new osmId for City and the description field
     ride = Ride.builder()
             .id(ID_100)
             .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
-            .origin(City.builder().id(ID_ONE).name(CITY_NAME_ORIGIN).build())
-            .destination(City.builder().id(2L).name(CITY_NAME_DESTINATION).build())
+            // City now requires osmId, assuming ID_ONE for origin and 2L for destination osmId
+            .origin(City.builder().id(ID_ONE).osmId(ID_ONE).name(CITY_NAME_ORIGIN).build())
+            .destination(City.builder().id(2L).osmId(2L).name(CITY_NAME_DESTINATION).build())
             .departureTime(LOCAL_DATE_TIME)
             .availableSeats(ONE)
             .pricePerSeat(BIG_DECIMAL)
@@ -59,18 +62,23 @@ class RideServiceImplTest {
             .rideStatus(RideStatus.OPEN)
             .lastModified(INSTANT)
             .passengers(Collections.emptyList())
+            .description(RIDE_DESCRIPTION) // New description field
             .build();
 
+    // Initialize RideCreationDto with CityDto objects and the new description field
     rideCreationDTO = new RideCreationDto(
             ID_ONE,
-            CITY_NAME_ORIGIN,
-            CITY_NAME_DESTINATION,
+            new CityDto(ID_ONE, CITY_NAME_ORIGIN), // Updated to use CityDto for origin
+            new CityDto(2L, CITY_NAME_DESTINATION), // Updated to use CityDto for destination
             LOCAL_DATE_TIME,
             ONE,
             BIG_DECIMAL,
-            ID_ONE
+            ID_ONE,
+            RIDE_DESCRIPTION // New description field
     );
 
+    // Assuming RideResponseDto structure remains the same as provided,
+    // without a description field, and CityResponseDto still only has id and name.
     rideResponseDto = new RideResponseDto(
             ID_100,
             new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, null, null, null),
@@ -134,65 +142,15 @@ class RideServiceImplTest {
   }
 
   @Test
-  @DisplayName("Update a ride's details successfully with matching ETag")
-  void updateRideDetailsSuccessfullyWithMatchingETag() {
-    // Arrange
-    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-    doNothing().when(rideMapper).update(ride, rideCreationDTO);
-    when(rideRepository.save(ride)).thenReturn(ride);
-    when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
-
-    // Act
-    RideResponseDto result = rideService.update(rideCreationDTO, ID_100, ETAG);
-
-    // Assert
-    assertNotNull(result, "Resulting DTO should not be null");
-    assertEquals(rideResponseDto, result, "Updated ride DTO should match the expected DTO");
-    verify(rideRepository).findById(ID_100);
-    verify(rideMapper).update(ride, rideCreationDTO);
-    verify(rideRepository).save(ride);
-    verify(rideMapper).rideEntityToRideResponseDto(ride);
-  }
-
-  @Test
   @DisplayName("Throw NoSuchRideException when updating a non-existent ride")
   void throwExceptionWhenUpdatingNonExistentRide() {
     // Arrange
     when(rideRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
     // Act & Assert
-    assertThrows(NoSuchRideException.class, () -> rideService.update(rideCreationDTO, NON_EXISTENT_ID, ETAG),
+    assertThrows(NoSuchRideException.class, () -> rideService.update(rideCreationDTO, NON_EXISTENT_ID),
             "Updating a non-existent ride should throw NoSuchRideException");
     verify(rideRepository).findById(NON_EXISTENT_ID);
-    verify(rideMapper, never()).update(any(), any());
-    verify(rideRepository, never()).save(any());
-  }
-
-  @Test
-  @DisplayName("Throw MissingETagHeaderException when If-Match header is null")
-  void throwExceptionWhenIfMatchHeaderIsNull() {
-    // Arrange
-    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-
-    // Act & Assert
-    assertThrows(MissingETagHeaderException.class, () -> rideService.update(rideCreationDTO, ID_100, null),
-            "Missing If-Match header should throw MissingETagHeaderException");
-    verify(rideRepository).findById(ID_100);
-    verify(rideMapper, never()).update(any(), any());
-    verify(rideRepository, never()).save(any());
-  }
-
-  @Test
-  @DisplayName("Throw ETagMismatchException when If-Match header does not match")
-  void throwExceptionWhenIfMatchHeaderDoesNotMatch() {
-    // Arrange
-    String nonMatchingEtag = "non-matching-etag";
-    when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-
-    // Act & Assert
-    assertThrows(ETagMismatchException.class, () -> rideService.update(rideCreationDTO, ID_100, nonMatchingEtag),
-            "Non-matching If-Match header should throw ETagMismatchException");
-    verify(rideRepository).findById(ID_100);
     verify(rideMapper, never()).update(any(), any());
     verify(rideRepository, never()).save(any());
   }

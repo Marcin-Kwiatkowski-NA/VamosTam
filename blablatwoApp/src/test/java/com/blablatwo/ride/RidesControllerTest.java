@@ -1,6 +1,7 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
+import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityResponseDto;
 import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.NoSuchRideException;
@@ -54,12 +55,11 @@ class RidesControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Prepare Ride entity
         ride = Ride.builder()
                 .id(ID_100)
                 .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
-                .origin(City.builder().id(ID_ONE).name(CITY_NAME_ORIGIN).build())
-                .destination(City.builder().id(2L).name(CITY_NAME_DESTINATION).build())
+                .origin(City.builder().id(ID_ONE).osmId(ID_ONE).name(CITY_NAME_ORIGIN).build())
+                .destination(City.builder().id(2L).osmId(2L).name(CITY_NAME_DESTINATION).build())
                 .departureTime(LOCAL_DATE_TIME)
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
@@ -67,20 +67,20 @@ class RidesControllerTest {
                 .rideStatus(RideStatus.OPEN)
                 .lastModified(INSTANT)
                 .passengers(Collections.emptyList())
+                .description(RIDE_DESCRIPTION)
                 .build();
 
-        // Prepare RideCreationDto
         rideCreationDTO = new RideCreationDto(
-                ID_ONE,                   // driverId
-                CITY_NAME_ORIGIN,         // origin
-                CITY_NAME_DESTINATION,    // destination
-                LOCAL_DATE_TIME,          // departureTime
-                ONE,                      // availableSeats
-                BIG_DECIMAL,              // pricePerSeat
-                ID_ONE                    // vehicleId
+                ID_ONE,
+                new CityDto(ID_ONE, CITY_NAME_ORIGIN),
+                new CityDto(2L, CITY_NAME_DESTINATION),
+                LOCAL_DATE_TIME,
+                ONE,
+                BIG_DECIMAL,
+                ID_ONE,
+                RIDE_DESCRIPTION
         );
 
-        // Prepare RideResponseDto
         rideResponseDto = new RideResponseDto(
                 ID_100,
                 new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, EMAIL, TELEPHONE, CRISTIANO),
@@ -148,12 +148,13 @@ class RidesControllerTest {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
                 null,
-                "",
-                "",
+                new CityDto(null, ""),
+                new CityDto(null, ""),
                 LocalDateTime.now().minusDays(1),
                 0,
                 BigDecimal.valueOf(-1),
-                null
+                null,
+                ""
         );
 
         // Act & Assert
@@ -197,15 +198,13 @@ class RidesControllerTest {
     @WithMockUser
     void updateRide_Success() throws Exception {
         // Arrange
-        String ifMatch = ETAG;
-        when(rideService.update(any(RideCreationDto.class), eq(ID_100), eq(ifMatch)))
+        when(rideService.update(any(RideCreationDto.class), eq(ID_100)))
                 .thenReturn(rideResponseDto);
 
         // Act & Assert
         mockMvc.perform(put(BASE_URL + "/" + ID_100)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("If-Match", ifMatch)
                         .content(objectMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Location"))
@@ -213,61 +212,41 @@ class RidesControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /rides/{id} - Update ride - Not Found")
+    @DisplayName("PUT /rides/{id} - Update ride - Not Found (ETag removed)")
     @WithMockUser
     void updateRide_NotFound() throws Exception {
         // Arrange
-        String ifMatch = ETAG;
-        when(rideService.update(any(RideCreationDto.class), eq(NON_EXISTENT_ID), eq(ifMatch)))
+        when(rideService.update(any(RideCreationDto.class), eq(NON_EXISTENT_ID)))
                 .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
 
         // Act & Assert
-        mockMvc.perform(put(BASE_URL + "/" + NON_EXISTENT_ID).with(csrf())
+        mockMvc.perform(put(BASE_URL + "/" + NON_EXISTENT_ID)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("If-Match", ifMatch)
                         .content(objectMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("PUT /rides/{id} - Update ride - ETag Mismatch")
-    @WithMockUser
-    void updateRide_ETagMismatch() throws Exception {
-        // Arrange
-        String ifMatch = ETAG;
-        when(rideService.update(any(RideCreationDto.class), eq(ID_100), eq(ifMatch)))
-                .thenThrow(new ETagMismatchException());
-
-        // Act & Assert
-        mockMvc.perform(put(BASE_URL + "/" + ID_100)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("If-Match", ifMatch)
-                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
-                .andExpect(status().isPreconditionFailed());
-    }
-
-    @Test
-    @DisplayName("PUT /rides/{id} - Update ride - Validation Error")
+    @DisplayName("PUT /rides/{id} - Update ride - Validation Error (ETag removed)")
     @WithMockUser
     void updateRide_ValidationError() throws Exception {
         // Arrange
-        String ifMatch = ETAG;
         RideCreationDto invalidRide = new RideCreationDto(
                 null,
-                "",
-                "",
+                new CityDto(null, ""),
+                new CityDto(null, ""),
                 LocalDateTime.now().minusDays(1),
                 0,
                 BigDecimal.valueOf(-1),
-                null
+                null,
+                ""
         );
 
         // Act & Assert
         mockMvc.perform(put(BASE_URL + "/" + ID_100)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("If-Match", ifMatch)
                         .content(objectMapper.writeValueAsString(invalidRide)))
                 .andExpect(status().isBadRequest());
     }

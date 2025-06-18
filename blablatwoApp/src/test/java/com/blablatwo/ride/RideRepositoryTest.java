@@ -43,9 +43,11 @@ class RideRepositoryTest {
   @BeforeEach
   void setUp() {
     origin = City.builder()
+            .osmId(ID_ONE)
             .name(CITY_NAME_ORIGIN)
             .build();
     destination = City.builder()
+            .osmId(2L)
             .name(CITY_NAME_DESTINATION)
             .build();
     cityRepository.save(origin);
@@ -80,6 +82,7 @@ class RideRepositoryTest {
             .vehicle(vehicle)
             .rideStatus(RideStatus.OPEN)
             .lastModified(INSTANT)
+            .description(RIDE_DESCRIPTION)
             .build();
 
     // Act
@@ -90,13 +93,16 @@ class RideRepositoryTest {
             () -> assertNotNull(savedRide.getId(), "Saved ride should have an ID"),
             () -> assertEquals(driver.getId(), savedRide.getDriver().getId(), "Driver should match"),
             () -> assertEquals(origin.getId(), savedRide.getOrigin().getId(), "Origin should match"),
+            () -> assertEquals(origin.getOsmId(), savedRide.getOrigin().getOsmId(), "Origin OSM ID should match"),
             () -> assertEquals(destination.getId(), savedRide.getDestination().getId(), "Destination should match"),
+            () -> assertEquals(destination.getOsmId(), savedRide.getDestination().getOsmId(), "Destination OSM ID should match"),
             () -> assertEquals(LOCAL_DATE_TIME, savedRide.getDepartureTime(), "Departure time should match"),
             () -> assertEquals(ONE, savedRide.getAvailableSeats(), "Available seats should match"),
             () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),
             () -> assertEquals(vehicle.getId(), savedRide.getVehicle().getId(), "Vehicle should match"),
             () -> assertEquals(RideStatus.OPEN, savedRide.getRideStatus(), "Ride status should match"),
-            () -> assertEquals(INSTANT, savedRide.getLastModified(), "Last modified should match")
+            () -> assertEquals(INSTANT, savedRide.getLastModified(), "Last modified should match"),
+            () -> assertEquals(RIDE_DESCRIPTION, savedRide.getDescription(), "Description should match")
     );
   }
 
@@ -114,6 +120,7 @@ class RideRepositoryTest {
             .vehicle(vehicle)
             .rideStatus(RideStatus.OPEN)
             .lastModified(INSTANT)
+            .description(RIDE_DESCRIPTION)
             .build();
     Ride savedRide = rideRepository.save(ride);
 
@@ -142,6 +149,7 @@ class RideRepositoryTest {
             .vehicle(vehicle)
             .rideStatus(RideStatus.OPEN)
             .lastModified(INSTANT)
+            .description(RIDE_DESCRIPTION)
             .build();
     Ride savedRide = rideRepository.save(ride);
 
@@ -149,6 +157,7 @@ class RideRepositoryTest {
     savedRide.setPricePerSeat(BIG_DECIMAL.add(BigDecimal.ONE));
     savedRide.setLastModified(INSTANT.plusSeconds(60));
     savedRide.setRideStatus(RideStatus.COMPLETED);
+    savedRide.setDescription("Updated description");
 
     // Act
     Ride updatedRide = rideRepository.save(savedRide);
@@ -158,7 +167,8 @@ class RideRepositoryTest {
             () -> assertEquals(2, updatedRide.getAvailableSeats(), "Available seats should be updated"),
             () -> assertEquals(BIG_DECIMAL.add(BigDecimal.ONE), updatedRide.getPricePerSeat(), "Price per seat should be updated"),
             () -> assertEquals(INSTANT.plusSeconds(60), updatedRide.getLastModified(), "Last modified should be updated"),
-            () -> assertEquals(RideStatus.COMPLETED, updatedRide.getRideStatus(), "Ride status should be updated")
+            () -> assertEquals(RideStatus.COMPLETED, updatedRide.getRideStatus(), "Ride status should be updated"),
+            () -> assertEquals("Updated description", updatedRide.getDescription(), "Description should be updated")
     );
   }
 
@@ -170,6 +180,7 @@ class RideRepositoryTest {
             .origin(origin)
             .destination(destination)
             .departureTime(LOCAL_DATE_TIME)
+            .description(RIDE_DESCRIPTION)
             .build();
     Ride savedRide = rideRepository.save(ride);
 
@@ -198,6 +209,7 @@ class RideRepositoryTest {
     Ride ride = Ride.builder()
             .origin(origin)
             .departureTime(LOCAL_DATE_TIME)
+            .description(RIDE_DESCRIPTION)
             .build();
 
     // Act & Assert
@@ -228,11 +240,13 @@ class RideRepositoryTest {
             .origin(origin)
             .destination(destination)
             .departureTime(LOCAL_DATE_TIME)
+            .description(RIDE_DESCRIPTION)
             .build();
     Ride ride2 = Ride.builder()
             .origin(origin)
             .destination(destination)
             .departureTime(LOCAL_DATE_TIME.plusHours(1))
+            .description(RIDE_DESCRIPTION)
             .build();
     rideRepository.save(ride1);
     rideRepository.save(ride2);
@@ -253,9 +267,8 @@ class RideRepositoryTest {
     nonExistentRide.setOrigin(origin);
     nonExistentRide.setDestination(destination);
     nonExistentRide.setDepartureTime(LOCAL_DATE_TIME);
+    nonExistentRide.setDescription(RIDE_DESCRIPTION);
 
-    // Depending on your JPA setup, this might throw an exception like EntityNotFoundException or
-    // ObjectOptimisticLockingFailureException. Adjust accordingly:
     assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
       rideRepository.save(nonExistentRide);
     }, "Updating non-existent ride should throw exception");

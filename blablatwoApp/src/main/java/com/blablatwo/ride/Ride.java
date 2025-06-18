@@ -5,6 +5,7 @@ import com.blablatwo.traveler.Traveler;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -48,6 +49,9 @@ public class Ride {
 
     @Enumerated(EnumType.STRING)
     private RideStatus rideStatus; //     OPEN,    FULL,    COMPLETED,    CANCELLED
+
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
+    String description;
 
     @Column(name = "last_modified")
     private Instant lastModified;
