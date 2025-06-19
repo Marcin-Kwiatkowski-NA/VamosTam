@@ -6,4 +6,5 @@ import jakarta.validation.constraints.NotNull;
 public record CityDto(
         @NotNull Long osmId,
         @NotBlank String name
-) {}
+) {
+}

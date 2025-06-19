@@ -7,4 +7,5 @@ public record VehicleResponseDto(
         Integer productionYear,
         String color,
         String licensePlate
-) {}
+) {
+}

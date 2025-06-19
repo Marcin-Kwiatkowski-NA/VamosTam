@@ -11,11 +11,14 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.Optional;
 
-import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.Constants.CITY_NAME_DESTINATION;
+import static com.blablatwo.util.Constants.CITY_NAME_KRAKOW;
+import static com.blablatwo.util.Constants.ID_100;
+import static com.blablatwo.util.Constants.NON_EXISTENT_ID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class CityRepositoryImplTest  {
+class CityRepositoryImplTest {
 
     @Autowired
     private EntityManager entityManager;

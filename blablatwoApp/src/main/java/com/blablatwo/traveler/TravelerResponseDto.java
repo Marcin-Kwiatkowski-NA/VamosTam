@@ -14,4 +14,5 @@ public record TravelerResponseDto(
         Roles authority,
         TravelerType type,
         List<VehicleResponseDto> vehicles
-) {}
+) {
+}

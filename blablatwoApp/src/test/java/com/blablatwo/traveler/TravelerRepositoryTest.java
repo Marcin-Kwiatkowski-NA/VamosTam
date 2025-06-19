@@ -39,6 +39,7 @@ class TravelerRepositoryTest {
                 .build();
         travelerRepository.save(driver);
     }
+
     @Autowired
     private EntityManager entityManager;
 

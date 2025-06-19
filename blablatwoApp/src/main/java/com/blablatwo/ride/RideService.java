@@ -7,7 +7,10 @@ import java.util.Optional;
 
 public interface RideService {
     Optional<RideResponseDto> getById(Long id);
+
     RideResponseDto create(RideCreationDto ride);
+
     RideResponseDto update(RideCreationDto ride, Long id);
+
     void delete(Long id);
 }

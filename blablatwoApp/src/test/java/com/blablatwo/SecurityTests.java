@@ -14,21 +14,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(HelloController.class)
-public class SecurityTests {
+class SecurityTests {
 
     @Autowired
     private MockMvc mvc;
 
     @Test
     @DisplayName("Test calling /hello endpoint without authentication returns unauthorized.")
-    public void helloUnauthenticated() throws Exception {
+    void helloUnauthenticated() throws Exception {
         mvc.perform(get("/hello"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Test calling /hello endpoint authenticated returns ok.")
-    public void helloAuthenticated() throws Exception {
+    void helloAuthenticated() throws Exception {
         mvc.perform(get("/hello")
                         .with(user("john")))
                 .andExpect(status().isOk());
@@ -36,18 +36,18 @@ public class SecurityTests {
 
     @Test
     @DisplayName("Test calling /hello endpoint authenticating with wrong credentials returns unauthorized.")
-    public void helloAuthenticatingWithWrongUser() throws Exception {
+    void helloAuthenticatingWithWrongUser() throws Exception {
         mvc.perform(get("/hello")
-                        .with(httpBasic("bill","12345")))
+                        .with(httpBasic("bill", "12345")))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @WithMockUser("jdoe")
     @DisplayName("Test calling /hello endpoint authenticating with valid credentials returns ok.")
-    public void helloAuthenticatingWithValidUser() throws Exception {
+    void helloAuthenticatingWithValidUser() throws Exception {
         mvc.perform(get("/hello")
-                        .with(httpBasic("jdoe","password123")))
+                        .with(httpBasic("jdoe", "password123")))
                 .andExpect(status().isOk());
     }
 }

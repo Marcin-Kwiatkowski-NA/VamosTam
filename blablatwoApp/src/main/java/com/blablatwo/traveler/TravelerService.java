@@ -12,9 +12,14 @@ public interface TravelerService extends UserDetailsService {
     UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
 
     Optional<Traveler> getById(Long id);
+
     Optional<Traveler> getByUsername(String username);
+
     List<Traveler> getAllTravelers();
+
     TravelerResponseDto create(TravelerCreationDto travelerDto);
+
     TravelerResponseDto update(TravelerCreationDto travelerDto, Long id);
+
     void delete(Long id);
 }

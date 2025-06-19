@@ -22,4 +22,5 @@ public record RideResponseDto(
         RideStatus rideStatus,
         Instant lastModified,
         List<DriverProfileDto> passengers
-) {}
+) {
+}

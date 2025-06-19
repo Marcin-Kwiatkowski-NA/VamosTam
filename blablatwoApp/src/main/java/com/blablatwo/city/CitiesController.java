@@ -1,7 +1,5 @@
 package com.blablatwo.city;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,14 +19,14 @@ public class CitiesController {
     }
 
     @GetMapping("/cities/{id}")
-    public ResponseEntity<City> getCityById(@PathVariable long id){
+    public ResponseEntity<City> getCityById(@PathVariable long id) {
         Optional<City> cityOptional = cityService.getById(id);
         return cityOptional.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/cities")
-    public ResponseEntity<Collection<City>> getAllCities(){
+    public ResponseEntity<Collection<City>> getAllCities() {
         return ResponseEntity.ok(cityService.getAllCities());
     }
 

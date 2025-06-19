@@ -26,4 +26,5 @@ public record TravelerCreationDto(
 
         Roles authority,
         TravelerType type
-) {}
+) {
+}

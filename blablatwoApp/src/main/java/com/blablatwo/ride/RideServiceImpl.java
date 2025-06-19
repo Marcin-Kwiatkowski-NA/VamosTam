@@ -20,7 +20,6 @@ public class RideServiceImpl implements RideService {
     private final CityMapper cityMapper;
 
 
-
     public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper, CityRepository cityRepository, CityMapper cityMapper) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
@@ -46,12 +45,12 @@ public class RideServiceImpl implements RideService {
 
     private void saveIfCityNotExists(RideCreationDto ride) {
         if (cityRepository.findByOsmId(ride.origin().osmId())
-                .isEmpty()){
+                .isEmpty()) {
             City origin = cityMapper.cityDtoToEntity(ride.origin());
             cityRepository.save(origin);
         }
         if (cityRepository.findByOsmId(ride.destination().osmId())
-                .isEmpty()){
+                .isEmpty()) {
             City destination = cityMapper.cityDtoToEntity(ride.destination());
             cityRepository.save(destination);
         }

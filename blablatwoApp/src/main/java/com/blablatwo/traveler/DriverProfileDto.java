@@ -6,4 +6,5 @@ public record DriverProfileDto(
         String name,
         String email,
         String phoneNumber
-) {}
+) {
+}

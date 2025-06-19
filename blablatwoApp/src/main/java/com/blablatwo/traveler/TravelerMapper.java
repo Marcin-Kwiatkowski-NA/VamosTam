@@ -1,12 +1,8 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.vehicle.Vehicle;
-import com.blablatwo.vehicle.VehicleResponseDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-
-import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface TravelerMapper {

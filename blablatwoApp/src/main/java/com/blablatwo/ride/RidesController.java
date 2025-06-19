@@ -8,7 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
 
@@ -25,7 +31,7 @@ public class RidesController {
     }
 
     @GetMapping("/rides/{id}")
-    public ResponseEntity<RideResponseDto> getRideById(@PathVariable Long id){
+    public ResponseEntity<RideResponseDto> getRideById(@PathVariable Long id) {
         Optional<RideResponseDto> rideResp = rideService.getById(id);
         return rideResp.map(ResponseEntity::ok)
                 .orElseThrow(() -> new NoSuchRideException(id));
@@ -40,8 +46,7 @@ public class RidesController {
 
     @PutMapping("/rides/{id}")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
-                                               @PathVariable Long id) {
-
+                                                      @PathVariable Long id) {
 
 
         var updatedRide = rideService.update(rideDTO, id);
@@ -51,7 +56,7 @@ public class RidesController {
     }
 
     @DeleteMapping("/rides/{id}")
-    public ResponseEntity<Void> deleteRide (@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRide(@PathVariable Long id) {
         rideService.delete(id);
         return ResponseEntity.noContent().build();
     }

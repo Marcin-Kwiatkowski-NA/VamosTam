@@ -1,7 +1,6 @@
 package com.blablatwo.ride;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
 import org.springframework.web.client.RestClient;
 
 public class Photon implements Geocoder {
