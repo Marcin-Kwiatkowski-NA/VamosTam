@@ -1,11 +1,14 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
+import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityRepository;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,23 +40,19 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional
     public RideResponseDto create(RideCreationDto ride) {
-        saveIfCityNotExists(ride);
+        City origin = getOrCreateCity(ride.origin());
+        City destination = getOrCreateCity(ride.destination());
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
+        newRideEntity.setOrigin(origin);
+        newRideEntity.setDestination(destination);
         return rideMapper.rideEntityToRideResponseDto(
                 rideRepository.save(newRideEntity));
     }
 
-    private void saveIfCityNotExists(RideCreationDto ride) {
-        if (cityRepository.findByOsmId(ride.origin().osmId())
-                .isEmpty()) {
-            City origin = cityMapper.cityDtoToEntity(ride.origin());
-            cityRepository.save(origin);
-        }
-        if (cityRepository.findByOsmId(ride.destination().osmId())
-                .isEmpty()) {
-            City destination = cityMapper.cityDtoToEntity(ride.destination());
-            cityRepository.save(destination);
-        }
+    private City getOrCreateCity(@Valid @NotNull CityDto city) {
+        return cityRepository.findByOsmId(city.osmId())
+                .orElseGet(() -> cityRepository.save(cityMapper.cityDtoToEntity(city))
+        );
     }
 
     @Override
