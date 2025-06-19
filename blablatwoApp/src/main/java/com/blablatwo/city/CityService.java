@@ -8,7 +8,7 @@ public interface CityService {
     Optional<City> getById(Long id);
     Optional<City> findByName(String name);
     List<City> getAllCities();
-    CityResponseDto create(CityCreationDto cityDto);
-    CityResponseDto update(CityCreationDto cityDto, Long id);
+    CityDto create(CityDto cityDto);
+    CityDto update(CityDto cityDto, Long id);
     void delete(Long id);
 }

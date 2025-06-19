@@ -36,23 +36,22 @@ public class CityServiceImpl implements CityService {
     @Override
     @Transactional
     public List<City> getAllCities() {
-        return StreamSupport.stream(cityRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
+        return cityRepository.findAll();
     }
 
     @Override
     @Transactional
-    public CityResponseDto create(CityCreationDto cityDto) {
+    public CityDto create(CityDto cityDto) {
         if (cityRepository.existsByName(cityDto.name())) {
             throw new EntityExistsException("City with name '" + cityDto.name() + "' already exists.");
         }
-        City newCity = cityMapper.cityCreationDtoToEntity(cityDto);
-        return cityMapper.cityEntityToCityResponseDto(cityRepository.save(newCity));
+        City newCity = cityMapper.cityDtoToEntity(cityDto);
+        return cityMapper.cityEntityToCityDto(cityRepository.save(newCity));
     }
 
     @Override
     @Transactional
-    public CityResponseDto update(CityCreationDto cityDto, Long id) {
+    public CityDto update(CityDto cityDto, Long id) {
         City existingCity = cityRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("City with ID " + id + " not found."));
 
@@ -63,7 +62,7 @@ public class CityServiceImpl implements CityService {
         }
 
         cityMapper.update(existingCity, cityDto);
-        return cityMapper.cityEntityToCityResponseDto(cityRepository.save(existingCity));
+        return cityMapper.cityEntityToCityDto(cityRepository.save(existingCity));
     }
 
     @Override

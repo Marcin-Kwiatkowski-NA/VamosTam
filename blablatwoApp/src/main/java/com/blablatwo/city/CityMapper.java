@@ -7,11 +7,11 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CityMapper {
 
-    CityResponseDto cityEntityToCityResponseDto(City city);
+    CityDto cityEntityToCityDto(City city);
 
     @Mapping(target = "id", ignore = true)
-    City cityCreationDtoToEntity(CityCreationDto cityDto);
+    City cityDtoToEntity(CityDto cityDto);
 
     @Mapping(target = "id", ignore = true)
-    void update(@MappingTarget City city, CityCreationDto cityDto);
+    void update(@MappingTarget City city, CityDto cityDto);
 }

@@ -1,7 +1,8 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.exceptions.ETagMismatchException;
-import com.blablatwo.exceptions.MissingETagHeaderException;
+import com.blablatwo.city.City;
+import com.blablatwo.city.CityMapper;
+import com.blablatwo.city.CityRepository;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -15,10 +16,16 @@ public class RideServiceImpl implements RideService {
 
     private final RideRepository rideRepository;
     private final RideMapper rideMapper;
+    private final CityRepository cityRepository;
+    private final CityMapper cityMapper;
 
-    public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper) {
+
+
+    public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper, CityRepository cityRepository, CityMapper cityMapper) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
+        this.cityRepository = cityRepository;
+        this.cityMapper = cityMapper;
     }
 
     @Override
@@ -31,9 +38,23 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional
     public RideResponseDto create(RideCreationDto ride) {
+        saveIfCityNotExists(ride);
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
         return rideMapper.rideEntityToRideResponseDto(
                 rideRepository.save(newRideEntity));
+    }
+
+    private void saveIfCityNotExists(RideCreationDto ride) {
+        if (cityRepository.findByOsmId(ride.origin().osmId())
+                .isEmpty()){
+            City origin = cityMapper.cityDtoToEntity(ride.origin());
+            cityRepository.save(origin);
+        }
+        if (cityRepository.findByOsmId(ride.destination().osmId())
+                .isEmpty()){
+            City destination = cityMapper.cityDtoToEntity(ride.destination());
+            cityRepository.save(destination);
+        }
     }
 
     @Override

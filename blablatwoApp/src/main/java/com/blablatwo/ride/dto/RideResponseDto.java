@@ -1,6 +1,6 @@
 package com.blablatwo.ride.dto;
 
-import com.blablatwo.city.CityResponseDto;
+import com.blablatwo.city.CityDto;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
@@ -13,8 +13,8 @@ import java.util.List;
 public record RideResponseDto(
         Long id,
         DriverProfileDto driver,
-        CityResponseDto origin,
-        CityResponseDto destination,
+        CityDto origin,
+        CityDto destination,
         LocalDateTime departureTime,
         Integer availableSeats,
         BigDecimal pricePerSeat,

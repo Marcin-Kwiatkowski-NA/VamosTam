@@ -32,6 +32,9 @@ class CityServiceTest {
     private static final Long NON_EXISTENT_ID = 999L;
     private static final String CITY_NAME = "Krakow";
     private static final String ANOTHER_CITY_NAME = "Warsaw";
+    private static final Long OSM_ID_1 = 1L;
+    private static final Long OSM_ID_2 = 2L;
+
 
     @Mock
     private CityRepository cityRepository;
@@ -43,18 +46,17 @@ class CityServiceTest {
     private CityServiceImpl cityService;
 
     private City city;
-    private CityCreationDto cityCreationDto;
-    private CityResponseDto cityResponseDto;
+    private CityDto cityDto;
 
     @BeforeEach
     void setUp() {
         city = City.builder()
                 .id(ID_100)
                 .name(CITY_NAME)
+                .osmId(OSM_ID_1)
                 .build();
 
-        cityCreationDto = new CityCreationDto(CITY_NAME);
-        cityResponseDto = new CityResponseDto(ID_100, CITY_NAME);
+        cityDto = new CityDto(OSM_ID_1, CITY_NAME);
     }
 
     @Test
@@ -67,7 +69,7 @@ class CityServiceTest {
         assertTrue(result.isPresent());
         assertEquals(city, result.get());
         verify(cityRepository).findById(ID_100);
-        verify(cityMapper, never()).cityEntityToCityResponseDto(any());
+        verify(cityMapper, never()).cityEntityToCityDto(any());
     }
 
     @Test
@@ -79,7 +81,7 @@ class CityServiceTest {
 
         assertFalse(result.isPresent());
         verify(cityRepository).findById(NON_EXISTENT_ID);
-        verify(cityMapper, never()).cityEntityToCityResponseDto(any());
+        verify(cityMapper, never()).cityEntityToCityDto(any());
     }
 
     @Test
@@ -92,7 +94,7 @@ class CityServiceTest {
         assertTrue(result.isPresent());
         assertEquals(city, result.get());
         verify(cityRepository).findByNameIgnoreCase(CITY_NAME);
-        verify(cityMapper, never()).cityEntityToCityResponseDto(any());
+        verify(cityMapper, never()).cityEntityToCityDto(any());
     }
 
     @Test
@@ -104,7 +106,7 @@ class CityServiceTest {
 
         assertFalse(result.isPresent());
         verify(cityRepository).findByNameIgnoreCase(ANOTHER_CITY_NAME);
-        verify(cityMapper, never()).cityEntityToCityResponseDto(any());
+        verify(cityMapper, never()).cityEntityToCityDto(any());
     }
 
     @Test
@@ -118,25 +120,27 @@ class CityServiceTest {
         assertEquals(1, result.size());
         assertEquals(city, result.get(0));
         verify(cityRepository).findAll();
-        verify(cityMapper, never()).cityEntityToCityResponseDto(any());
+        verify(cityMapper, never()).cityEntityToCityDto(any());
     }
 
     @Test
     @DisplayName("Create new city successfully")
     void createNewCitySuccessfully() {
-        when(cityRepository.existsByName(CITY_NAME)).thenReturn(false);
-        when(cityMapper.cityCreationDtoToEntity(cityCreationDto)).thenReturn(city);
-        when(cityRepository.save(city)).thenReturn(city);
-        when(cityMapper.cityEntityToCityResponseDto(city)).thenReturn(cityResponseDto);
+        CityDto cityResponseDtoWithId = new CityDto(OSM_ID_1, CITY_NAME);
 
-        CityResponseDto result = cityService.create(cityCreationDto);
+        when(cityRepository.existsByName(CITY_NAME)).thenReturn(false);
+        when(cityMapper.cityDtoToEntity(cityDto)).thenReturn(city);
+        when(cityRepository.save(city)).thenReturn(city);
+        when(cityMapper.cityEntityToCityDto(city)).thenReturn(cityResponseDtoWithId);
+
+        CityDto result = cityService.create(cityDto);
 
         assertNotNull(result);
-        assertEquals(cityResponseDto, result);
+        assertEquals(cityResponseDtoWithId, result);
         verify(cityRepository).existsByName(CITY_NAME);
-        verify(cityMapper).cityCreationDtoToEntity(cityCreationDto);
+        verify(cityMapper).cityDtoToEntity(cityDto);
         verify(cityRepository).save(city);
-        verify(cityMapper).cityEntityToCityResponseDto(city);
+        verify(cityMapper).cityEntityToCityDto(city);
     }
 
     @Test
@@ -145,26 +149,26 @@ class CityServiceTest {
         when(cityRepository.existsByName(CITY_NAME)).thenReturn(true);
 
         assertThrows(EntityExistsException.class,
-                () -> cityService.create(cityCreationDto));
+                () -> cityService.create(cityDto));
         verify(cityRepository).existsByName(CITY_NAME);
-        verify(cityMapper, never()).cityCreationDtoToEntity(any());
+        verify(cityMapper, never()).cityDtoToEntity(any());
         verify(cityRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Update existing city successfully")
     void updateExistingCitySuccessfully() {
-        City updatedCity = City.builder().id(ID_100).name(ANOTHER_CITY_NAME).build();
-        CityCreationDto updateDto = new CityCreationDto(ANOTHER_CITY_NAME);
-        CityResponseDto updatedResponseDto = new CityResponseDto(ID_100, ANOTHER_CITY_NAME);
+        City updatedCity = City.builder().id(ID_100).name(ANOTHER_CITY_NAME).osmId(OSM_ID_2).build();
+        CityDto updateDto = new CityDto(OSM_ID_2, ANOTHER_CITY_NAME);
+        CityDto updatedResponseDto = new CityDto(OSM_ID_2, ANOTHER_CITY_NAME);
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
         when(cityRepository.findByNameIgnoreCase(ANOTHER_CITY_NAME)).thenReturn(Optional.empty());
         doNothing().when(cityMapper).update(city, updateDto);
         when(cityRepository.save(city)).thenReturn(updatedCity);
-        when(cityMapper.cityEntityToCityResponseDto(updatedCity)).thenReturn(updatedResponseDto);
+        when(cityMapper.cityEntityToCityDto(updatedCity)).thenReturn(updatedResponseDto);
 
-        CityResponseDto result = cityService.update(updateDto, ID_100);
+        CityDto result = cityService.update(updateDto, ID_100);
 
         assertNotNull(result);
         assertEquals(updatedResponseDto, result);
@@ -172,7 +176,7 @@ class CityServiceTest {
         verify(cityRepository).findByNameIgnoreCase(ANOTHER_CITY_NAME);
         verify(cityMapper).update(city, updateDto);
         verify(cityRepository).save(city);
-        verify(cityMapper).cityEntityToCityResponseDto(updatedCity);
+        verify(cityMapper).cityEntityToCityDto(updatedCity);
     }
 
     @Test
@@ -181,7 +185,7 @@ class CityServiceTest {
         when(cityRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
         assertThrows(NoSuchElementException.class,
-                () -> cityService.update(cityCreationDto, NON_EXISTENT_ID));
+                () -> cityService.update(cityDto, NON_EXISTENT_ID));
         verify(cityRepository).findById(NON_EXISTENT_ID);
         verify(cityMapper, never()).update(any(), any());
         verify(cityRepository, never()).save(any());
@@ -190,8 +194,8 @@ class CityServiceTest {
     @Test
     @DisplayName("Throw EntityExistsException when updating city with name that clashes with another city")
     void updateThrowsExceptionWhenNameClashes() {
-        City existingOtherCity = City.builder().id(200L).name(ANOTHER_CITY_NAME).build();
-        CityCreationDto updateDto = new CityCreationDto(ANOTHER_CITY_NAME);
+        City existingOtherCity = City.builder().id(200L).name(ANOTHER_CITY_NAME).osmId(OSM_ID_2).build();
+        CityDto updateDto = new CityDto(OSM_ID_2, ANOTHER_CITY_NAME);
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
         when(cityRepository.findByNameIgnoreCase(ANOTHER_CITY_NAME)).thenReturn(Optional.of(existingOtherCity));

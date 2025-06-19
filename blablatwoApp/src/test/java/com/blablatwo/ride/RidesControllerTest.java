@@ -2,8 +2,6 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
-import com.blablatwo.city.CityResponseDto;
-import com.blablatwo.exceptions.ETagMismatchException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -25,7 +23,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
@@ -84,8 +81,8 @@ class RidesControllerTest {
         rideResponseDto = new RideResponseDto(
                 ID_100,
                 new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, EMAIL, TELEPHONE, CRISTIANO),
-                new CityResponseDto(ID_ONE, CITY_NAME_ORIGIN),
-                new CityResponseDto(2L, CITY_NAME_DESTINATION),
+                new CityDto(ID_ONE, CITY_NAME_ORIGIN),
+                new CityDto(2L, CITY_NAME_DESTINATION),
                 LOCAL_DATE_TIME,
                 ONE,
                 BIG_DECIMAL,
