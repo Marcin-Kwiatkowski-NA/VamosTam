@@ -33,10 +33,8 @@ public class Traveler {
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @NotNull
-    private String password;
+    private String password;  // Nullable for OAuth-only users
 
-    @NotNull
     private Integer enabled = 1;
 
     @Column(name = "authority", nullable = false)
@@ -45,6 +43,20 @@ public class Traveler {
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
+
+    // OAuth2 fields
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", length = 20)
+    private AuthProvider authProvider = LOCAL;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
+    @Column(name = "picture_url", length = 500)
+    private String pictureUrl;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
 
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;

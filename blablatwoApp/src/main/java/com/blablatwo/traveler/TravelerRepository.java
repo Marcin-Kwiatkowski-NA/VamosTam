@@ -10,4 +10,6 @@ public interface TravelerRepository extends JpaRepository<Traveler, Long> {
     Optional<Traveler> findByUsername(String username);
 
     Optional<Traveler> findByEmail(String email);
+
+    Optional<Traveler> findByGoogleId(String googleId);
 }

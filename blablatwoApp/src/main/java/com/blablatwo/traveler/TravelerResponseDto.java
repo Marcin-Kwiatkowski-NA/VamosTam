@@ -13,6 +13,7 @@ public record TravelerResponseDto(
         String name,
         Roles authority,
         TravelerType type,
+        String pictureUrl,
         List<VehicleResponseDto> vehicles
 ) {
 }
