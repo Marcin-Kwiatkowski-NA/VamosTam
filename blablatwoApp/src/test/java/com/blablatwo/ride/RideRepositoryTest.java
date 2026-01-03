@@ -11,8 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,6 +25,7 @@ import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@ActiveProfiles("test")
 class RideRepositoryTest {
 
 
@@ -230,6 +232,7 @@ class RideRepositoryTest {
         // Act
         Iterable<Ride> rides = rideRepository.findAll();
 
+
         // Assert
         assertFalse(rides.iterator().hasNext(), "Should return an empty list when no rides exist");
     }
@@ -258,6 +261,18 @@ class RideRepositoryTest {
 
         // Assert
         assertTrue(rides.iterator().hasNext(), "Ride list should not be empty");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void printConstraint7() {
+        var rows = entityManager.createNativeQuery("""
+      SELECT CONSTRAINT_NAME, CHECK_CLAUSE
+      FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS
+      WHERE CONSTRAINT_NAME = 'CONSTRAINT_7'
+      """).getResultList();
+
+        rows.forEach(r -> System.out.println(java.util.Arrays.toString((Object[]) r)));
     }
 
     @Test

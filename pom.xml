@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.0</version>
+		<version>4.0.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.blablatwo</groupId>
@@ -32,22 +32,14 @@
 	</scm>
 
 	<properties>
-		<org.mapstruct.version>1.6.0</org.mapstruct.version>
+		<java.version>25</java.version>
+		<org.mapstruct.version>1.6.3</org.mapstruct.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Dependency management as a Bill of Materials (BOM) -->
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-dependencies</artifactId>
-				<type>pom</type>
-				<version>3.4.5</version>
-				<scope>import</scope>
-			</dependency>
 			<dependency>
 				<groupId>org.mapstruct</groupId>
 				<artifactId>mapstruct</artifactId>

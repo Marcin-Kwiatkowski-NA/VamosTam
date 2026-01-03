@@ -9,12 +9,12 @@ import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleResponseDto;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -47,7 +47,7 @@ class RidesControllerTest {
     private static final String BASE_URL = "/rides";
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private MockMvc mockMvc;
@@ -141,7 +141,7 @@ class RidesControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                        .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(ID_100));
@@ -167,7 +167,7 @@ class RidesControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRide)))
+                        .content(jsonMapper.writeValueAsString(invalidRide)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -211,7 +211,7 @@ class RidesControllerTest {
         mockMvc.perform(put(BASE_URL + "/" + ID_100)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                        .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(ID_100));
@@ -229,7 +229,7 @@ class RidesControllerTest {
         mockMvc.perform(put(BASE_URL + "/" + NON_EXISTENT_ID)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(rideCreationDTO)))
+                        .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isNotFound());
     }
 
@@ -253,7 +253,7 @@ class RidesControllerTest {
         mockMvc.perform(put(BASE_URL + "/" + ID_100)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRide)))
+                        .content(jsonMapper.writeValueAsString(invalidRide)))
                 .andExpect(status().isBadRequest());
     }
 }

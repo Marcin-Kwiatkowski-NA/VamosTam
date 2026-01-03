@@ -37,7 +37,7 @@ public class Traveler {
     private String password;
 
     @NotNull
-    private int enabled = 1;
+    private Integer enabled = 1;
 
     @Column(name = "authority", nullable = false)
     @Enumerated(EnumType.STRING)
