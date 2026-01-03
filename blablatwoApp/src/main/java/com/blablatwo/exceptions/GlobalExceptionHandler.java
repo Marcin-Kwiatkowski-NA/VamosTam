@@ -22,4 +22,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleMissingETagHeaderException(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PRECONDITION_FAILED, ex.getMessage());
     }
+
+    @ExceptionHandler(NoSuchTravelerException.class)
+    public ProblemDetail handleNoSuchTravelerException(HttpServletRequest request, NoSuchTravelerException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler({RideFullException.class, AlreadyBookedException.class})
+    public ProblemDetail handleBookingConflictException(HttpServletRequest request, RuntimeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ProblemDetail handleBookingNotFoundException(HttpServletRequest request, BookingNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(RideNotBookableException.class)
+    public ProblemDetail handleRideNotBookableException(HttpServletRequest request, RideNotBookableException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
 }

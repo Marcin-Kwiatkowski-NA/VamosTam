@@ -3,10 +3,16 @@ package com.blablatwo.ride;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
+import com.blablatwo.ride.dto.RideSearchCriteriaDto;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,8 +20,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static com.blablatwo.utils.ControllersUtil.getUriFromId;
@@ -59,5 +68,58 @@ public class RidesController {
     public ResponseEntity<Void> deleteRide(@PathVariable Long id) {
         rideService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/rides")
+    public ResponseEntity<Page<RideResponseDto>> getAllRides(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "departureTime") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") ?
+                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return ResponseEntity.ok(rideService.getAllRides(pageable));
+    }
+
+    @GetMapping("/rides/search")
+    public ResponseEntity<Page<RideResponseDto>> searchRides(
+            @RequestParam(required = false) String origin,
+            @RequestParam(required = false) String destination,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
+            @RequestParam(required = false, defaultValue = "1") Integer minSeats,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
+                origin, destination, departureDate, departureDateTo, minSeats
+        );
+        Pageable pageable = PageRequest.of(page, size, Sort.by("departureTime").ascending());
+
+        return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
+    }
+
+    @PostMapping("/rides/{rideId}/book")
+    public ResponseEntity<RideResponseDto> bookRide(
+            @PathVariable Long rideId,
+            @RequestParam Long passengerId) {
+        RideResponseDto bookedRide = rideService.bookRide(rideId, passengerId);
+        return ResponseEntity.ok(bookedRide);
+    }
+
+    @DeleteMapping("/rides/{rideId}/book")
+    public ResponseEntity<RideResponseDto> cancelBooking(
+            @PathVariable Long rideId,
+            @RequestParam Long passengerId) {
+        RideResponseDto updatedRide = rideService.cancelBooking(rideId, passengerId);
+        return ResponseEntity.ok(updatedRide);
+    }
+
+    @GetMapping("/travelers/{travelerId}/rides")
+    public ResponseEntity<List<RideResponseDto>> getPassengerRides(@PathVariable Long travelerId) {
+        return ResponseEntity.ok(rideService.getRidesForPassenger(travelerId));
     }
 }
