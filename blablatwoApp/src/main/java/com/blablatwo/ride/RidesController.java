@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,12 +91,13 @@ public class RidesController {
             @RequestParam(required = false) String destination,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
             @RequestParam(required = false, defaultValue = "1") Integer minSeats,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                origin, destination, departureDate, departureDateTo, minSeats
+                origin, destination, departureDate, departureDateTo, departureTimeFrom, minSeats
         );
         Pageable pageable = PageRequest.of(page, size, Sort.by("departureTime").ascending());
 

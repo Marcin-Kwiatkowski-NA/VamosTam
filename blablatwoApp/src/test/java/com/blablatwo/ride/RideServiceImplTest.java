@@ -33,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -277,7 +278,7 @@ class RideServiceImplTest {
         void searchRides_ReturnsPagedResults() {
             // Arrange
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now(), null, 1
+                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now(), null, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -298,7 +299,51 @@ class RideServiceImplTest {
         @DisplayName("Search rides with null criteria returns results")
         void searchRides_WithNullCriteria_ReturnsResults() {
             // Arrange
-            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null);
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Ride> ridePage = new PageImpl<>(List.of(ride));
+
+            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+
+            // Act
+            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(1, result.getContent().size());
+        }
+
+        @Test
+        @DisplayName("Search rides with specific time returns results")
+        void searchRides_WithSpecificTime_ReturnsResults() {
+            // Arrange
+            LocalTime searchTime = LocalTime.of(14, 0);
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
+                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now().plusDays(1), null, searchTime, 1
+            );
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Ride> ridePage = new PageImpl<>(List.of(ride));
+
+            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+
+            // Act
+            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(1, result.getContent().size());
+            verify(rideRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Search rides for future date without time uses start of day")
+        void searchRides_FutureDateWithoutTime_UsesStartOfDay() {
+            // Arrange
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
+                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now().plusDays(5), null, null, 1
+            );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 

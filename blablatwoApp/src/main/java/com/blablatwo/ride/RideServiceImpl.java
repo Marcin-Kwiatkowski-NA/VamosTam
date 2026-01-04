@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,9 +102,7 @@ public class RideServiceImpl implements RideService {
                 .and(RideSpecifications.destinationNameContains(criteria.destinationCityName()))
                 .and(RideSpecifications.hasMinAvailableSeats(
                         criteria.minAvailableSeats() != null ? criteria.minAvailableSeats() : 1))
-                .and(RideSpecifications.departureAfter(
-                        criteria.departureDate() != null ?
-                                criteria.departureDate().atStartOfDay() : LocalDateTime.now()));
+                .and(RideSpecifications.departureAfter(calculateDepartureFrom(criteria)));
 
         if (criteria.departureDateTo() != null) {
             spec = spec.and(RideSpecifications.departureBefore(
@@ -112,6 +111,22 @@ public class RideServiceImpl implements RideService {
 
         return rideRepository.findAll(spec, pageable)
                 .map(rideMapper::rideEntityToRideResponseDto);
+    }
+
+    private LocalDateTime calculateDepartureFrom(RideSearchCriteriaDto criteria) {
+        if (criteria.departureDate() == null) {
+            return LocalDateTime.now();
+        }
+
+        if (criteria.departureTimeFrom() != null) {
+            return criteria.departureDate().atTime(criteria.departureTimeFrom());
+        }
+
+        if (criteria.departureDate().equals(LocalDate.now())) {
+            return LocalDateTime.now();
+        }
+
+        return criteria.departureDate().atStartOfDay();
     }
 
     @Override
