@@ -2,7 +2,7 @@ package com.blablatwo.traveler;
 
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.EntityManager;
-import jakarta.validation.ConstraintViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

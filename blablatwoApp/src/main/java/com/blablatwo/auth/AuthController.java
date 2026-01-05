@@ -104,7 +104,7 @@ public class AuthController {
 
     private Traveler processGoogleUser(String email, String googleId, String name, String pictureUrl) {
         // Priority 1: Find by Google ID (returning user)
-        return travelerRepository.findByGoogleId(googleId)
+        return travelerRepository.findByGoogleUser_GoogleId(googleId)
                 .map(traveler -> updateExistingGoogleUser(traveler, pictureUrl))
                 .orElseGet(() ->
                         // Priority 2: Find by email (link existing account)
@@ -118,28 +118,40 @@ public class AuthController {
     }
 
     private Traveler updateExistingGoogleUser(Traveler traveler, String pictureUrl) {
-        traveler.setPictureUrl(pictureUrl);
+        if (traveler.getGoogleUser() != null) {
+            traveler.getGoogleUser().setPictureUrl(pictureUrl);
+        }
         return travelerRepository.save(traveler);
     }
 
     private Traveler linkGoogleAccount(Traveler traveler, String googleId, String pictureUrl) {
-        traveler.setGoogleId(googleId);
-        traveler.setPictureUrl(pictureUrl);
-        traveler.setEmailVerified(true);
+        GoogleUser googleUser = traveler.getGoogleUser();
+        if (googleUser == null) {
+            googleUser = new GoogleUser();
+            traveler.setGoogleUser(googleUser);
+        }
+        googleUser.setGoogleId(googleId);
+        googleUser.setPictureUrl(pictureUrl);
+        googleUser.setEmailVerified(true);
+        googleUser.setAuthProvider(AuthProvider.GOOGLE);
         return travelerRepository.save(traveler);
     }
 
     private Traveler createNewGoogleUser(String email, String googleId, String name, String pictureUrl) {
         String username = generateUsernameFromEmail(email);
 
-        Traveler newTraveler = Traveler.builder()
-                .email(email)
-                .username(username)
+        GoogleUser googleUser = GoogleUser.builder()
                 .googleId(googleId)
-                .name(name)
                 .pictureUrl(pictureUrl)
                 .authProvider(AuthProvider.GOOGLE)
                 .emailVerified(true)
+                .build();
+
+        Traveler newTraveler = Traveler.builder()
+                .email(email)
+                .username(username)
+                .name(name)
+                .googleUser(googleUser)
                 .enabled(1)
                 .authority(Roles.ROLE_PASSENGER)
                 .type(TravelerType.PASSENGER)

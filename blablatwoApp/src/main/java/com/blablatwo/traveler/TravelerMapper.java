@@ -7,6 +7,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface TravelerMapper {
 
+    @Mapping(target = "pictureUrl", source = "googleUser.pictureUrl")
     TravelerResponseDto travelerEntityToTravelerResponseDto(Traveler traveler);
 
     @Mapping(target = "id", ignore = true)
@@ -16,10 +17,8 @@ public interface TravelerMapper {
     @Mapping(target = "ridesAsDriver", ignore = true)
     @Mapping(target = "ridesAsPassenger", ignore = true)
     @Mapping(target = "vehicles", ignore = true)
-    @Mapping(target = "authProvider", ignore = true)
-    @Mapping(target = "googleId", ignore = true)
-    @Mapping(target = "pictureUrl", ignore = true)
-    @Mapping(target = "emailVerified", ignore = true)
+    @Mapping(target = "googleUser", ignore = true)
+    @Mapping(target = "version", ignore = true)
     Traveler travelerCreationDtoToEntity(TravelerCreationDto travelerDto);
 
     @Mapping(target = "id", ignore = true)
@@ -30,9 +29,7 @@ public interface TravelerMapper {
     @Mapping(target = "ridesAsDriver", ignore = true)
     @Mapping(target = "ridesAsPassenger", ignore = true)
     @Mapping(target = "vehicles", ignore = true)
-    @Mapping(target = "authProvider", ignore = true)
-    @Mapping(target = "googleId", ignore = true)
-    @Mapping(target = "pictureUrl", ignore = true)
-    @Mapping(target = "emailVerified", ignore = true)
+    @Mapping(target = "googleUser", ignore = true)
+    @Mapping(target = "version", ignore = true)
     void update(@MappingTarget Traveler traveler, TravelerCreationDto travelerDto);
 }

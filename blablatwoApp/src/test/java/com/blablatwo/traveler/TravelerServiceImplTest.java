@@ -77,7 +77,7 @@ class TravelerServiceImplTest {
 
         travelerResponseDto = new TravelerResponseDto(
                 ID_100, USERNAME, EMAIL, "123-456-7890", "Test User",
-                Roles.ROLE_PASSENGER, TravelerType.PASSENGER, Collections.emptyList()
+                Roles.ROLE_PASSENGER, TravelerType.PASSENGER, null, Collections.emptyList()
         );
     }
 

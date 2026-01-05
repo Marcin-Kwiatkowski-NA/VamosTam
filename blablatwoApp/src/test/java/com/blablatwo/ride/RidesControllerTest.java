@@ -1,5 +1,6 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.auth.service.JwtTokenProvider;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.exceptions.AlreadyBookedException;
@@ -13,8 +14,11 @@ import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
 import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.traveler.Traveler;
+import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleResponseDto;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +31,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.NestedTestConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -52,7 +57,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@WebMvcTest(RidesController.class)
+@WebMvcTest(
+        controllers = RidesController.class,
+        excludeAutoConfiguration = {OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class}
+)
 class RidesControllerTest {
 
     private static final String BASE_URL = "/rides";
@@ -65,6 +73,12 @@ class RidesControllerTest {
 
     @MockitoBean
     private RideService rideService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private TravelerRepository travelerRepository;
 
     private Ride ride;
     private RideCreationDto rideCreationDTO;

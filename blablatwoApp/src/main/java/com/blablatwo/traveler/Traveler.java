@@ -4,7 +4,6 @@ import com.blablatwo.config.Roles;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -44,19 +43,8 @@ public class Traveler {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
-    // OAuth2 fields
-    @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider", length = 20)
-    private AuthProvider authProvider = LOCAL;
-
-    @Column(name = "google_id", unique = true)
-    private String googleId;
-
-    @Column(name = "picture_url", length = 500)
-    private String pictureUrl;
-
-    @Column(name = "email_verified")
-    private Boolean emailVerified = false;
+    @Embedded
+    private GoogleUser googleUser;
 
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
