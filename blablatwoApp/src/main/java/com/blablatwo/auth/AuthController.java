@@ -3,13 +3,16 @@ package com.blablatwo.auth;
 import com.blablatwo.auth.dto.AuthResponse;
 import com.blablatwo.auth.dto.GoogleTokenRequest;
 import com.blablatwo.auth.dto.LoginRequest;
+import com.blablatwo.auth.dto.RegisterRequest;
 import com.blablatwo.auth.service.GoogleTokenVerifier;
 import com.blablatwo.auth.service.JwtTokenProvider;
 import com.blablatwo.config.Roles;
 import com.blablatwo.traveler.*;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -30,17 +33,20 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final TravelerMapper travelerMapper;
     private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthController(GoogleTokenVerifier googleTokenVerifier,
                           TravelerRepository travelerRepository,
                           JwtTokenProvider jwtTokenProvider,
                           TravelerMapper travelerMapper,
-                          AuthenticationManager authenticationManager) {
+                          AuthenticationManager authenticationManager,
+                          PasswordEncoder passwordEncoder) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.travelerRepository = travelerRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.travelerMapper = travelerMapper;
         this.authenticationManager = authenticationManager;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/google")
@@ -89,6 +95,40 @@ public class AuthController {
                 jwt,
                 jwtTokenProvider.getExpirationMs(),
                 travelerMapper.travelerEntityToTravelerResponseDto(traveler)
+        ));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        // Check if email already exists
+        if (travelerRepository.findByEmail(request.email()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        // Check if username (email) already exists
+        if (travelerRepository.findByUsername(request.email()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        // Create new user with email as username
+        Traveler newTraveler = Traveler.builder()
+                .email(request.email())
+                .username(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .enabled(1)
+                .authority(Roles.ROLE_PASSENGER)
+                .type(TravelerType.PASSENGER)
+                .build();
+
+        Traveler savedTraveler = travelerRepository.save(newTraveler);
+
+        // Generate JWT for auto-login
+        String jwt = jwtTokenProvider.generateToken(savedTraveler);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(
+                jwt,
+                jwtTokenProvider.getExpirationMs(),
+                travelerMapper.travelerEntityToTravelerResponseDto(savedTraveler)
         ));
     }
 
