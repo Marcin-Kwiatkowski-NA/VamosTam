@@ -1,6 +1,8 @@
-package com.blablatwo.config;
+package com.blablatwo.config.security;
 
 import com.blablatwo.auth.filter.JwtAuthenticationFilter;
+import com.blablatwo.config.CustomAuthenticationFailureHandler;
+import com.blablatwo.config.CustomAuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

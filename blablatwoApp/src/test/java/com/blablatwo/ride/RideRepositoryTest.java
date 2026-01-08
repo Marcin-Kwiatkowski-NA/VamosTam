@@ -2,6 +2,7 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityRepository;
+import com.blablatwo.traveler.Role;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
@@ -19,8 +20,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static com.blablatwo.config.Roles.ROLE_DRIVER;
-import static com.blablatwo.traveler.TravelerType.DRIVER;
 import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -62,11 +61,10 @@ class RideRepositoryTest {
                 .username(USERNAME)
                 .password(PASSWORD)
                 .enabled(ENABLED)
-                .authority(ROLE_DRIVER)
+                .role(Role.DRIVER)
                 .email(EMAIL)
                 .phoneNumber(TELEPHONE)
                 .name(CRISTIANO)
-                .type(DRIVER)
                 .vehicles(List.of(vehicle))
                 .build();
         travelerRepository.save(driver);

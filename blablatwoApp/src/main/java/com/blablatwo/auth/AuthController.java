@@ -6,7 +6,7 @@ import com.blablatwo.auth.dto.LoginRequest;
 import com.blablatwo.auth.dto.RegisterRequest;
 import com.blablatwo.auth.service.GoogleTokenVerifier;
 import com.blablatwo.auth.service.JwtTokenProvider;
-import com.blablatwo.config.Roles;
+import com.blablatwo.traveler.Role;
 import com.blablatwo.traveler.*;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.validation.Valid;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -116,8 +117,7 @@ public class AuthController {
                 .username(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .enabled(1)
-                .authority(Roles.ROLE_PASSENGER)
-                .type(TravelerType.PASSENGER)
+                .role(Role.PASSENGER)
                 .build();
 
         Traveler savedTraveler = travelerRepository.save(newTraveler);
@@ -193,8 +193,7 @@ public class AuthController {
                 .name(name)
                 .googleUser(googleUser)
                 .enabled(1)
-                .authority(Roles.ROLE_PASSENGER)
-                .type(TravelerType.PASSENGER)
+                .role(Role.PASSENGER)
                 .build();
 
         return travelerRepository.save(newTraveler);

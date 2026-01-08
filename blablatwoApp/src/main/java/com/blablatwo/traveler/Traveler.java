@@ -1,6 +1,5 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.config.Roles;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
@@ -12,9 +11,6 @@ import lombok.Setter;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-
-import static com.blablatwo.config.Roles.ROLE_PASSENGER;
-import static com.blablatwo.traveler.TravelerType.PASSENGER;
 
 @Entity
 @Getter
@@ -36,9 +32,8 @@ public class Traveler {
 
     private Integer enabled = 1;
 
-    @Column(name = "authority", nullable = false)
     @Enumerated(EnumType.STRING)
-    Roles authority = ROLE_PASSENGER;
+    private Role role;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
@@ -51,10 +46,6 @@ public class Traveler {
 
     @Column(name = "name", length = 255)
     private String name;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 10)
-    private TravelerType type = PASSENGER; // Enum: DRIVER, PASSENGER, BOTH
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Vehicle> vehicles;

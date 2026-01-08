@@ -1,6 +1,5 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.config.Roles;
 import jakarta.persistence.EntityExistsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,18 +65,14 @@ class TravelerServiceImplTest {
                 .password(ENCODED_PASSWORD)
                 .email(EMAIL)
                 .enabled(1)
-                .authority(Roles.ROLE_PASSENGER)
-                .type(TravelerType.PASSENGER)
+                .role(Role.PASSENGER)
                 .build();
 
         travelerCreationDto = new TravelerCreationDto(
-                USERNAME, PASSWORD, EMAIL, "123-456-7890", "Test User",
-                Roles.ROLE_PASSENGER, TravelerType.PASSENGER
-        );
+                USERNAME, PASSWORD, EMAIL, "123-456-7890", "Test User");
 
         travelerResponseDto = new TravelerResponseDto(
-                ID_100, USERNAME, EMAIL, "123-456-7890", "Test User",
-                Roles.ROLE_PASSENGER, TravelerType.PASSENGER, null, Collections.emptyList()
+                ID_100, USERNAME, EMAIL, "123-456-7890", "Test User", Role.PASSENGER, null, Collections.emptyList()
         );
     }
 
@@ -91,7 +86,6 @@ class TravelerServiceImplTest {
         assertNotNull(userDetails);
         assertEquals(USERNAME, userDetails.getUsername());
         assertEquals(ENCODED_PASSWORD, userDetails.getPassword());
-        assertTrue(userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Roles.ROLE_PASSENGER.name())));
         verify(travelerRepository).findByUsername(USERNAME);
     }
 

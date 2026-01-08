@@ -14,10 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
 import java.util.Optional;
 
-import static com.blablatwo.config.Roles.ROLE_DRIVER;
-import static com.blablatwo.config.Roles.ROLE_PASSENGER;
-import static com.blablatwo.traveler.TravelerType.DRIVER;
-import static com.blablatwo.traveler.TravelerType.PASSENGER;
+import static com.blablatwo.traveler.Role.PASSENGER;
 import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,11 +29,10 @@ class TravelerRepositoryTest {
                 .username(USERNAME)
                 .password(PASSWORD)
                 .enabled(ENABLED)
-                .authority(ROLE_DRIVER)
+                .role(Role.DRIVER)
                 .email(EMAIL)
                 .phoneNumber(TELEPHONE)
                 .name(CRISTIANO)
-                .type(DRIVER)
                 .vehicles(List.of(vehicle))
                 .build();
         travelerRepository.save(driver);
@@ -57,11 +53,10 @@ class TravelerRepositoryTest {
                 .username(TRAVELER_USERNAME_JOHN_DOE)
                 .password(TRAVELER_PASSWORD)
                 .enabled(ENABLED)
-                .authority(ROLE_PASSENGER)
+                .role(PASSENGER)
                 .email(TRAVELER_EMAIL_JOHN_DOE)
                 .phoneNumber(TRAVELER_PHONE_NUMBER)
                 .name(TRAVELER_NAME_JOHN_DOE)
-                .type(PASSENGER)
                 .build();
 
         // Act
@@ -73,11 +68,10 @@ class TravelerRepositoryTest {
                 () -> assertEquals(TRAVELER_USERNAME_JOHN_DOE, savedTraveler.getUsername(), "Username should match"),
                 () -> assertEquals(TRAVELER_PASSWORD, savedTraveler.getPassword(), "Password should match"),
                 () -> assertEquals(ENABLED, savedTraveler.getEnabled(), "Enabled status should match"),
-                () -> assertEquals(ROLE_PASSENGER, savedTraveler.getAuthority(), "Authority should match"),
+                () -> assertEquals(PASSENGER, savedTraveler.getRole(), "Role should match"),
                 () -> assertEquals(TRAVELER_EMAIL_JOHN_DOE, savedTraveler.getEmail(), "Email should match"),
                 () -> assertEquals(TRAVELER_PHONE_NUMBER, savedTraveler.getPhoneNumber(), "Phone number should match"),
-                () -> assertEquals(TRAVELER_NAME_JOHN_DOE, savedTraveler.getName(), "Name should match"),
-                () -> assertEquals(PASSENGER, savedTraveler.getType(), "Traveler type should match")
+                () -> assertEquals(TRAVELER_NAME_JOHN_DOE, savedTraveler.getName(), "Name should match")
         );
     }
 
@@ -89,11 +83,10 @@ class TravelerRepositoryTest {
                 .username(TRAVELER_USERNAME_JANE_DOE)
                 .password(TRAVELER_PASSWORD_SECURE)
                 .enabled(ENABLED)
-                .authority(ROLE_DRIVER)
+                .role(Role.DRIVER)
                 .email(TRAVELER_EMAIL_JANE_DOE)
                 .phoneNumber(TRAVELER_PHONE_NUMBER)
                 .name(TRAVELER_NAME_JANE_DOE)
-                .type(DRIVER)
                 .build();
         Traveler savedTraveler = travelerRepository.save(traveler);
 
@@ -118,11 +111,10 @@ class TravelerRepositoryTest {
                 .username(TRAVELER_USERNAME_JANE_DOE)
                 .password(TRAVELER_PASSWORD_SECURE)
                 .enabled(ENABLED)
-                .authority(ROLE_DRIVER)
+                .role(Role.DRIVER)
                 .email(TRAVELER_EMAIL_JANE_DOE)
                 .phoneNumber(TRAVELER_PHONE_NUMBER)
                 .name(TRAVELER_NAME_JANE_DOE)
-                .type(DRIVER)
                 .build();
         Traveler savedTraveler = travelerRepository.save(traveler);
 
@@ -226,11 +218,10 @@ class TravelerRepositoryTest {
                 .username(TRAVELER_USERNAME_JOHN_DOE)
                 .password(TRAVELER_PASSWORD)
                 .enabled(ENABLED)
-                .authority(ROLE_PASSENGER)
+                .role(PASSENGER)
                 .email(TRAVELER_EMAIL_JOHN_DOE)
                 .phoneNumber(TRAVELER_PHONE_NUMBER)
                 .name(TRAVELER_NAME_JOHN_DOE)
-                .type(PASSENGER)
                 .build();
         travelerRepository.save(traveler);
 

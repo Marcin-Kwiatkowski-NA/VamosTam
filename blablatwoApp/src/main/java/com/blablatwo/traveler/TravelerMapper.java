@@ -12,8 +12,6 @@ public interface TravelerMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "enabled", constant = "1")
-    @Mapping(target = "authority", defaultValue = "ROLE_PASSENGER")
-    @Mapping(target = "type", defaultValue = "PASSENGER")
     @Mapping(target = "ridesAsDriver", ignore = true)
     @Mapping(target = "ridesAsPassenger", ignore = true)
     @Mapping(target = "vehicles", ignore = true)
@@ -25,7 +23,7 @@ public interface TravelerMapper {
     @Mapping(target = "username", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "enabled", ignore = true)
-    @Mapping(target = "authority", ignore = true)
+    @Mapping(target = "role", ignore = true)
     @Mapping(target = "ridesAsDriver", ignore = true)
     @Mapping(target = "ridesAsPassenger", ignore = true)
     @Mapping(target = "vehicles", ignore = true)

@@ -1,6 +1,5 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.config.Roles;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -22,9 +21,6 @@ public record TravelerCreationDto(
         @Pattern(regexp = "^\\+?[0-9. ()-]{7,25}$", message = "Invalid phone number format")
         String phoneNumber,
 
-        String name,
-
-        Roles authority,
-        TravelerType type
+        String name
 ) {
 }

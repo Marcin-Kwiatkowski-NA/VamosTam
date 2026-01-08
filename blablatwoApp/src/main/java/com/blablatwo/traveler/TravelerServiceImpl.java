@@ -33,7 +33,7 @@ public class TravelerServiceImpl implements TravelerService {
         Traveler traveler = travelerRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Traveler not found with username: " + username));
 
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(traveler.getAuthority().name()));
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(traveler.getRole().getAuthority()));
 
         return User.builder()
                 .username(traveler.getUsername())

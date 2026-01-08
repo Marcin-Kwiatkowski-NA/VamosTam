@@ -1,6 +1,5 @@
 package com.blablatwo.traveler;
 
-import com.blablatwo.config.Roles;
 import com.blablatwo.vehicle.VehicleResponseDto;
 
 import java.util.List;
@@ -11,8 +10,7 @@ public record TravelerResponseDto(
         String email,
         String phoneNumber,
         String name,
-        Roles authority,
-        TravelerType type,
+        Role role,
         String pictureUrl,
         List<VehicleResponseDto> vehicles
 ) {
