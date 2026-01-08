@@ -1,4 +1,4 @@
-package com.blablatwo.traveler;
+package com.blablatwo.traveler.user;
 
 import com.blablatwo.auth.AuthProvider;
 import jakarta.persistence.Column;

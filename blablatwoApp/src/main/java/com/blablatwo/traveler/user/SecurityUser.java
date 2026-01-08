@@ -1,5 +1,6 @@
-package com.blablatwo.traveler;
+package com.blablatwo.traveler.user;
 
+import com.blablatwo.traveler.Traveler;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;

@@ -8,6 +8,8 @@ import com.blablatwo.auth.service.GoogleTokenVerifier;
 import com.blablatwo.auth.service.JwtTokenProvider;
 import com.blablatwo.traveler.Role;
 import com.blablatwo.traveler.*;
+import com.blablatwo.traveler.user.GoogleUser;
+import com.blablatwo.traveler.user.SecurityUser;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.List;
 import java.util.UUID;
 
 @RestController

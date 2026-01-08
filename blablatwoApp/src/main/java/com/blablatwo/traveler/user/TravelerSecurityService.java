@@ -1,6 +1,5 @@
 package com.blablatwo.traveler.user;
 
-import com.blablatwo.traveler.SecurityUser;
 import com.blablatwo.traveler.TravelerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,7 +1,7 @@
 package com.blablatwo.auth.filter;
 
 import com.blablatwo.auth.service.JwtTokenProvider;
-import com.blablatwo.traveler.SecurityUser;
+import com.blablatwo.traveler.user.SecurityUser;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import jakarta.servlet.FilterChain;

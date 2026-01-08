@@ -1,6 +1,7 @@
 package com.blablatwo.traveler;
 
 import com.blablatwo.ride.Ride;
+import com.blablatwo.traveler.user.GoogleUser;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
