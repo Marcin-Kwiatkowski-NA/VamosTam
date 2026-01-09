@@ -17,8 +17,6 @@ import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleResponseDto;
-import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,10 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@WebMvcTest(
-        controllers = RidesController.class,
-        excludeAutoConfiguration = {OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class}
-)
+@WebMvcTest(controllers = RidesController.class)
 class RidesControllerTest {
 
     private static final String BASE_URL = "/rides";
