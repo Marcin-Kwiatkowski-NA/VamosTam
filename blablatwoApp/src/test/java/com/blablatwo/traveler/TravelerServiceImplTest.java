@@ -8,8 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -74,29 +72,6 @@ class TravelerServiceImplTest {
         travelerResponseDto = new TravelerResponseDto(
                 ID_100, USERNAME, EMAIL, "123-456-7890", "Test User", Role.PASSENGER, null, Collections.emptyList()
         );
-    }
-
-    @Test
-    @DisplayName("Load user by username successfully")
-    void loadUserByUsernameSuccessfully() {
-        when(travelerRepository.findByUsername(USERNAME)).thenReturn(Optional.of(traveler));
-
-        UserDetails userDetails = travelerService.loadUserByUsername(USERNAME);
-
-        assertNotNull(userDetails);
-        assertEquals(USERNAME, userDetails.getUsername());
-        assertEquals(ENCODED_PASSWORD, userDetails.getPassword());
-        verify(travelerRepository).findByUsername(USERNAME);
-    }
-
-    @Test
-    @DisplayName("Throw UsernameNotFoundException when loading non-existent username")
-    void throwExceptionWhenLoadingNonExistentUsername() {
-        when(travelerRepository.findByUsername(NON_EXISTENT_USERNAME)).thenReturn(Optional.empty());
-
-        assertThrows(UsernameNotFoundException.class,
-                () -> travelerService.loadUserByUsername(NON_EXISTENT_USERNAME));
-        verify(travelerRepository).findByUsername(NON_EXISTENT_USERNAME);
     }
 
     @Test

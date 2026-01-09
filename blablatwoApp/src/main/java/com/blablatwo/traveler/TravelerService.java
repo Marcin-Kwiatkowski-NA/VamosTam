@@ -1,15 +1,9 @@
 package com.blablatwo.traveler;
 
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import java.util.List;
 import java.util.Optional;
 
-public interface TravelerService extends UserDetailsService {
-    @Override
-    UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
+public interface TravelerService {
 
     Optional<Traveler> getById(Long id);
 

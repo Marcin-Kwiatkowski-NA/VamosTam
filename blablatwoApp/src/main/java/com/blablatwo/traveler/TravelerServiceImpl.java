@@ -2,9 +2,6 @@ package com.blablatwo.traveler;
 
 import jakarta.persistence.EntityExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,25 +22,6 @@ public class TravelerServiceImpl implements TravelerService {
         this.travelerRepository = travelerRepository;
         this.travelerMapper = travelerMapper;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Traveler traveler = travelerRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Traveler not found with username: " + username));
-
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(traveler.getRole().getAuthority()));
-
-        return User.builder()
-                .username(traveler.getUsername())
-                .password(traveler.getPassword())
-                .authorities(authorities)
-                .disabled(traveler.getEnabled() == 0)
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .build();
     }
 
     @Override
