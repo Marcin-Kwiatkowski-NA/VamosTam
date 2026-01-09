@@ -4,11 +4,15 @@ import com.blablatwo.traveler.TravelerResponseDto;
 
 public record AuthResponse(
         String accessToken,
+        String refreshToken,
         String tokenType,
         Long expiresIn,
+        Long refreshExpiresIn,
         TravelerResponseDto user
 ) {
-    public AuthResponse(String accessToken, Long expiresIn, TravelerResponseDto user) {
-        this(accessToken, "Bearer", expiresIn, user);
+    public AuthResponse(String accessToken, String refreshToken,
+                        Long expiresIn, Long refreshExpiresIn,
+                        TravelerResponseDto user) {
+        this(accessToken, refreshToken, "Bearer", expiresIn, refreshExpiresIn, user);
     }
 }

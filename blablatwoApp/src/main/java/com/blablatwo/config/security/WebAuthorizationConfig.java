@@ -5,8 +5,7 @@ import com.blablatwo.config.CustomAuthenticationFailureHandler;
 import com.blablatwo.config.CustomAuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -15,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class WebAuthorizationConfig {
 
+    // NOT_USED: Form login handlers kept for potential future web UI
     private final CustomAuthenticationFailureHandler authenticationFailureHandler;
     private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -28,41 +28,26 @@ public class WebAuthorizationConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
-    }
-
-    @Bean
     SecurityFilterChain configure(HttpSecurity http) throws Exception {
-
-        // Keep existing form login for web
+        // NOT_USED: Form login for potential future web UI - see doc/security.md
         http.formLogin(c ->
                 c.successHandler(authenticationSuccessHandler)
                         .failureHandler(authenticationFailureHandler)
         );
 
-        // Add JWT filter for API/mobile authentication
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        // Authorization rules
-        http.authorizeHttpRequests(c -> c
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/cities", "/cities/**").permitAll()
-                .requestMatchers("/rides/search").permitAll()
+                .requestMatchers(HttpMethod.GET, "/cities", "/cities/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
-                .anyRequest().permitAll()  // TODO: Change to authenticated() when ready
-        );
-
-        // Disable CSRF for API endpoints
-        http.csrf(c -> c.disable());
-
-        // Allow frames for H2 console
-        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
-
-        // Session management - support both stateful (web) and stateless (API)
-        http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-        );
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
     }
