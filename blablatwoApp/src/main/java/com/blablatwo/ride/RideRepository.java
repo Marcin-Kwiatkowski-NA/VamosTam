@@ -11,4 +11,6 @@ import java.util.List;
 public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificationExecutor<Ride> {
 
     List<Ride> findByPassengersContaining(Traveler passenger);
+
+    List<Ride> findByDriverId(Long driverId);
 }

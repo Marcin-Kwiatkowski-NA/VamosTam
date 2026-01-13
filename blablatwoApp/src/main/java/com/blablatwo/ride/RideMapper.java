@@ -18,6 +18,7 @@ public abstract class RideMapper {
     @Mapping(target = "lastModified", expression = "java(java.time.Instant.now())")
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "passengers", ignore = true)
+    @Mapping(target = "source", constant = "INTERNAL")
     public abstract Ride rideCreationDtoToEntity(RideCreationDto rideCreationDto);
 
     @Mapping(target = "id", ignore = true)
@@ -25,6 +26,7 @@ public abstract class RideMapper {
     @Mapping(target = "lastModified", expression = "java(java.time.Instant.now())")
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "passengers", ignore = true)
+    @Mapping(target = "source", ignore = true)
     public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 
     public abstract RideResponseDto rideEntityToRideResponseDto(Ride ride);

@@ -101,6 +101,7 @@ class RidesControllerTest {
                 new CityDto(ID_ONE, CITY_NAME_ORIGIN),
                 new CityDto(2L, CITY_NAME_DESTINATION),
                 LOCAL_DATE_TIME,
+                false, // isApproximate
                 ONE,
                 BIG_DECIMAL,
                 ID_ONE,
@@ -113,6 +114,8 @@ class RidesControllerTest {
                 new CityDto(ID_ONE, CITY_NAME_ORIGIN),
                 new CityDto(2L, CITY_NAME_DESTINATION),
                 LOCAL_DATE_TIME,
+                false, // isApproximate
+                RideSource.INTERNAL,
                 ONE,
                 BIG_DECIMAL,
                 new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
@@ -177,6 +180,7 @@ class RidesControllerTest {
                 new CityDto(null, ""),
                 new CityDto(null, ""),
                 LocalDateTime.now().minusDays(1),
+                false, // isApproximate
                 0,
                 BigDecimal.valueOf(-1),
                 null,
@@ -263,6 +267,7 @@ class RidesControllerTest {
                 new CityDto(null, ""),
                 new CityDto(null, ""),
                 LocalDateTime.now().minusDays(1),
+                false, // isApproximate
                 0,
                 BigDecimal.valueOf(-1),
                 null,

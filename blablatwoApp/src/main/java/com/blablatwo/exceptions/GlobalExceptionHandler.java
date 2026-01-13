@@ -60,4 +60,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleDuplicateEmailException(HttpServletRequest request, DuplicateEmailException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
+
+    @ExceptionHandler(NoSuchCityException.class)
+    public ProblemDetail handleNoSuchCityException(HttpServletRequest request, NoSuchCityException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateExternalRideException.class)
+    public ProblemDetail handleDuplicateExternalRideException(HttpServletRequest request, DuplicateExternalRideException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
 }

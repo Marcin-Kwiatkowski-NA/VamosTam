@@ -54,6 +54,13 @@ public class Ride {
     @Enumerated(EnumType.STRING)
     private RideStatus rideStatus; //     OPEN,    FULL,    COMPLETED,    CANCELLED
 
+    @Builder.Default
+    private boolean isApproximate = false;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private RideSource source = RideSource.INTERNAL;
+
     @Size(max = 500, message = "Description cannot exceed 500 characters")
     String description;
 

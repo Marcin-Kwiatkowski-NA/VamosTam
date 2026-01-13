@@ -110,6 +110,7 @@ class RideServiceImplTest {
                 originCityDto, // Updated to use CityDto for origin
                 destinationCityDto, // Updated to use CityDto for destination
                 LOCAL_DATE_TIME,
+                false, // isApproximate
                 ONE,
                 BIG_DECIMAL,
                 ID_ONE,
@@ -124,6 +125,8 @@ class RideServiceImplTest {
                 originCityDto,
                 destinationCityDto,
                 LOCAL_DATE_TIME,
+                false, // isApproximate
+                RideSource.INTERNAL,
                 ONE,
                 BIG_DECIMAL,
                 new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),

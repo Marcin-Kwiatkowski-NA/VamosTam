@@ -1,6 +1,7 @@
 package com.blablatwo.ride.dto;
 
 import com.blablatwo.city.CityDto;
+import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
@@ -16,6 +17,8 @@ public record RideResponseDto(
         CityDto origin,
         CityDto destination,
         LocalDateTime departureTime,
+        Boolean isApproximate,
+        RideSource source,
         Integer availableSeats,
         BigDecimal pricePerSeat,
         VehicleResponseDto vehicle,
