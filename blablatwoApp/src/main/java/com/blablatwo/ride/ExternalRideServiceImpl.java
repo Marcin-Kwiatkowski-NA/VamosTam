@@ -78,7 +78,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .origin(origin)
                 .destination(destination)
                 .departureTime(dto.departureDate().atTime(dto.departureTime()))
-                .isApproximate(dto.isApproximate() != null && dto.isApproximate())
+                .isApproximate(dto.isApproximate())
                 .source(RideSource.FACEBOOK)
                 .availableSeats(dto.availableSeats() != null ? dto.availableSeats() : 1)
                 .pricePerSeat(dto.pricePerSeat())
