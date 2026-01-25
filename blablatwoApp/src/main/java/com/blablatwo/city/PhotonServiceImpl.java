@@ -49,7 +49,9 @@ public class PhotonServiceImpl implements PhotonService {
 
         PhotonResponse response;
         try {
+            LOGGER.debug("Calling Photon API: {}", url);
             response = restTemplate.getForObject(url, PhotonResponse.class);
+            LOGGER.debug("Photon response for '{}': {}", cityName, response);
         } catch (RestClientException e) {
             LOGGER.error("Failed to call Photon API for city: {}", cityName, e);
             return Optional.empty();
