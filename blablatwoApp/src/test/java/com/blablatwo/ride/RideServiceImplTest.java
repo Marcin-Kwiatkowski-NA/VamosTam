@@ -313,7 +313,7 @@ class RideServiceImplTest {
         @DisplayName("Search rides with null criteria returns results")
         void searchRides_WithNullCriteria_ReturnsResults() {
             // Arrange
-            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null);
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, 1);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 

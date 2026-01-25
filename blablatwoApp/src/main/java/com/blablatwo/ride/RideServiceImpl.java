@@ -105,8 +105,7 @@ public class RideServiceImpl implements RideService {
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(RideStatus.OPEN))
                 .and(RideSpecifications.originNameContains(criteria.originCityName()))
                 .and(RideSpecifications.destinationNameContains(criteria.destinationCityName()))
-                .and(RideSpecifications.hasMinAvailableSeats(
-                        criteria.minAvailableSeats() != null ? criteria.minAvailableSeats() : 1))
+                .and(RideSpecifications.hasMinAvailableSeats(criteria.minAvailableSeats()))
                 .and(RideSpecifications.departureAfter(calculateDepartureFrom(criteria)));
 
         if (criteria.departureDateTo() != null) {
