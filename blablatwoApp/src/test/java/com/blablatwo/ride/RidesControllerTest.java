@@ -121,7 +121,8 @@ class RidesControllerTest {
                 new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
                 RideStatus.OPEN,
                 INSTANT,
-                Collections.emptyList()
+                Collections.emptyList(),
+                null // sourceUrl
         );
     }
 

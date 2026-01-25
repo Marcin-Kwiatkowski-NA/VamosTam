@@ -32,8 +32,8 @@ public class RideExternalMeta {
     private Ride ride;
 
     @NotBlank
-    @Column(name = "external_url", nullable = false, length = 2048)
-    private String externalUrl;
+    @Column(name = "source_url", nullable = false, length = 2048)
+    private String sourceUrl;
 
     @Column(name = "external_id", unique = true)
     private String externalId;
@@ -43,4 +43,7 @@ public class RideExternalMeta {
 
     @Column(name = "content_hash", length = 64)
     private String contentHash;
+
+    @Column(name = "phone_number", length = 32)
+    private String phoneNumber;
 }

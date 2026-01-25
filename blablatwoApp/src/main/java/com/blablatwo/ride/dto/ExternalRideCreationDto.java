@@ -30,12 +30,15 @@ public record ExternalRideCreationDto(
         @Size(max = 500, message = "Description cannot exceed 500 characters")
         String description,
 
-        @NotBlank(message = "External URL is required")
-        String externalUrl,
-
         @NotBlank(message = "External ID is required")
         String externalId,
 
-        String rawContent
+        String rawContent,
+
+        @Size(max = 32, message = "Phone number cannot exceed 32 characters")
+        String phoneNumber,
+
+        @NotBlank(message = "Source URL is required")
+        String sourceUrl
 ) {
 }

@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -66,6 +67,9 @@ class RideServiceImplTest {
     @Mock
     TravelerRepository travelerRepository;
 
+    @Mock
+    ExternalMetaEnricher externalMetaEnricher;
+
     @InjectMocks
     private RideServiceImpl rideService;
 
@@ -80,6 +84,12 @@ class RideServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // Configure enricher to return input unchanged (pass-through for INTERNAL rides)
+        lenient().when(externalMetaEnricher.enrich(any(RideResponseDto.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(externalMetaEnricher.enrich(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         // Initialize CityDto objects for clarity
         originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN);
         destinationCityDto = new CityDto(2L, CITY_NAME_DESTINATION);
@@ -132,7 +142,8 @@ class RideServiceImplTest {
                 new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
                 RideStatus.OPEN,
                 INSTANT,
-                Collections.emptyList()
+                Collections.emptyList(),
+                null // sourceUrl
         );
     }
 

@@ -18,6 +18,7 @@ import com.blablatwo.traveler.TravelerRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -38,22 +39,26 @@ public class RideServiceImpl implements RideService {
     private final CityRepository cityRepository;
     private final CityMapper cityMapper;
     private final TravelerRepository travelerRepository;
+    private final ExternalMetaEnricher externalMetaEnricher;
 
     public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper,
                            CityRepository cityRepository, CityMapper cityMapper,
-                           TravelerRepository travelerRepository) {
+                           TravelerRepository travelerRepository,
+                           ExternalMetaEnricher externalMetaEnricher) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
         this.cityRepository = cityRepository;
         this.cityMapper = cityMapper;
         this.travelerRepository = travelerRepository;
+        this.externalMetaEnricher = externalMetaEnricher;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<RideResponseDto> getById(Long id) {
         return rideRepository.findById(id)
-                .map(rideMapper::rideEntityToRideResponseDto);
+                .map(rideMapper::rideEntityToRideResponseDto)
+                .map(externalMetaEnricher::enrich);
     }
 
     @Override
@@ -109,8 +114,10 @@ public class RideServiceImpl implements RideService {
                     criteria.departureDateTo().atTime(23, 59, 59)));
         }
 
-        return rideRepository.findAll(spec, pageable)
+        Page<RideResponseDto> page = rideRepository.findAll(spec, pageable)
                 .map(rideMapper::rideEntityToRideResponseDto);
+        List<RideResponseDto> enriched = externalMetaEnricher.enrich(page.getContent());
+        return new PageImpl<>(enriched, pageable, page.getTotalElements());
     }
 
     private LocalDateTime calculateDepartureFrom(RideSearchCriteriaDto criteria) {
@@ -132,8 +139,10 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional(readOnly = true)
     public Page<RideResponseDto> getAllRides(Pageable pageable) {
-        return rideRepository.findAll(pageable)
+        Page<RideResponseDto> page = rideRepository.findAll(pageable)
                 .map(rideMapper::rideEntityToRideResponseDto);
+        List<RideResponseDto> enriched = externalMetaEnricher.enrich(page.getContent());
+        return new PageImpl<>(enriched, pageable, page.getTotalElements());
     }
 
     @Override
@@ -169,7 +178,8 @@ public class RideServiceImpl implements RideService {
             ride.setRideStatus(RideStatus.FULL);
         }
 
-        return rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride));
+        return externalMetaEnricher.enrich(
+                rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride)));
     }
 
     @Override
@@ -194,7 +204,8 @@ public class RideServiceImpl implements RideService {
             ride.setRideStatus(RideStatus.OPEN);
         }
 
-        return rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride));
+        return externalMetaEnricher.enrich(
+                rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride)));
     }
 
     @Override
@@ -203,9 +214,10 @@ public class RideServiceImpl implements RideService {
         Traveler passenger = travelerRepository.findById(passengerId)
                 .orElseThrow(() -> new NoSuchTravelerException(passengerId));
 
-        return rideRepository.findByPassengersContaining(passenger)
+        List<RideResponseDto> rides = rideRepository.findByPassengersContaining(passenger)
                 .stream()
                 .map(rideMapper::rideEntityToRideResponseDto)
                 .toList();
+        return externalMetaEnricher.enrich(rides);
     }
 }

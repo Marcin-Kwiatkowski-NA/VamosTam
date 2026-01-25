@@ -29,5 +29,6 @@ public abstract class RideMapper {
     @Mapping(target = "source", ignore = true)
     public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 
+    @Mapping(target = "sourceUrl", ignore = true)
     public abstract RideResponseDto rideEntityToRideResponseDto(Ride ride);
 }

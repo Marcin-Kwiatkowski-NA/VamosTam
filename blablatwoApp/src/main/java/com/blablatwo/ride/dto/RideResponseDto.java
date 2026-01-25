@@ -5,12 +5,14 @@ import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.traveler.DriverProfileDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Builder(toBuilder = true)
 public record RideResponseDto(
         Long id,
         DriverProfileDto driver,
@@ -24,6 +26,7 @@ public record RideResponseDto(
         VehicleResponseDto vehicle,
         RideStatus rideStatus,
         Instant lastModified,
-        List<DriverProfileDto> passengers
+        List<DriverProfileDto> passengers,
+        String sourceUrl
 ) {
 }

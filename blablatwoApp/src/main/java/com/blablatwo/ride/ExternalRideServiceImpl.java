@@ -32,17 +32,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     private final PhotonService photonService;
     private final TravelerRepository travelerRepository;
     private final RideMapper rideMapper;
+    private final ExternalMetaEnricher externalMetaEnricher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
                                    PhotonService photonService,
                                    TravelerRepository travelerRepository,
-                                   RideMapper rideMapper) {
+                                   RideMapper rideMapper,
+                                   ExternalMetaEnricher externalMetaEnricher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
         this.photonService = photonService;
         this.travelerRepository = travelerRepository;
         this.rideMapper = rideMapper;
+        this.externalMetaEnricher = externalMetaEnricher;
     }
 
     @Override
@@ -89,10 +92,11 @@ public class ExternalRideServiceImpl implements ExternalRideService {
         // 7. Save external metadata
         RideExternalMeta meta = RideExternalMeta.builder()
                 .ride(saved)
-                .externalUrl(dto.externalUrl())
+                .sourceUrl(dto.sourceUrl())
                 .externalId(dto.externalId())
                 .rawContent(dto.rawContent())
                 .contentHash(contentHash)
+                .phoneNumber(dto.phoneNumber())
                 .build();
 
         metaRepository.save(meta);
@@ -100,7 +104,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
         LOGGER.info("Created external ride with ID: {} from external source: {}",
                 saved.getId(), dto.externalId());
 
-        return rideMapper.rideEntityToRideResponseDto(saved);
+        return externalMetaEnricher.enrich(rideMapper.rideEntityToRideResponseDto(saved));
     }
 
     @Override
@@ -113,7 +117,8 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     @Transactional(readOnly = true)
     public Optional<RideResponseDto> getByExternalId(String externalId) {
         return metaRepository.findByExternalId(externalId)
-                .map(meta -> rideMapper.rideEntityToRideResponseDto(meta.getRide()));
+                .map(meta -> rideMapper.rideEntityToRideResponseDto(meta.getRide()))
+                .map(externalMetaEnricher::enrich);
     }
 
     private String computeHash(String content) {
