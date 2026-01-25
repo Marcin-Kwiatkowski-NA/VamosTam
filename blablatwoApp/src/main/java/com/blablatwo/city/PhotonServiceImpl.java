@@ -50,6 +50,8 @@ public class PhotonServiceImpl implements PhotonService {
         PhotonResponse response;
         try {
             LOGGER.debug("Calling Photon API: {}", url);
+            String rawResponse = restTemplate.getForObject(url, String.class);
+            LOGGER.debug("Raw Photon response for '{}': {}", cityName, rawResponse);
             response = restTemplate.getForObject(url, PhotonResponse.class);
             LOGGER.debug("Photon response for '{}': {}", cityName, response);
         } catch (RestClientException e) {
