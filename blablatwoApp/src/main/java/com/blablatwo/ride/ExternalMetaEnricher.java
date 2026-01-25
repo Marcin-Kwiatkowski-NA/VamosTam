@@ -61,10 +61,21 @@ public class ExternalMetaEnricher {
         var builder = ride.toBuilder()
                 .sourceUrl(meta.getSourceUrl());
 
+        var driverBuilder = ride.driver().toBuilder();
+        boolean driverModified = false;
+
         if (meta.getPhoneNumber() != null && !meta.getPhoneNumber().isBlank()) {
-            builder.driver(ride.driver().toBuilder()
-                    .phoneNumber(meta.getPhoneNumber())
-                    .build());
+            driverBuilder.phoneNumber(meta.getPhoneNumber());
+            driverModified = true;
+        }
+
+        if (meta.getAuthorName() != null && !meta.getAuthorName().isBlank()) {
+            driverBuilder.name(meta.getAuthorName());
+            driverModified = true;
+        }
+
+        if (driverModified) {
+            builder.driver(driverBuilder.build());
         }
 
         return builder.build();

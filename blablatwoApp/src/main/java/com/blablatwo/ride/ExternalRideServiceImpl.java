@@ -97,6 +97,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .rawContent(dto.rawContent())
                 .contentHash(contentHash)
                 .phoneNumber(dto.phoneNumber())
+                .authorName(dto.authorName())
                 .build();
 
         metaRepository.save(meta);

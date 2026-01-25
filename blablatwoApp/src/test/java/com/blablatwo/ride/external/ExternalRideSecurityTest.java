@@ -69,6 +69,7 @@ class ExternalRideSecurityTest {
                 "fb-12345",
                 "Raw content from Facebook",
                 "+33123456789",
+                "Jean Dupont",
                 "https://facebook.com/groups/rides/12345"
         );
 

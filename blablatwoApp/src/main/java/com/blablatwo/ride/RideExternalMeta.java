@@ -46,4 +46,7 @@ public class RideExternalMeta {
 
     @Column(name = "phone_number", length = 32)
     private String phoneNumber;
+
+    @Column(name = "author_name", length = 100)
+    private String authorName;
 }
