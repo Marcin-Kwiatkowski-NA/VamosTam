@@ -19,7 +19,7 @@ public record RideResponseDto(
         CityDto origin,
         CityDto destination,
         LocalDateTime departureTime,
-        Boolean isApproximate,
+        boolean isApproximate,
         RideSource source,
         Integer availableSeats,
         BigDecimal pricePerSeat,

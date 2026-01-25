@@ -21,7 +21,7 @@ public record ExternalRideCreationDto(
         @NotNull(message = "Departure time is required")
         LocalTime departureTime,
 
-        Boolean isApproximate,
+        boolean isApproximate,
 
         Integer availableSeats,
 
