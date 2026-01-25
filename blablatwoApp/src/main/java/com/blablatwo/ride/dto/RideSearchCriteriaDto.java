@@ -9,6 +9,6 @@ public record RideSearchCriteriaDto(
         LocalDate departureDate,
         LocalDate departureDateTo,
         LocalTime departureTimeFrom,
-        Integer minAvailableSeats
+        int minAvailableSeats
 ) {
 }

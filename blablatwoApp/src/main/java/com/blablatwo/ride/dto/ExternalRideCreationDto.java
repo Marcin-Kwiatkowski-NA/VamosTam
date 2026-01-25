@@ -23,7 +23,7 @@ public record ExternalRideCreationDto(
 
         boolean isApproximate,
 
-        Integer availableSeats,
+        int availableSeats,
 
         BigDecimal pricePerSeat,
 

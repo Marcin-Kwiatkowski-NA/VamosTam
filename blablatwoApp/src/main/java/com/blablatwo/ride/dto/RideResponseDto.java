@@ -21,7 +21,7 @@ public record RideResponseDto(
         LocalDateTime departureTime,
         boolean isApproximate,
         RideSource source,
-        Integer availableSeats,
+        int availableSeats,
         BigDecimal pricePerSeat,
         VehicleResponseDto vehicle,
         RideStatus rideStatus,
