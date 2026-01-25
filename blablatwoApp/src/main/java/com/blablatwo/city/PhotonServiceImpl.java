@@ -4,13 +4,14 @@ import com.blablatwo.city.dto.PhotonFeature;
 import com.blablatwo.city.dto.PhotonResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.Optional;
 
 @Service
@@ -18,15 +19,17 @@ public class PhotonServiceImpl implements PhotonService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhotonServiceImpl.class);
 
-    private static final String PHOTON_URL =
-            "http://photon.130.61.31.172.sslip.io/api?q=%s&osm_tag=place:city&osm_tag=place:town&osm_tag=place:village&limit=1";
-
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final CityRepository cityRepository;
 
-    public PhotonServiceImpl(CityRepository cityRepository) {
-        this.restTemplate = new RestTemplate();
+    public PhotonServiceImpl(RestClient.Builder builder,
+                             CityRepository cityRepository,
+                             @Value("${photon.url}") String photonUrl) {
         this.cityRepository = cityRepository;
+        // Initialize RestClient with the base URL from properties
+        this.restClient = builder
+                .baseUrl(photonUrl)
+                .build();
     }
 
     @Override
@@ -44,17 +47,27 @@ public class PhotonServiceImpl implements PhotonService {
         }
 
         // 2. Call Photon API
-        String encodedCityName = URLEncoder.encode(cityName, StandardCharsets.UTF_8);
-        String url = String.format(PHOTON_URL, encodedCityName);
+        // RestClient's URI builder handles encoding automatically for query params
+        URI uri = UriComponentsBuilder.fromPath("/api")
+                .queryParam("q", cityName)
+                .queryParam("osm_tag", "place:city", "place:town", "place:village")
+                .queryParam("limit", 1)
+                .build()
+                .toUri();
 
         PhotonResponse response;
         try {
-            LOGGER.debug("Calling Photon API: {}", url);
-            String rawResponse = restTemplate.getForObject(url, String.class);
-            LOGGER.debug("Raw Photon response for '{}': {}", cityName, rawResponse);
-            response = restTemplate.getForObject(url, PhotonResponse.class);
+            LOGGER.debug("Calling Photon API: {}{}", restClient.get().uri("").retrieve().toEntity(String.class).getBody(), uri); // Logging logic simplified for demo
+
+            response = restClient.get()
+                    .uri(uri)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(PhotonResponse.class);
+
             LOGGER.debug("Photon response for '{}': {}", cityName, response);
-        } catch (RestClientException e) {
+        } catch (Exception e) {
+            // RestClient throws RestClientException (and subclasses like HttpClientErrorException)
             LOGGER.error("Failed to call Photon API for city: {}", cityName, e);
             return Optional.empty();
         }
