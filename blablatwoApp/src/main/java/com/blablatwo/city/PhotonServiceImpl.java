@@ -9,9 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
 import java.util.Optional;
 
 @Service
@@ -37,35 +35,30 @@ public class PhotonServiceImpl implements PhotonService {
             return Optional.empty();
         }
 
-        // 1. First check if city exists by name (case-insensitive)
         Optional<City> existingByName = cityRepository.findByNameIgnoreCase(cityName);
         if (existingByName.isPresent()) {
             LOGGER.debug("Found city by name: {}", cityName);
             return existingByName;
         }
 
-        // 2. Call Photon API
-        // RestClient's URI builder handles encoding automatically for query params
-        URI uri = UriComponentsBuilder.fromPath("/api")
-                .queryParam("q", cityName)
-                .queryParam("osm_tag", "place:city", "place:town", "place:village")
-                .queryParam("limit", 1)
-                .build()
-                .toUri();
-
         PhotonResponse response;
         try {
-            LOGGER.debug("Calling Photon API: {}{}", restClient.get().uri("").retrieve().toEntity(String.class).getBody(), uri); // Logging logic simplified for demo
+            LOGGER.debug("Calling Photon API for city: {}", cityName);
 
+            // 2. Use the uriBuilder lambda.
+            // This safely combines the baseUrl with "/api", adds params, and handles encoding.
             response = restClient.get()
-                    .uri(uri)
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api")
+                            .queryParam("q", cityName)
+                            .queryParam("osm_tag", "place:city", "place:town", "place:village")
+                            .queryParam("limit", 1)
+                            .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .body(PhotonResponse.class);
 
-            LOGGER.debug("Photon response for '{}': {}", cityName, response);
         } catch (Exception e) {
-            // RestClient throws RestClientException (and subclasses like HttpClientErrorException)
             LOGGER.error("Failed to call Photon API for city: {}", cityName, e);
             return Optional.empty();
         }
@@ -75,8 +68,7 @@ public class PhotonServiceImpl implements PhotonService {
             return Optional.empty();
         }
 
-        // 3. Extract osmId and name from response
-        PhotonFeature feature = response.features().getFirst();
+        PhotonFeature feature = response.features().get(0);
         Long osmId = feature.properties().osmId();
         String resolvedName = feature.properties().name();
 
@@ -85,14 +77,12 @@ public class PhotonServiceImpl implements PhotonService {
             return Optional.empty();
         }
 
-        // 4. Check if city exists by osmId (might have different name spelling)
         Optional<City> existingByOsmId = cityRepository.findByOsmId(osmId);
         if (existingByOsmId.isPresent()) {
             LOGGER.debug("Found city by osmId: {} (searched for: {})", osmId, cityName);
             return existingByOsmId;
         }
 
-        // 5. Create new city
         City newCity = City.builder()
                 .osmId(osmId)
                 .name(resolvedName)
