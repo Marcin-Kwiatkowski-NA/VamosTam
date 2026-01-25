@@ -22,12 +22,10 @@ public class PhotonServiceImpl implements PhotonService {
     private final RestClient restClient;
     private final CityRepository cityRepository;
 
-    public PhotonServiceImpl(RestClient.Builder builder,
-                             CityRepository cityRepository,
+    public PhotonServiceImpl(CityRepository cityRepository,
                              @Value("${photon.url}") String photonUrl) {
         this.cityRepository = cityRepository;
-        // Initialize RestClient with the base URL from properties
-        this.restClient = builder
+        this.restClient = RestClient.builder()
                 .baseUrl(photonUrl)
                 .build();
     }
@@ -78,7 +76,7 @@ public class PhotonServiceImpl implements PhotonService {
         }
 
         // 3. Extract osmId and name from response
-        PhotonFeature feature = response.features().get(0);
+        PhotonFeature feature = response.features().getFirst();
         Long osmId = feature.properties().osmId();
         String resolvedName = feature.properties().name();
 
