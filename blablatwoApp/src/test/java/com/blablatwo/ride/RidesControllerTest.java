@@ -9,10 +9,12 @@ import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
+import com.blablatwo.ride.dto.ContactMethodDto;
+import com.blablatwo.ride.dto.ContactType;
+import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.TravelerProfileDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
@@ -82,7 +84,7 @@ class RidesControllerTest {
     void setUp() {
         ride = Ride.builder()
                 .id(ID_100)
-                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
+                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
                 .origin(City.builder().id(ID_ONE).osmId(ID_ONE).name(CITY_NAME_ORIGIN).build())
                 .destination(City.builder().id(2L).osmId(2L).name(CITY_NAME_DESTINATION).build())
                 .departureTime(LOCAL_DATE_TIME)
@@ -107,22 +109,22 @@ class RidesControllerTest {
                 RIDE_DESCRIPTION
         );
 
-        rideResponseDto = new RideResponseDto(
-                ID_100,
-                new TravelerProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, CRISTIANO, EMAIL, TELEPHONE),
-                new CityDto(ID_ONE, CITY_NAME_ORIGIN),
-                new CityDto(2L, CITY_NAME_DESTINATION),
-                LOCAL_DATE_TIME,
-                false, // isApproximate
-                RideSource.INTERNAL,
-                ONE,
-                BIG_DECIMAL,
-                new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
-                RideStatus.OPEN,
-                INSTANT,
-                Collections.emptyList(),
-                null // sourceUrl
-        );
+        rideResponseDto = RideResponseDto.builder()
+                .id(ID_100)
+                .source(RideSource.INTERNAL)
+                .origin(new CityDto(ID_ONE, CITY_NAME_ORIGIN))
+                .destination(new CityDto(2L, CITY_NAME_DESTINATION))
+                .departureTime(LOCAL_DATE_TIME)
+                .isApproximate(false)
+                .pricePerSeat(BIG_DECIMAL)
+                .availableSeats(ONE)
+                .seatsTaken(0)
+                .description(RIDE_DESCRIPTION)
+                .driver(new DriverDto(CRISTIANO, null, null))
+                .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
+                .vehicle(new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1))
+                .rideStatus(RideStatus.OPEN)
+                .build();
     }
 
     @Test
@@ -137,7 +139,10 @@ class RidesControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ID_100))
-                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN));
+                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN))
+                .andExpect(jsonPath("$.driver.name").value(CRISTIANO))
+                .andExpect(jsonPath("$.seatsTaken").value(0))
+                .andExpect(jsonPath("$.contactMethods[0].type").value("PHONE"));
     }
 
     @Test
@@ -299,7 +304,9 @@ class RidesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.content[0].id").value(ID_100));
+                    .andExpect(jsonPath("$.content[0].id").value(ID_100))
+                    .andExpect(jsonPath("$.content[0].driver.name").value(CRISTIANO))
+                    .andExpect(jsonPath("$.content[0].seatsTaken").value(0));
         }
 
         @Test
@@ -338,7 +345,8 @@ class RidesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.content[0].id").value(ID_100));
+                    .andExpect(jsonPath("$.content[0].id").value(ID_100))
+                    .andExpect(jsonPath("$.content[0].driver.name").value(CRISTIANO));
         }
 
         @Test
@@ -546,7 +554,8 @@ class RidesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$[0].id").value(ID_100));
+                    .andExpect(jsonPath("$[0].id").value(ID_100))
+                    .andExpect(jsonPath("$[0].driver.name").value(CRISTIANO));
         }
 
         @Test

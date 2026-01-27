@@ -10,10 +10,12 @@ import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
+import com.blablatwo.ride.dto.ContactMethodDto;
+import com.blablatwo.ride.dto.ContactType;
+import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.TravelerProfileDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
@@ -68,7 +70,7 @@ class RideServiceImplTest {
     TravelerRepository travelerRepository;
 
     @Mock
-    ExternalMetaEnricher externalMetaEnricher;
+    RideResponseEnricher rideResponseEnricher;
 
     @InjectMocks
     private RideServiceImpl rideService;
@@ -85,10 +87,10 @@ class RideServiceImplTest {
     @BeforeEach
     void setUp() {
         // Configure enricher to return input unchanged (pass-through for INTERNAL rides)
-        lenient().when(externalMetaEnricher.enrich(any(RideResponseDto.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        lenient().when(externalMetaEnricher.enrich(anyList()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(rideResponseEnricher.enrich(any(Ride.class), any(RideResponseDto.class)))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+        lenient().when(rideResponseEnricher.enrich(anyList(), anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
 
         // Initialize CityDto objects for clarity
         originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN);
@@ -101,7 +103,7 @@ class RideServiceImplTest {
         // Initialize the Ride entity with the new osmId for City and the description field
         ride = Ride.builder()
                 .id(ID_100)
-                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
+                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
                 .origin(originCityEntity)
                 .destination(destinationCityEntity)
                 .departureTime(LOCAL_DATE_TIME)
@@ -111,40 +113,39 @@ class RideServiceImplTest {
                 .rideStatus(RideStatus.OPEN)
                 .lastModified(INSTANT)
                 .passengers(Collections.emptyList())
-                .description(RIDE_DESCRIPTION) // New description field
+                .description(RIDE_DESCRIPTION)
                 .build();
 
         // Initialize RideCreationDto with CityDto objects and the new description field
         rideCreationDTO = new RideCreationDto(
                 ID_ONE,
-                originCityDto, // Updated to use CityDto for origin
-                destinationCityDto, // Updated to use CityDto for destination
+                originCityDto,
+                destinationCityDto,
                 LOCAL_DATE_TIME,
                 false, // isApproximate
                 ONE,
                 BIG_DECIMAL,
                 ID_ONE,
-                RIDE_DESCRIPTION // New description field
+                RIDE_DESCRIPTION
         );
 
-        // Assuming RideResponseDto structure remains the same as provided,
-        // without a description field, and CityResponseDto still only has id and name.
-        rideResponseDto = new RideResponseDto(
-                ID_100,
-                new TravelerProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, null, null, null),
-                originCityDto,
-                destinationCityDto,
-                LOCAL_DATE_TIME,
-                false, // isApproximate
-                RideSource.INTERNAL,
-                ONE,
-                BIG_DECIMAL,
-                new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1),
-                RideStatus.OPEN,
-                INSTANT,
-                Collections.emptyList(),
-                null // sourceUrl
-        );
+        // Initialize RideResponseDto with new structure
+        rideResponseDto = RideResponseDto.builder()
+                .id(ID_100)
+                .source(RideSource.INTERNAL)
+                .origin(originCityDto)
+                .destination(destinationCityDto)
+                .departureTime(LOCAL_DATE_TIME)
+                .isApproximate(false)
+                .pricePerSeat(BIG_DECIMAL)
+                .availableSeats(ONE)
+                .seatsTaken(0)
+                .description(RIDE_DESCRIPTION)
+                .driver(new DriverDto(CRISTIANO, null, null))
+                .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
+                .vehicle(new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1))
+                .rideStatus(RideStatus.OPEN)
+                .build();
     }
 
     @Test

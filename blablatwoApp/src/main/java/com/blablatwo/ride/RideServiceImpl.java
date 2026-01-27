@@ -39,26 +39,25 @@ public class RideServiceImpl implements RideService {
     private final CityRepository cityRepository;
     private final CityMapper cityMapper;
     private final TravelerRepository travelerRepository;
-    private final ExternalMetaEnricher externalMetaEnricher;
+    private final RideResponseEnricher rideResponseEnricher;
 
     public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper,
                            CityRepository cityRepository, CityMapper cityMapper,
                            TravelerRepository travelerRepository,
-                           ExternalMetaEnricher externalMetaEnricher) {
+                           RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
         this.cityRepository = cityRepository;
         this.cityMapper = cityMapper;
         this.travelerRepository = travelerRepository;
-        this.externalMetaEnricher = externalMetaEnricher;
+        this.rideResponseEnricher = rideResponseEnricher;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<RideResponseDto> getById(Long id) {
         return rideRepository.findById(id)
-                .map(rideMapper::rideEntityToRideResponseDto)
-                .map(externalMetaEnricher::enrich);
+                .map(ride -> rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride)));
     }
 
     @Override
@@ -69,8 +68,8 @@ public class RideServiceImpl implements RideService {
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
         newRideEntity.setOrigin(origin);
         newRideEntity.setDestination(destination);
-        return rideMapper.rideEntityToRideResponseDto(
-                rideRepository.save(newRideEntity));
+        Ride savedRide = rideRepository.save(newRideEntity);
+        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
     }
 
     private City getOrCreateCity(@Valid @NotNull CityDto city) {
@@ -86,7 +85,7 @@ public class RideServiceImpl implements RideService {
                 .orElseThrow(() -> new NoSuchRideException(id));
 
         rideMapper.update(existingRide, ride);
-        return rideMapper.rideEntityToRideResponseDto(existingRide);
+        return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
     }
 
     @Override
@@ -113,10 +112,13 @@ public class RideServiceImpl implements RideService {
                     criteria.departureDateTo().atTime(23, 59, 59)));
         }
 
-        Page<RideResponseDto> page = rideRepository.findAll(spec, pageable)
-                .map(rideMapper::rideEntityToRideResponseDto);
-        List<RideResponseDto> enriched = externalMetaEnricher.enrich(page.getContent());
-        return new PageImpl<>(enriched, pageable, page.getTotalElements());
+        Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
+        List<Ride> rides = ridePage.getContent();
+        List<RideResponseDto> dtos = rides.stream()
+                .map(rideMapper::rideEntityToRideResponseDto)
+                .toList();
+        List<RideResponseDto> enriched = rideResponseEnricher.enrich(rides, dtos);
+        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
     private LocalDateTime calculateDepartureFrom(RideSearchCriteriaDto criteria) {
@@ -138,10 +140,13 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional(readOnly = true)
     public Page<RideResponseDto> getAllRides(Pageable pageable) {
-        Page<RideResponseDto> page = rideRepository.findAll(pageable)
-                .map(rideMapper::rideEntityToRideResponseDto);
-        List<RideResponseDto> enriched = externalMetaEnricher.enrich(page.getContent());
-        return new PageImpl<>(enriched, pageable, page.getTotalElements());
+        Page<Ride> ridePage = rideRepository.findAll(pageable);
+        List<Ride> rides = ridePage.getContent();
+        List<RideResponseDto> dtos = rides.stream()
+                .map(rideMapper::rideEntityToRideResponseDto)
+                .toList();
+        List<RideResponseDto> enriched = rideResponseEnricher.enrich(rides, dtos);
+        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
     @Override
@@ -177,8 +182,8 @@ public class RideServiceImpl implements RideService {
             ride.setRideStatus(RideStatus.FULL);
         }
 
-        return externalMetaEnricher.enrich(
-                rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride)));
+        Ride savedRide = rideRepository.save(ride);
+        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
     }
 
     @Override
@@ -203,8 +208,8 @@ public class RideServiceImpl implements RideService {
             ride.setRideStatus(RideStatus.OPEN);
         }
 
-        return externalMetaEnricher.enrich(
-                rideMapper.rideEntityToRideResponseDto(rideRepository.save(ride)));
+        Ride savedRide = rideRepository.save(ride);
+        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
     }
 
     @Override
@@ -213,10 +218,10 @@ public class RideServiceImpl implements RideService {
         Traveler passenger = travelerRepository.findById(passengerId)
                 .orElseThrow(() -> new NoSuchTravelerException(passengerId));
 
-        List<RideResponseDto> rides = rideRepository.findByPassengersContaining(passenger)
-                .stream()
+        List<Ride> rides = rideRepository.findByPassengersContaining(passenger);
+        List<RideResponseDto> dtos = rides.stream()
                 .map(rideMapper::rideEntityToRideResponseDto)
                 .toList();
-        return externalMetaEnricher.enrich(rides);
+        return rideResponseEnricher.enrich(rides, dtos);
     }
 }

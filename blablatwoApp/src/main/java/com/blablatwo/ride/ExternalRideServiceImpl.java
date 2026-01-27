@@ -32,20 +32,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     private final PhotonService photonService;
     private final TravelerRepository travelerRepository;
     private final RideMapper rideMapper;
-    private final ExternalMetaEnricher externalMetaEnricher;
+    private final RideResponseEnricher rideResponseEnricher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
                                    PhotonService photonService,
                                    TravelerRepository travelerRepository,
                                    RideMapper rideMapper,
-                                   ExternalMetaEnricher externalMetaEnricher) {
+                                   RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
         this.photonService = photonService;
         this.travelerRepository = travelerRepository;
         this.rideMapper = rideMapper;
-        this.externalMetaEnricher = externalMetaEnricher;
+        this.rideResponseEnricher = rideResponseEnricher;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
         LOGGER.info("Created external ride with ID: {} from external source: {}",
                 saved.getId(), dto.externalId());
 
-        return externalMetaEnricher.enrich(rideMapper.rideEntityToRideResponseDto(saved));
+        return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
     }
 
     @Override
@@ -118,8 +118,10 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     @Transactional(readOnly = true)
     public Optional<RideResponseDto> getByExternalId(String externalId) {
         return metaRepository.findByExternalId(externalId)
-                .map(meta -> rideMapper.rideEntityToRideResponseDto(meta.getRide()))
-                .map(externalMetaEnricher::enrich);
+                .map(meta -> {
+                    Ride ride = meta.getRide();
+                    return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
+                });
     }
 
     private String computeHash(String content) {
