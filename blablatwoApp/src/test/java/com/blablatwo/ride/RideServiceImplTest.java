@@ -13,7 +13,7 @@ import com.blablatwo.exceptions.RideNotBookableException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.DriverProfileDto;
+import com.blablatwo.traveler.TravelerProfileDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
@@ -131,7 +131,7 @@ class RideServiceImplTest {
         // without a description field, and CityResponseDto still only has id and name.
         rideResponseDto = new RideResponseDto(
                 ID_100,
-                new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, null, null, null),
+                new TravelerProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, null, null, null),
                 originCityDto,
                 destinationCityDto,
                 LOCAL_DATE_TIME,

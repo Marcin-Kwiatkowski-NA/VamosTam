@@ -12,7 +12,7 @@ import com.blablatwo.exceptions.RideNotBookableException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.DriverProfileDto;
+import com.blablatwo.traveler.TravelerProfileDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
 import com.blablatwo.vehicle.Vehicle;
@@ -29,7 +29,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.NestedTestConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -110,7 +109,7 @@ class RidesControllerTest {
 
         rideResponseDto = new RideResponseDto(
                 ID_100,
-                new DriverProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, CRISTIANO, EMAIL, TELEPHONE),
+                new TravelerProfileDto(ID_ONE, TRAVELER_USERNAME_USER1, CRISTIANO, EMAIL, TELEPHONE),
                 new CityDto(ID_ONE, CITY_NAME_ORIGIN),
                 new CityDto(2L, CITY_NAME_DESTINATION),
                 LOCAL_DATE_TIME,

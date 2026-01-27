@@ -5,7 +5,7 @@ import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
-import com.blablatwo.traveler.DriverProfileDto;
+import com.blablatwo.traveler.TravelerProfileDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -75,7 +75,7 @@ class ExternalRideSecurityTest {
 
         responseDto = new RideResponseDto(
                 1L,
-                new DriverProfileDto(1L, "facebook-proxy", "Facebook User", "proxy@example.com", null),
+                new TravelerProfileDto(1L, "facebook-proxy", "Facebook User", "proxy@example.com", null),
                 new CityDto(1L, "Paris"),
                 new CityDto(2L, "Lyon"),
                 LocalDateTime.of(2025, 6, 15, 10, 0),
