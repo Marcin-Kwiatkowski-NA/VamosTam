@@ -72,6 +72,9 @@ public class WebAuthorizationConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
