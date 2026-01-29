@@ -20,6 +20,16 @@ The Vamos backend uses JWT-based stateless authentication for the REST API.
 7. When accessToken expires → POST /auth/refresh with refreshToken
 ```
 
+### Flutter Client Implementation
+
+The Flutter app implements automatic token refresh with:
+- **Reactive refresh**: Only refreshes on 401 responses (not proactively)
+- **Mutex pattern**: Prevents concurrent refresh calls when multiple requests fail
+- **Max 1 retry**: Requests marked as retried won't trigger another refresh
+- **Separate HTTP client**: Uses `http` package for refresh to avoid Dio interceptor recursion
+
+See `memory/flutter-architecture.md` → "JWT Token Management" for details.
+
 ## Endpoints
 
 | Endpoint | Method | Auth Required | Description |
@@ -27,13 +37,48 @@ The Vamos backend uses JWT-based stateless authentication for the REST API.
 | `/auth/login` | POST | No | Login with username/password |
 | `/auth/register` | POST | No | Register new user |
 | `/auth/google` | POST | No | Login/register with Google ID token (**NOT READY**) |
-| `/auth/refresh` | POST | No | Get new tokens using refresh token |
+| `/auth/refresh` | POST | No | Get new tokens using refresh token (see contract below) |
 | `/auth/me` | GET | Yes | Get current user info |
 
 ### Google OAuth Status
 
 > **Google OAuth is NOT READY** - Server access to Google APIs is not yet configured.
 > The `/auth/google` endpoint code exists but cannot be used until Google Cloud credentials are set up.
+
+### API Response Contract
+
+All successful auth responses (`/auth/login`, `/auth/register`, `/auth/google`, `/auth/refresh`) return:
+
+```json
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600,
+  "refreshExpiresIn": 604800,
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    ...
+  }
+}
+```
+
+### Refresh Token Endpoint
+
+**Request:**
+```json
+POST /auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJ..."
+}
+```
+
+**Success (200):** Returns full `AuthResponse` with new tokens
+
+**Failure (401):** Refresh token invalid or expired - client should log out user
 
 ## Token Configuration
 
