@@ -3,7 +3,7 @@ package com.blablatwo.ride;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
-import com.blablatwo.city.CityRepository;
+import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
@@ -36,19 +36,19 @@ public class RideServiceImpl implements RideService {
 
     private final RideRepository rideRepository;
     private final RideMapper rideMapper;
-    private final CityRepository cityRepository;
     private final CityMapper cityMapper;
+    private final CityResolutionService cityResolutionService;
     private final TravelerRepository travelerRepository;
     private final RideResponseEnricher rideResponseEnricher;
 
     public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper,
-                           CityRepository cityRepository, CityMapper cityMapper,
+                           CityMapper cityMapper, CityResolutionService cityResolutionService,
                            TravelerRepository travelerRepository,
                            RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
-        this.cityRepository = cityRepository;
         this.cityMapper = cityMapper;
+        this.cityResolutionService = cityResolutionService;
         this.travelerRepository = travelerRepository;
         this.rideResponseEnricher = rideResponseEnricher;
     }
@@ -73,9 +73,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private City getOrCreateCity(@Valid @NotNull CityDto city) {
-        return cityRepository.findByOsmId(city.osmId())
-                .orElseGet(() -> cityRepository.save(cityMapper.cityDtoToEntity(city))
-        );
+        return cityResolutionService.resolveCityByPlaceId(city.placeId(), city.name(), "pl");
     }
 
     @Override
@@ -102,8 +100,8 @@ public class RideServiceImpl implements RideService {
     @Transactional(readOnly = true)
     public Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable) {
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(RideStatus.OPEN))
-                .and(RideSpecifications.originNameContains(criteria.originCityName()))
-                .and(RideSpecifications.destinationNameContains(criteria.destinationCityName()))
+                .and(RideSpecifications.originPlaceIdEquals(criteria.originPlaceId()))
+                .and(RideSpecifications.destinationPlaceIdEquals(criteria.destinationPlaceId()))
                 .and(RideSpecifications.hasMinAvailableSeats(criteria.minAvailableSeats()))
                 .and(RideSpecifications.departureAfter(calculateDepartureFrom(criteria)));
 
@@ -114,11 +112,23 @@ public class RideServiceImpl implements RideService {
 
         Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
         List<Ride> rides = ridePage.getContent();
+
+        // Use language from criteria for response localization
+        String lang = criteria.lang() != null ? criteria.lang() : "pl";
         List<RideResponseDto> dtos = rides.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
+                .map(ride -> mapRideToResponseDto(ride, lang))
                 .toList();
         List<RideResponseDto> enriched = rideResponseEnricher.enrich(rides, dtos);
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+    }
+
+    private RideResponseDto mapRideToResponseDto(Ride ride, String lang) {
+        RideResponseDto dto = rideMapper.rideEntityToRideResponseDto(ride);
+        // Re-map cities with correct language
+        return dto.toBuilder()
+                .origin(cityMapper.cityEntityToCityDto(ride.getOrigin(), lang))
+                .destination(cityMapper.cityEntityToCityDto(ride.getDestination(), lang))
+                .build();
     }
 
     private LocalDateTime calculateDepartureFrom(RideSearchCriteriaDto criteria) {

@@ -46,12 +46,14 @@ class RideRepositoryTest {
     @BeforeEach
     void setUp() {
         origin = City.builder()
-                .osmId(ID_ONE)
-                .name(CITY_NAME_ORIGIN)
+                .placeId(ID_ONE)
+                .namePl(CITY_NAME_ORIGIN)
+                .normNamePl(CITY_NAME_ORIGIN.toLowerCase())
                 .build();
         destination = City.builder()
-                .osmId(2L)
-                .name(CITY_NAME_DESTINATION)
+                .placeId(2L)
+                .namePl(CITY_NAME_DESTINATION)
+                .normNamePl(CITY_NAME_DESTINATION.toLowerCase())
                 .build();
         cityRepository.save(origin);
         cityRepository.save(destination);
@@ -95,9 +97,9 @@ class RideRepositoryTest {
                 () -> assertNotNull(savedRide.getId(), "Saved ride should have an ID"),
                 () -> assertEquals(driver.getId(), savedRide.getDriver().getId(), "Driver should match"),
                 () -> assertEquals(origin.getId(), savedRide.getOrigin().getId(), "Origin should match"),
-                () -> assertEquals(origin.getOsmId(), savedRide.getOrigin().getOsmId(), "Origin OSM ID should match"),
+                () -> assertEquals(origin.getPlaceId(), savedRide.getOrigin().getPlaceId(), "Origin placeId should match"),
                 () -> assertEquals(destination.getId(), savedRide.getDestination().getId(), "Destination should match"),
-                () -> assertEquals(destination.getOsmId(), savedRide.getDestination().getOsmId(), "Destination OSM ID should match"),
+                () -> assertEquals(destination.getPlaceId(), savedRide.getDestination().getPlaceId(), "Destination placeId should match"),
                 () -> assertEquals(LOCAL_DATE_TIME, savedRide.getDepartureTime(), "Departure time should match"),
                 () -> assertEquals(ONE, savedRide.getAvailableSeats(), "Available seats should match"),
                 () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),

@@ -12,22 +12,22 @@ import java.util.Optional;
 
 @RestController
 public class CitiesController {
-    private final CityService cityService;
+    private final CityAdminService cityAdminService;
 
-    public CitiesController(CityService cityService) {
-        this.cityService = cityService;
+    public CitiesController(CityAdminService cityAdminService) {
+        this.cityAdminService = cityAdminService;
     }
 
     @GetMapping("/cities/{id}")
     public ResponseEntity<City> getCityById(@PathVariable long id) {
-        Optional<City> cityOptional = cityService.getById(id);
+        Optional<City> cityOptional = cityAdminService.getById(id);
         return cityOptional.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/cities")
     public ResponseEntity<Collection<City>> getAllCities() {
-        return ResponseEntity.ok(cityService.getAllCities());
+        return ResponseEntity.ok(cityAdminService.getAllCities());
     }
 
     private URI getUriFromId(String id) {

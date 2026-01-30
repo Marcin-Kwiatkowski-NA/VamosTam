@@ -3,7 +3,7 @@ package com.blablatwo.ride;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
-import com.blablatwo.city.CityRepository;
+import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
@@ -61,7 +61,7 @@ class RideServiceImplTest {
     private RideMapper rideMapper;
 
     @Mock
-    CityRepository cityRepository;
+    CityResolutionService cityResolutionService;
 
     @Mock
     CityMapper cityMapper;
@@ -92,15 +92,29 @@ class RideServiceImplTest {
         lenient().when(rideResponseEnricher.enrich(anyList(), anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
 
-        // Initialize CityDto objects for clarity
-        originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN);
-        destinationCityDto = new CityDto(2L, CITY_NAME_DESTINATION);
+        // Initialize CityDto objects for clarity (now using placeId instead of osmId)
+        originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L);
+        destinationCityDto = new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L);
 
-        // Initialize City entities, assuming ID_ONE for origin and 2L for destination osmId
-        originCityEntity = City.builder().id(ID_ONE).osmId(ID_ONE).name(CITY_NAME_ORIGIN).build();
-        destinationCityEntity = City.builder().id(2L).osmId(2L).name(CITY_NAME_DESTINATION).build();
+        // Initialize City entities with new schema
+        originCityEntity = City.builder()
+                .id(ID_ONE)
+                .placeId(ID_ONE)
+                .namePl(CITY_NAME_ORIGIN)
+                .normNamePl(CITY_NAME_ORIGIN.toLowerCase())
+                .countryCode("PL")
+                .population(100000L)
+                .build();
+        destinationCityEntity = City.builder()
+                .id(2L)
+                .placeId(2L)
+                .namePl(CITY_NAME_DESTINATION)
+                .normNamePl(CITY_NAME_DESTINATION.toLowerCase())
+                .countryCode("PL")
+                .population(200000L)
+                .build();
 
-        // Initialize the Ride entity with the new osmId for City and the description field
+        // Initialize the Ride entity
         ride = Ride.builder()
                 .id(ID_100)
                 .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
@@ -177,12 +191,13 @@ class RideServiceImplTest {
     }
 
     @Test
-    @DisplayName("Create a new ride successfully when cities already exist")
-    void shouldCreateNewRideSuccessfullyWhenCitiesExist() {
+    @DisplayName("Create a new ride successfully using CityResolutionService")
+    void shouldCreateNewRideSuccessfully() {
         // Arrange
-        // Simulate that the origin and destination cities already exist in the database
-        when(cityRepository.findByOsmId(rideCreationDTO.origin().osmId())).thenReturn(Optional.of(originCityEntity));
-        when(cityRepository.findByOsmId(rideCreationDTO.destination().osmId())).thenReturn(Optional.of(destinationCityEntity));
+        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.origin().placeId(), rideCreationDTO.origin().name(), "pl"))
+                .thenReturn(originCityEntity);
+        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.destination().placeId(), rideCreationDTO.destination().name(), "pl"))
+                .thenReturn(destinationCityEntity);
 
         when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
         when(rideRepository.save(ride)).thenReturn(ride);
@@ -196,47 +211,8 @@ class RideServiceImplTest {
         assertEquals(rideResponseDto, result, "Created ride DTO should match the expected DTO");
 
         // Verify interactions
-        verify(cityRepository, times(1)).findByOsmId(rideCreationDTO.origin().osmId());
-        verify(cityRepository, times(1)).findByOsmId(rideCreationDTO.destination().osmId());
-        verify(cityRepository, never()).save(any(City.class)); // save should not be called if present
-        verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
-        verify(rideRepository).save(ride);
-        verify(rideMapper).rideEntityToRideResponseDto(ride);
-    }
-
-    @Test
-    @DisplayName("Create a new ride successfully when cities do not exist and are saved")
-    void shouldCreateNewRideSuccessfullyWhenCitiesDoNotExist() {
-        // Arrange
-        // Simulate that the origin and destination cities do not exist initially
-        when(cityRepository.findByOsmId(rideCreationDTO.origin().osmId())).thenReturn(Optional.empty());
-        when(cityRepository.findByOsmId(rideCreationDTO.destination().osmId())).thenReturn(Optional.empty());
-
-        // Mock the behavior for saving new cities
-        when(cityMapper.cityDtoToEntity(rideCreationDTO.origin())).thenReturn(originCityEntity);
-        when(cityMapper.cityDtoToEntity(rideCreationDTO.destination())).thenReturn(destinationCityEntity);
-        when(cityRepository.save(originCityEntity)).thenReturn(originCityEntity);
-        when(cityRepository.save(destinationCityEntity)).thenReturn(destinationCityEntity);
-
-
-        when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
-        when(rideRepository.save(ride)).thenReturn(ride);
-        when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
-
-        // Act
-        RideResponseDto result = rideService.create(rideCreationDTO);
-
-        // Assert
-        assertNotNull(result, "Resulting DTO should not be null");
-        assertEquals(rideResponseDto, result, "Created ride DTO should match the expected DTO");
-
-        // Verify interactions
-        verify(cityRepository, times(1)).findByOsmId(rideCreationDTO.origin().osmId());
-        verify(cityRepository, times(1)).findByOsmId(rideCreationDTO.destination().osmId());
-        verify(cityMapper, times(1)).cityDtoToEntity(rideCreationDTO.origin());
-        verify(cityMapper, times(1)).cityDtoToEntity(rideCreationDTO.destination());
-        verify(cityRepository, times(1)).save(originCityEntity); // save should be called if not present
-        verify(cityRepository, times(1)).save(destinationCityEntity); // save should be called if not present
+        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.origin().placeId(), rideCreationDTO.origin().name(), "pl");
+        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.destination().placeId(), rideCreationDTO.destination().name(), "pl");
         verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
         verify(rideRepository).save(ride);
         verify(rideMapper).rideEntityToRideResponseDto(ride);
@@ -291,15 +267,17 @@ class RideServiceImplTest {
         @Test
         @DisplayName("Search rides returns paginated results")
         void searchRides_ReturnsPagedResults() {
-            // Arrange
+            // Arrange - using placeId-based search criteria
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now(), null, null, 1
+                    ID_ONE, 2L, "pl", LocalDate.now(), null, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(cityMapper.cityEntityToCityDto(originCityEntity, "pl")).thenReturn(originCityDto);
+            when(cityMapper.cityEntityToCityDto(destinationCityEntity, "pl")).thenReturn(destinationCityDto);
 
             // Act
             Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
@@ -314,12 +292,14 @@ class RideServiceImplTest {
         @DisplayName("Search rides with null criteria returns results")
         void searchRides_WithNullCriteria_ReturnsResults() {
             // Arrange
-            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, 1);
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null, 1);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(cityMapper.cityEntityToCityDto(originCityEntity, "pl")).thenReturn(originCityDto);
+            when(cityMapper.cityEntityToCityDto(destinationCityEntity, "pl")).thenReturn(destinationCityDto);
 
             // Act
             Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
@@ -335,13 +315,15 @@ class RideServiceImplTest {
             // Arrange
             LocalTime searchTime = LocalTime.of(14, 0);
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now().plusDays(1), null, searchTime, 1
+                    ID_ONE, 2L, "en", LocalDate.now().plusDays(1), null, searchTime, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(cityMapper.cityEntityToCityDto(originCityEntity, "en")).thenReturn(originCityDto);
+            when(cityMapper.cityEntityToCityDto(destinationCityEntity, "en")).thenReturn(destinationCityDto);
 
             // Act
             Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
@@ -357,13 +339,15 @@ class RideServiceImplTest {
         void searchRides_FutureDateWithoutTime_UsesStartOfDay() {
             // Arrange
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                    CITY_NAME_ORIGIN, CITY_NAME_DESTINATION, LocalDate.now().plusDays(5), null, null, 1
+                    ID_ONE, 2L, "pl", LocalDate.now().plusDays(5), null, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(cityMapper.cityEntityToCityDto(originCityEntity, "pl")).thenReturn(originCityDto);
+            when(cityMapper.cityEntityToCityDto(destinationCityEntity, "pl")).thenReturn(destinationCityDto);
 
             // Act
             Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);

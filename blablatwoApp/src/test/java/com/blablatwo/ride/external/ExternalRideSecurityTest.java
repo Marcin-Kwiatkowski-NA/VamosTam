@@ -1,6 +1,7 @@
 package com.blablatwo.ride.external;
 
 import com.blablatwo.city.CityDto;
+import com.blablatwo.city.Lang;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.ride.dto.ContactMethodDto;
@@ -61,6 +62,7 @@ class ExternalRideSecurityTest {
         validDto = new ExternalRideCreationDto(
                 "Paris",
                 "Lyon",
+                Lang.EN,
                 LocalDate.of(2025, 6, 15),
                 LocalTime.of(10, 0),
                 false,
@@ -77,8 +79,8 @@ class ExternalRideSecurityTest {
         responseDto = RideResponseDto.builder()
                 .id(1L)
                 .source(RideSource.FACEBOOK)
-                .origin(new CityDto(1L, "Paris"))
-                .destination(new CityDto(2L, "Lyon"))
+                .origin(new CityDto(1L, "Paris", "FR", 2000000L))
+                .destination(new CityDto(2L, "Lyon", "FR", 500000L))
                 .departureTime(LocalDateTime.of(2025, 6, 15, 10, 0))
                 .isApproximate(false)
                 .pricePerSeat(new BigDecimal("25.00"))

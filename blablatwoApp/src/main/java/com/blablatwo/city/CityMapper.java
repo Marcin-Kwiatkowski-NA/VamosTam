@@ -1,17 +1,24 @@
 package com.blablatwo.city;
 
+import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface CityMapper {
 
+    /**
+     * Convert City entity to CityDto with default language (Polish).
+     */
+    @Mapping(target = "name", expression = "java(city.getDisplayName(\"pl\"))")
     CityDto cityEntityToCityDto(City city);
 
-    @Mapping(target = "id", ignore = true)
-    City cityDtoToEntity(CityDto cityDto);
-
-    @Mapping(target = "id", ignore = true)
-    void update(@MappingTarget City city, CityDto cityDto);
+    /**
+     * Convert City entity to CityDto with specified language.
+     *
+     * @param city The city entity
+     * @param lang Language code ("pl" or "en")
+     */
+    @Mapping(target = "name", expression = "java(city.getDisplayName(lang))")
+    CityDto cityEntityToCityDto(City city, @Context String lang);
 }

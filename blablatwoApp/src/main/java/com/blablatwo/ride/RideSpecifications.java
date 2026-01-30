@@ -15,18 +15,22 @@ public class RideSpecifications {
                 status == null ? null : cb.equal(root.get("rideStatus"), status);
     }
 
-    public static Specification<Ride> originNameContains(String originName) {
+    /**
+     * Filter by origin city's placeId (exact match).
+     */
+    public static Specification<Ride> originPlaceIdEquals(Long placeId) {
         return (root, query, cb) ->
-                originName == null || originName.isBlank() ? null :
-                        cb.like(cb.lower(root.get("origin").get("name")),
-                                "%" + originName.toLowerCase() + "%");
+                placeId == null ? null :
+                        cb.equal(root.get("origin").get("placeId"), placeId);
     }
 
-    public static Specification<Ride> destinationNameContains(String destinationName) {
+    /**
+     * Filter by destination city's placeId (exact match).
+     */
+    public static Specification<Ride> destinationPlaceIdEquals(Long placeId) {
         return (root, query, cb) ->
-                destinationName == null || destinationName.isBlank() ? null :
-                        cb.like(cb.lower(root.get("destination").get("name")),
-                                "%" + destinationName.toLowerCase() + "%");
+                placeId == null ? null :
+                        cb.equal(root.get("destination").get("placeId"), placeId);
     }
 
     public static Specification<Ride> departureAfter(LocalDateTime from) {

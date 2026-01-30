@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
@@ -18,7 +19,13 @@ import static com.blablatwo.util.Constants.NON_EXISTENT_ID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@ActiveProfiles("test")
 class CityRepositoryImplTest {
+
+    private static final Long PLACE_ID_1 = 3094802L;
+    private static final Long PLACE_ID_2 = 756135L;
+    private static final String CITY_NAME_KRAKOW_NORMALIZED = "krakow";
+    private static final String CITY_NAME_DESTINATION_NORMALIZED = "warsaw";
 
     @Autowired
     private EntityManager entityManager;
@@ -30,7 +37,11 @@ class CityRepositoryImplTest {
     @DisplayName("Find a city by valid ID")
     void findCityById() {
         // Arrange
-        City city = City.builder().name(CITY_NAME_KRAKOW).build();
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
         var savedCity = cityRepository.save(city);
 
         // Act
@@ -39,7 +50,7 @@ class CityRepositoryImplTest {
         // Assert
         assertAll(
                 () -> assertTrue(retrievedCity.isPresent(), "City should be found by ID"),
-                () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getName(), "City name should match")
+                () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getNamePl(), "City name should match")
         );
     }
 
@@ -48,7 +59,11 @@ class CityRepositoryImplTest {
     @Order(1)
     void saveNewCity() {
         // Arrange
-        City city = City.builder().name(CITY_NAME_KRAKOW).build();
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
 
         // Act
         var savedCity = cityRepository.save(city);
@@ -56,7 +71,30 @@ class CityRepositoryImplTest {
         // Assert
         assertAll(
                 () -> assertNotNull(savedCity.getId(), "Saved city should have an ID"),
-                () -> assertEquals(CITY_NAME_KRAKOW, savedCity.getName(), "City name should match")
+                () -> assertEquals(CITY_NAME_KRAKOW, savedCity.getNamePl(), "City name should match"),
+                () -> assertEquals(PLACE_ID_1, savedCity.getPlaceId(), "PlaceId should match")
+        );
+    }
+
+    @Test
+    @DisplayName("Find a city by placeId")
+    void findCityByPlaceId() {
+        // Arrange
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
+        cityRepository.save(city);
+
+        // Act
+        Optional<City> retrievedCity = cityRepository.findByPlaceId(PLACE_ID_1);
+
+        // Assert
+        assertAll(
+                () -> assertTrue(retrievedCity.isPresent(), "City should be found by placeId"),
+                () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getNamePl(), "City name should match"),
+                () -> assertEquals(PLACE_ID_1, retrievedCity.get().getPlaceId(), "PlaceId should match")
         );
     }
 
@@ -71,21 +109,38 @@ class CityRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Return empty when finding by non-existent placeId")
+    void returnEmptyForNonExistentPlaceId() {
+        // Act
+        Optional<City> retrievedCity = cityRepository.findByPlaceId(999999L);
+
+        // Assert
+        assertFalse(retrievedCity.isPresent(), "No city should be found with non-existent placeId");
+    }
+
+    @Test
     @DisplayName("Update a city's details successfully")
     void shouldUpdateCityDetails() {
         // Arrange
-        City city = City.builder().name(CITY_NAME_KRAKOW).build();
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
 
         // Act
         var saved = cityRepository.save(city);
         var savedId = saved.getId();
-        saved.setName(CITY_NAME_DESTINATION);
+        saved.setNamePl(CITY_NAME_DESTINATION);
+        saved.setNormNamePl(CITY_NAME_DESTINATION_NORMALIZED);
+        saved.setPlaceId(PLACE_ID_2);
         var updatedCity = cityRepository.save(city);
 
         // Assert
         assertAll(
-                () -> assertEquals(savedId, updatedCity.getId(), "Updated city should have an ID"),
-                () -> assertEquals(CITY_NAME_DESTINATION, updatedCity.getName(), "City name should be updated")
+                () -> assertEquals(savedId, updatedCity.getId(), "Updated city should have same ID"),
+                () -> assertEquals(CITY_NAME_DESTINATION, updatedCity.getNamePl(), "City name should be updated"),
+                () -> assertEquals(PLACE_ID_2, updatedCity.getPlaceId(), "PlaceId should be updated")
         );
     }
 
@@ -93,12 +148,19 @@ class CityRepositoryImplTest {
     @DisplayName("Delete a city successfully")
     void shouldDeleteCity() {
         // Arrange
-        cityRepository.deleteById(ID_100);
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
+        City savedCity = cityRepository.save(city);
+        Long savedId = savedCity.getId();
 
         // Act
-        Optional<City> deletedCity = cityRepository.findById(ID_100);
+        cityRepository.deleteById(savedId);
 
         // Assert
+        Optional<City> deletedCity = cityRepository.findById(savedId);
         assertFalse(deletedCity.isPresent(), "City should be deleted successfully");
     }
 
@@ -108,7 +170,9 @@ class CityRepositoryImplTest {
         // Arrange
         City nonExistentCity = new City();
         nonExistentCity.setId(NON_EXISTENT_ID);
-        nonExistentCity.setName("Non-Existent City");
+        nonExistentCity.setPlaceId(PLACE_ID_1);
+        nonExistentCity.setNamePl("Non-Existent City");
+        nonExistentCity.setNormNamePl("non-existent city");
 
         // Act & Assert
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
@@ -117,16 +181,35 @@ class CityRepositoryImplTest {
     }
 
     @Test
-    @DisplayName("Save a city with null name throws exception")
-    void saveCityWithNullName() {
+    @DisplayName("Save a city with null namePl throws exception")
+    void saveCityWithNullNamePl() {
         // Arrange
-        City city = new City();
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
 
         // Act & Assert
         assertThrows(ConstraintViolationException.class, () -> {
             cityRepository.save(city);
             entityManager.flush();
-        }, "Saving a city with null name should throw an exception");
+        }, "Saving a city with null namePl should throw an exception");
+    }
+
+    @Test
+    @DisplayName("Save a city with null placeId throws exception")
+    void saveCityWithNullPlaceId() {
+        // Arrange
+        City city = City.builder()
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
+
+        // Act & Assert - DB constraint violation (Hibernate) rather than Bean Validation
+        assertThrows(org.hibernate.exception.ConstraintViolationException.class, () -> {
+            cityRepository.save(city);
+            entityManager.flush();
+        }, "Saving a city with null placeId should throw an exception");
     }
 
     @Test
@@ -140,5 +223,26 @@ class CityRepositoryImplTest {
 
         // Assert
         assertFalse(cities.iterator().hasNext(), "Should return an empty list when no cities exist");
+    }
+
+    @Test
+    @DisplayName("Find city by normalized Polish name")
+    void findCityByNormNamePl() {
+        // Arrange
+        City city = City.builder()
+                .placeId(PLACE_ID_1)
+                .namePl(CITY_NAME_KRAKOW)
+                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
+                .build();
+        cityRepository.save(city);
+
+        // Act
+        Optional<City> retrievedCity = cityRepository.findByNormNamePl(CITY_NAME_KRAKOW_NORMALIZED);
+
+        // Assert
+        assertAll(
+                () -> assertTrue(retrievedCity.isPresent(), "City should be found by normalized name"),
+                () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getNamePl(), "City name should match")
+        );
     }
 }

@@ -70,4 +70,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleDuplicateExternalRideException(HttpServletRequest request, DuplicateExternalRideException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
+
+    @ExceptionHandler(GeocodingException.class)
+    public ProblemDetail handleGeocodingException(HttpServletRequest request, GeocodingException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
 }

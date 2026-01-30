@@ -85,8 +85,8 @@ class RidesControllerTest {
         ride = Ride.builder()
                 .id(ID_100)
                 .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
-                .origin(City.builder().id(ID_ONE).osmId(ID_ONE).name(CITY_NAME_ORIGIN).build())
-                .destination(City.builder().id(2L).osmId(2L).name(CITY_NAME_DESTINATION).build())
+                .origin(City.builder().id(ID_ONE).placeId(ID_ONE).namePl(CITY_NAME_ORIGIN).normNamePl(CITY_NAME_ORIGIN.toLowerCase()).build())
+                .destination(City.builder().id(2L).placeId(2L).namePl(CITY_NAME_DESTINATION).normNamePl(CITY_NAME_DESTINATION.toLowerCase()).build())
                 .departureTime(LOCAL_DATE_TIME)
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
@@ -99,8 +99,8 @@ class RidesControllerTest {
 
         rideCreationDTO = new RideCreationDto(
                 ID_ONE,
-                new CityDto(ID_ONE, CITY_NAME_ORIGIN),
-                new CityDto(2L, CITY_NAME_DESTINATION),
+                new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L),
+                new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L),
                 LOCAL_DATE_TIME,
                 false, // isApproximate
                 ONE,
@@ -112,8 +112,8 @@ class RidesControllerTest {
         rideResponseDto = RideResponseDto.builder()
                 .id(ID_100)
                 .source(RideSource.INTERNAL)
-                .origin(new CityDto(ID_ONE, CITY_NAME_ORIGIN))
-                .destination(new CityDto(2L, CITY_NAME_DESTINATION))
+                .origin(new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L))
+                .destination(new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L))
                 .departureTime(LOCAL_DATE_TIME)
                 .isApproximate(false)
                 .pricePerSeat(BIG_DECIMAL)
@@ -182,8 +182,8 @@ class RidesControllerTest {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
                 null,
-                new CityDto(null, ""),
-                new CityDto(null, ""),
+                new CityDto(null, "", null, null),
+                new CityDto(null, "", null, null),
                 LocalDateTime.now().minusDays(1),
                 false, // isApproximate
                 0,
@@ -269,8 +269,8 @@ class RidesControllerTest {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
                 null,
-                new CityDto(null, ""),
-                new CityDto(null, ""),
+                new CityDto(null, "", null, null),
+                new CityDto(null, "", null, null),
                 LocalDateTime.now().minusDays(1),
                 false, // isApproximate
                 0,
@@ -340,8 +340,9 @@ class RidesControllerTest {
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
-                            .param("origin", CITY_NAME_ORIGIN)
-                            .param("destination", CITY_NAME_DESTINATION)
+                            .param("originPlaceId", ID_ONE.toString())
+                            .param("destinationPlaceId", "2")
+                            .param("lang", "pl")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
@@ -360,7 +361,7 @@ class RidesControllerTest {
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
-                            .param("origin", "NonExistentCity")
+                            .param("originPlaceId", "999999")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isEmpty());

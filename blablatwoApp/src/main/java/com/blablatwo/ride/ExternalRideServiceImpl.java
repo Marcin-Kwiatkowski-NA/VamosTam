@@ -1,9 +1,8 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
-import com.blablatwo.city.PhotonService;
+import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.DuplicateExternalRideException;
-import com.blablatwo.exceptions.NoSuchCityException;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.external.ExternalRideService;
@@ -29,20 +28,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
     private final RideRepository rideRepository;
     private final RideExternalMetaRepository metaRepository;
-    private final PhotonService photonService;
+    private final CityResolutionService cityResolutionService;
     private final TravelerRepository travelerRepository;
     private final RideMapper rideMapper;
     private final RideResponseEnricher rideResponseEnricher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
-                                   PhotonService photonService,
+                                   CityResolutionService cityResolutionService,
                                    TravelerRepository travelerRepository,
                                    RideMapper rideMapper,
                                    RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
-        this.photonService = photonService;
+        this.cityResolutionService = cityResolutionService;
         this.travelerRepository = travelerRepository;
         this.rideMapper = rideMapper;
         this.rideResponseEnricher = rideResponseEnricher;
@@ -62,11 +61,10 @@ public class ExternalRideServiceImpl implements ExternalRideService {
             throw new DuplicateExternalRideException(dto.externalId());
         }
 
-        // 3. Resolve cities via Photon (creates if not exists)
-        City origin = photonService.resolveCity(dto.originCityName())
-                .orElseThrow(() -> new NoSuchCityException(dto.originCityName()));
-        City destination = photonService.resolveCity(dto.destinationCityName())
-                .orElseThrow(() -> new NoSuchCityException(dto.destinationCityName()));
+        // 3. Resolve cities via CityResolutionService (uses geocoding with lang strategy)
+        String langCode = dto.lang() != null ? dto.lang().getCode() : null;
+        City origin = cityResolutionService.resolveCityByName(dto.originCityName(), langCode);
+        City destination = cityResolutionService.resolveCityByName(dto.destinationCityName(), langCode);
 
         // 4. Get Facebook proxy user
         Traveler proxy = travelerRepository.findById(FacebookProxyConstants.FACEBOOK_PROXY_ID)

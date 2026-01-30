@@ -7,9 +7,10 @@ import java.util.Optional;
 
 @Repository
 public interface CityRepository extends JpaRepository<City, Long> {
-    Optional<City> findByNameIgnoreCase(String name);
 
-    Optional<City> findByOsmId(Long osmId);
+    Optional<City> findByPlaceId(Long placeId);
 
-    boolean existsByName(String name);
+    Optional<City> findByNormNamePl(String normNamePl);
+
+    Optional<City> findByNormNameEn(String normNameEn);
 }

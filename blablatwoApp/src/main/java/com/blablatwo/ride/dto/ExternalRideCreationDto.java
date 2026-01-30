@@ -1,5 +1,6 @@
 package com.blablatwo.ride.dto;
 
+import com.blablatwo.city.Lang;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,12 +9,20 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * DTO for external ride ingestion (scraper microservice).
+ * <p>
+ * City names are accepted and resolved to placeId by the backend.
+ * If lang is provided, geocoding uses that language; otherwise, tries both pl and en.
+ */
 public record ExternalRideCreationDto(
         @NotBlank(message = "Origin city name is required")
         String originCityName,
 
         @NotBlank(message = "Destination city name is required")
         String destinationCityName,
+
+        Lang lang,
 
         @NotNull(message = "Departure date is required")
         LocalDate departureDate,
