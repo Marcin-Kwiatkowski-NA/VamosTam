@@ -30,4 +30,13 @@ public interface GeocodingClient {
         List<GeocodedPlace> results = search(query, lang, 1);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
+
+    /**
+     * Lookup a place by its placeId (geonameid).
+     *
+     * @param placeId The geocoding provider's place ID
+     * @param lang    Language code for results (e.g., "pl", "en")
+     * @return The place details, or empty if not found
+     */
+    Optional<GeocodedPlace> lookupByPlaceId(Long placeId, String lang);
 }

@@ -18,6 +18,8 @@ public abstract class RideMapper {
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "passengers", ignore = true)
     @Mapping(target = "source", constant = "INTERNAL")
+    @Mapping(target = "origin", ignore = true)
+    @Mapping(target = "destination", ignore = true)
     public abstract Ride rideCreationDtoToEntity(RideCreationDto rideCreationDto);
 
     @Mapping(target = "id", ignore = true)
@@ -26,6 +28,9 @@ public abstract class RideMapper {
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "passengers", ignore = true)
     @Mapping(target = "source", ignore = true)
+    @Mapping(target = "origin", ignore = true)
+    @Mapping(target = "destination", ignore = true)
+    @Mapping(target = "rideStatus", ignore = true)
     public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 
     @Mapping(target = "driver", ignore = true)

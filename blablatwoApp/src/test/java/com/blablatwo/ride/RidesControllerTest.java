@@ -98,9 +98,9 @@ class RidesControllerTest {
                 .build();
 
         rideCreationDTO = new RideCreationDto(
-                ID_ONE,
-                new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L),
-                new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L),
+                ID_ONE,          // driverId
+                ID_ONE,          // originPlaceId
+                2L,              // destinationPlaceId
                 LOCAL_DATE_TIME,
                 false, // isApproximate
                 ONE,
@@ -181,9 +181,9 @@ class RidesControllerTest {
     void testCreateRide_ValidationError() throws Exception {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
-                null,
-                new CityDto(null, "", null, null),
-                new CityDto(null, "", null, null),
+                null,    // driverId - null (invalid)
+                null,    // originPlaceId - null (invalid)
+                null,    // destinationPlaceId - null (invalid)
                 LocalDateTime.now().minusDays(1),
                 false, // isApproximate
                 0,
@@ -268,9 +268,9 @@ class RidesControllerTest {
     void updateRide_ValidationError() throws Exception {
         // Arrange
         RideCreationDto invalidRide = new RideCreationDto(
-                null,
-                new CityDto(null, "", null, null),
-                new CityDto(null, "", null, null),
+                null,    // driverId - null (invalid)
+                null,    // originPlaceId - null (invalid)
+                null,    // destinationPlaceId - null (invalid)
                 LocalDateTime.now().minusDays(1),
                 false, // isApproximate
                 0,

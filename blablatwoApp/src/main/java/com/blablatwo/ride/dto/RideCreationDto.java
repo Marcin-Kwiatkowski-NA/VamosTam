@@ -1,7 +1,5 @@
 package com.blablatwo.ride.dto;
 
-import com.blablatwo.city.CityDto;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
@@ -15,10 +13,11 @@ public record RideCreationDto(
         @NotNull(message = "Driver ID cannot be null")
         Long driverId,
 
-        @Valid @NotNull
-        CityDto origin,
-        @Valid @NotNull
-        CityDto destination,
+        @NotNull(message = "Origin place ID cannot be null")
+        Long originPlaceId,
+
+        @NotNull(message = "Destination place ID cannot be null")
+        Long destinationPlaceId,
 
         @Future(message = "Departure time must be in the future")
         LocalDateTime departureTime,

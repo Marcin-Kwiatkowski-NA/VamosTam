@@ -36,43 +36,36 @@ public class CityResolutionService {
     }
 
     /**
-     * Resolve a city by its placeId. Creates the city if not found in database.
-     * Used by mobile/internal ride creation (placeId is always known from autocomplete).
+     * Resolve a city by placeId. If not in DB, fetches from geocoding and creates.
+     * Used by ride creation/update.
      *
-     * @param placeId   The placeId from the geocoding provider
-     * @param name      The display name provided by the client
-     * @param lang      The language of the provided name ("pl" or "en")
+     * @param placeId The placeId from the geocoding provider
+     * @param lang    Language hint for geocoding lookup ("pl" or "en")
      * @return The resolved City entity
+     * @throws NoSuchCityException if city cannot be found in DB or geocoding
      */
     @Transactional
-    public City resolveCityByPlaceId(Long placeId, String name, String lang) {
+    public City resolveCityByPlaceId(Long placeId, String lang) {
         if (placeId == null) {
             throw new IllegalArgumentException("placeId is required");
         }
 
+        // 1. Try DB first
         Optional<City> existing = cityRepository.findByPlaceId(placeId);
         if (existing.isPresent()) {
             LOGGER.debug("Found existing city by placeId: {}", placeId);
             return existing.get();
         }
 
-        LOGGER.info("Creating new city with placeId: {}, name: {}, lang: {}", placeId, name, lang);
-
-        String normalizedName = cityNameNormalizer.normalize(name);
-        City.CityBuilder builder = City.builder()
-                .placeId(placeId);
-
-        if ("en".equalsIgnoreCase(lang)) {
-            builder.nameEn(name)
-                    .normNameEn(normalizedName)
-                    .namePl(name) // Fallback to provided name
-                    .normNamePl(normalizedName);
-        } else {
-            builder.namePl(name)
-                    .normNamePl(normalizedName);
+        // 2. Fetch from geocoding service
+        LOGGER.info("City not in DB, fetching from geocoding: placeId={}, lang={}", placeId, lang);
+        Optional<GeocodedPlace> place = geocodingClient.lookupByPlaceId(placeId, lang);
+        if (place.isEmpty()) {
+            throw new NoSuchCityException(placeId);
         }
 
-        return cityRepository.save(builder.build());
+        // 3. Create and save city
+        return createCityFromGeocodedPlace(place.get());
     }
 
     /**
@@ -186,11 +179,13 @@ public class CityResolutionService {
         if ("en".equalsIgnoreCase(place.lang())) {
             builder.nameEn(place.name())
                     .normNameEn(normalizedName)
-                    .namePl(place.name()) // Fallback
+                    .namePl(place.name())      // Fallback to provided name
                     .normNamePl(normalizedName);
         } else {
             builder.namePl(place.name())
-                    .normNamePl(normalizedName);
+                    .normNamePl(normalizedName)
+                    .nameEn(place.name())      // Fallback to provided name
+                    .normNameEn(normalizedName);
         }
 
         return cityRepository.save(builder.build());

@@ -130,11 +130,11 @@ class RideServiceImplTest {
                 .description(RIDE_DESCRIPTION)
                 .build();
 
-        // Initialize RideCreationDto with CityDto objects and the new description field
+        // Initialize RideCreationDto with placeId fields
         rideCreationDTO = new RideCreationDto(
-                ID_ONE,
-                originCityDto,
-                destinationCityDto,
+                ID_ONE,          // driverId
+                ID_ONE,          // originPlaceId
+                2L,              // destinationPlaceId
                 LOCAL_DATE_TIME,
                 false, // isApproximate
                 ONE,
@@ -194,9 +194,9 @@ class RideServiceImplTest {
     @DisplayName("Create a new ride successfully using CityResolutionService")
     void shouldCreateNewRideSuccessfully() {
         // Arrange
-        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.origin().placeId(), rideCreationDTO.origin().name(), "pl"))
+        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl"))
                 .thenReturn(originCityEntity);
-        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.destination().placeId(), rideCreationDTO.destination().name(), "pl"))
+        when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl"))
                 .thenReturn(destinationCityEntity);
 
         when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
@@ -211,8 +211,8 @@ class RideServiceImplTest {
         assertEquals(rideResponseDto, result, "Created ride DTO should match the expected DTO");
 
         // Verify interactions
-        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.origin().placeId(), rideCreationDTO.origin().name(), "pl");
-        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.destination().placeId(), rideCreationDTO.destination().name(), "pl");
+        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl");
+        verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl");
         verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
         verify(rideRepository).save(ride);
         verify(rideMapper).rideEntityToRideResponseDto(ride);

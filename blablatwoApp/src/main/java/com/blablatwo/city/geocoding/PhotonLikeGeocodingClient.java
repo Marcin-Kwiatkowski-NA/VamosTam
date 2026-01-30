@@ -16,6 +16,7 @@ import org.springframework.web.client.RestClientException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Geocoding client implementation using a Photon-like API backed by GeoNames data.
@@ -69,6 +70,42 @@ public class PhotonLikeGeocodingClient implements GeocodingClient {
                 .map(this::toGeocodedPlace)
                 .filter(place -> place.placeId() != null)
                 .toList();
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.GEOCODING_CACHE, key = "'placeId:' + #placeId + '|' + #lang")
+    public Optional<GeocodedPlace> lookupByPlaceId(Long placeId, String lang) {
+        if (placeId == null) {
+            return Optional.empty();
+        }
+
+        String effectiveLang = (lang == null || lang.isBlank()) ? "pl" : lang;
+
+        LOGGER.debug("Looking up place by placeId: {}, lang: {}", placeId, effectiveLang);
+
+        PhotonLikeResponse response;
+        try {
+            response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api")
+                            .queryParam("placeId", placeId)
+                            .queryParam("lang", effectiveLang)
+                            .queryParam("limit", 1)
+                            .build())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(PhotonLikeResponse.class);
+        } catch (RestClientException e) {
+            LOGGER.error("Failed to lookup placeId {}: {}", placeId, e.getMessage());
+            throw new GeocodingException("Geocoding service unavailable", e);
+        }
+
+        if (response == null || response.features() == null || response.features().isEmpty()) {
+            LOGGER.debug("No place found for placeId: {}", placeId);
+            return Optional.empty();
+        }
+
+        return Optional.of(toGeocodedPlace(response.features().get(0)));
     }
 
     private GeocodedPlace toGeocodedPlace(PhotonLikeFeature feature) {

@@ -1,7 +1,6 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
-import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.AlreadyBookedException;
@@ -15,8 +14,6 @@ import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
 import com.blablatwo.traveler.Traveler;
 import com.blablatwo.traveler.TravelerRepository;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -63,17 +60,13 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional
     public RideResponseDto create(RideCreationDto ride) {
-        City origin = getOrCreateCity(ride.origin());
-        City destination = getOrCreateCity(ride.destination());
+        City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
+        City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
         newRideEntity.setOrigin(origin);
         newRideEntity.setDestination(destination);
         Ride savedRide = rideRepository.save(newRideEntity);
         return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
-    }
-
-    private City getOrCreateCity(@Valid @NotNull CityDto city) {
-        return cityResolutionService.resolveCityByPlaceId(city.placeId(), city.name(), "pl");
     }
 
     @Override
@@ -83,6 +76,13 @@ public class RideServiceImpl implements RideService {
                 .orElseThrow(() -> new NoSuchRideException(id));
 
         rideMapper.update(existingRide, ride);
+
+        // Resolve cities BEFORE mapping to DTO (enricher reads from entity)
+        City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
+        City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
+        existingRide.setOrigin(origin);
+        existingRide.setDestination(destination);
+
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
     }
 
