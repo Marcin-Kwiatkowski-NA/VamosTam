@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -54,7 +53,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<TravelerResponseDto> getCurrentUser(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(authService.getCurrentUser(userDetails.getUsername()));
+            @AuthenticationPrincipal AppPrincipal principal) {
+        return ResponseEntity.ok(authService.getCurrentUserById(principal.travelerId()));
     }
 }

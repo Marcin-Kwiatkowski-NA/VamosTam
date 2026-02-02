@@ -111,9 +111,8 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public TravelerResponseDto getCurrentUser(String email) {
-        // We use email as the identifier in JWT, so find by email
-        Traveler traveler = travelerRepository.findByEmail(email)
+    public TravelerResponseDto getCurrentUserById(Long travelerId) {
+        Traveler traveler = travelerRepository.findById(travelerId)
                 .orElseThrow(() -> new NoSuchTravelerException("User not found"));
         return travelerMapper.travelerEntityToTravelerResponseDto(traveler);
     }

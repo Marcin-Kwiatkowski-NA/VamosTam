@@ -4,13 +4,10 @@ import com.blablatwo.traveler.Traveler;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
@@ -20,20 +17,17 @@ public class JwtTokenProvider {
     private static final String TOKEN_TYPE_ACCESS = "access";
     private static final String TOKEN_TYPE_REFRESH = "refresh";
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
+    private final SecretKey key;
+    private final long jwtExpirationMs;
+    private final long jwtRefreshExpirationMs;
 
-    @Value("${app.jwt.expiration-ms}")
-    private long jwtExpirationMs;
-
-    @Value("${app.jwt.refresh-expiration-ms:604800000}")
-    private long jwtRefreshExpirationMs;
-
-    private SecretKey key;
-
-    @PostConstruct
-    public void init() {
-        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    public JwtTokenProvider(
+            SecretKey jwtSecretKey,
+            @Value("${app.jwt.expiration-ms}") long jwtExpirationMs,
+            @Value("${app.jwt.refresh-expiration-ms:604800000}") long jwtRefreshExpirationMs) {
+        this.key = jwtSecretKey;
+        this.jwtExpirationMs = jwtExpirationMs;
+        this.jwtRefreshExpirationMs = jwtRefreshExpirationMs;
     }
 
     public String generateToken(Traveler traveler) {
@@ -41,13 +35,13 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .subject(Long.toString(traveler.getId()))
+                .claim("travelerId", traveler.getId())
                 .claim("email", traveler.getEmail())
                 .claim("role", traveler.getRole().name())
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key)
+                .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -56,17 +50,17 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationMs);
 
         return Jwts.builder()
-                .subject(Long.toString(traveler.getId()))
+                .claim("travelerId", traveler.getId())
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_REFRESH)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key)
+                .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
-        return Long.parseLong(claims.getSubject());
+        return claims.get("travelerId", Long.class);
     }
 
     public boolean isRefreshToken(String token) {

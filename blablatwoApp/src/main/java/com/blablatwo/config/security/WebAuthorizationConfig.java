@@ -1,19 +1,18 @@
 package com.blablatwo.config.security;
 
 import com.blablatwo.auth.filter.ApiKeyAuthenticationFilter;
-import com.blablatwo.auth.filter.JwtAuthenticationFilter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,13 +23,13 @@ import java.util.List;
 @EnableConfigurationProperties(ApiKeyProperties.class)
 public class WebAuthorizationConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiKeyProperties apiKeyProperties;
+    private final AppJwtAuthenticationConverter appJwtAuthenticationConverter;
 
-    public WebAuthorizationConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                                  ApiKeyProperties apiKeyProperties) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public WebAuthorizationConfig(ApiKeyProperties apiKeyProperties,
+                                  AppJwtAuthenticationConverter appJwtAuthenticationConverter) {
         this.apiKeyProperties = apiKeyProperties;
+        this.appJwtAuthenticationConverter = appJwtAuthenticationConverter;
     }
 
     @Bean
@@ -60,19 +59,24 @@ public class WebAuthorizationConfig {
         http.formLogin(AbstractHttpConfigurer::disable);
 
         http
-            .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/auth/login").permitAll()
+                .requestMatchers("/auth/register").permitAll()
+                .requestMatchers("/auth/google").permitAll()
+                .requestMatchers("/auth/refresh").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/cities", "/cities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(appJwtAuthenticationConverter))
+            )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             )
