@@ -91,12 +91,11 @@ public class RideResponseEnricher {
                     "Driver required for internal ride: rideId=" + ride.getId());
             id = Objects.requireNonNull(driver.getId(),
                     "Driver id required: rideId=" + ride.getId());
-            name = Objects.requireNonNull(driver.getName(),
-                    "Driver name required: rideId=" + ride.getId());
-        }
-
-        if (name.isBlank()) {
-            throw new IllegalStateException("Driver name cannot be blank: rideId=" + ride.getId());
+            // TODO: Require name after refactoring user registration to capture name
+            name = driver.getName();
+            if (name == null || name.isBlank()) {
+                name = driver.getEmail().split("@")[0];
+            }
         }
 
         return new DriverDto(id, name, null, null);
