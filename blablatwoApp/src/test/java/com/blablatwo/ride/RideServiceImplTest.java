@@ -194,6 +194,8 @@ class RideServiceImplTest {
     @DisplayName("Create a new ride successfully using CityResolutionService")
     void shouldCreateNewRideSuccessfully() {
         // Arrange
+        Traveler driver = ride.getDriver();
+        when(travelerRepository.findById(rideCreationDTO.driverId())).thenReturn(Optional.of(driver));
         when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl"))
                 .thenReturn(originCityEntity);
         when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl"))
@@ -211,6 +213,7 @@ class RideServiceImplTest {
         assertEquals(rideResponseDto, result, "Created ride DTO should match the expected DTO");
 
         // Verify interactions
+        verify(travelerRepository).findById(rideCreationDTO.driverId());
         verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl");
         verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl");
         verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
