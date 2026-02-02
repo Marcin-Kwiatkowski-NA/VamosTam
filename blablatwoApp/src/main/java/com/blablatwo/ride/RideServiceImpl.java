@@ -60,9 +60,12 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional
     public RideResponseDto create(RideCreationDto ride) {
+        Traveler driver = travelerRepository.findById(ride.driverId())
+                .orElseThrow(() -> new NoSuchTravelerException(ride.driverId()));
         City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
         City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
+        newRideEntity.setDriver(driver);
         newRideEntity.setOrigin(origin);
         newRideEntity.setDestination(destination);
         Ride savedRide = rideRepository.save(newRideEntity);
