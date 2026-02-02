@@ -66,6 +66,7 @@ public class WebAuthorizationConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/cities", "/cities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
