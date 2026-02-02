@@ -87,7 +87,7 @@ class ExternalRideSecurityTest {
                 .availableSeats(3)
                 .seatsTaken(0)
                 .description("Test ride description")
-                .driver(new DriverDto("Jean Dupont", null, null))
+                .driver(new DriverDto(9999L, "Jean Dupont", null, null))
                 .contactMethods(List.of(new ContactMethodDto(ContactType.FACEBOOK_LINK, "https://facebook.com/groups/rides/12345")))
                 .vehicle(null)
                 .rideStatus(RideStatus.OPEN)

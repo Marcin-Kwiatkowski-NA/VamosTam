@@ -120,7 +120,7 @@ class RidesControllerTest {
                 .availableSeats(ONE)
                 .seatsTaken(0)
                 .description(RIDE_DESCRIPTION)
-                .driver(new DriverDto(CRISTIANO, null, null))
+                .driver(new DriverDto(ID_ONE, CRISTIANO, null, null))
                 .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
                 .vehicle(new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1))
                 .rideStatus(RideStatus.OPEN)

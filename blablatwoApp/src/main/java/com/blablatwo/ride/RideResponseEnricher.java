@@ -4,11 +4,14 @@ import com.blablatwo.ride.dto.ContactMethodDto;
 import com.blablatwo.ride.dto.ContactType;
 import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideResponseDto;
+import com.blablatwo.traveler.FacebookProxyConstants;
+import com.blablatwo.traveler.Traveler;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -75,17 +78,28 @@ public class RideResponseEnricher {
     }
 
     private DriverDto buildDriver(Ride ride, RideExternalMeta meta) {
+        Long id;
         String name;
-        if (ride.getSource() == RideSource.FACEBOOK && meta != null && meta.getAuthorName() != null) {
-            name = meta.getAuthorName();
-        } else if (ride.getDriver() != null) {
-            name = ride.getDriver().getName();
+
+        if (ride.getSource() == RideSource.FACEBOOK) {
+            Objects.requireNonNull(meta, "RideExternalMeta required for Facebook ride: rideId=" + ride.getId());
+            id = FacebookProxyConstants.FACEBOOK_PROXY_ID;
+            name = Objects.requireNonNull(meta.getAuthorName(),
+                    "Author name required for Facebook ride: rideId=" + ride.getId());
         } else {
-            name = null;
+            Traveler driver = Objects.requireNonNull(ride.getDriver(),
+                    "Driver required for internal ride: rideId=" + ride.getId());
+            id = Objects.requireNonNull(driver.getId(),
+                    "Driver id required: rideId=" + ride.getId());
+            name = Objects.requireNonNull(driver.getName(),
+                    "Driver name required: rideId=" + ride.getId());
         }
 
-        // rating and completedRides are null for now (future feature)
-        return new DriverDto(name, null, null);
+        if (name.isBlank()) {
+            throw new IllegalStateException("Driver name cannot be blank: rideId=" + ride.getId());
+        }
+
+        return new DriverDto(id, name, null, null);
     }
 
     private List<ContactMethodDto> buildContactMethods(Ride ride, RideExternalMeta meta) {
