@@ -1,7 +1,7 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
-import com.blablatwo.traveler.Traveler;
+import com.blablatwo.user.UserAccount;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -30,7 +30,7 @@ public class Ride {
     private Long id;
 
     @ManyToOne
-    private Traveler driver;
+    private UserAccount driver;
 
     @ManyToOne
     @NotNull
@@ -71,5 +71,5 @@ public class Ride {
     int version;
 
     @ManyToMany
-    private List<Traveler> passengers;
+    private List<UserAccount> passengers;
 }

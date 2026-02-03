@@ -1,6 +1,7 @@
 package com.blablatwo.auth.service;
 
-import com.blablatwo.traveler.Traveler;
+import com.blablatwo.user.Role;
+import com.blablatwo.user.UserAccount;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class JwtTokenProvider {
@@ -30,14 +32,18 @@ public class JwtTokenProvider {
         this.jwtRefreshExpirationMs = jwtRefreshExpirationMs;
     }
 
-    public String generateToken(Traveler traveler) {
+    public String generateToken(UserAccount user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
+        List<String> roleNames = user.getRoles().stream()
+                .map(Role::name)
+                .toList();
+
         return Jwts.builder()
-                .claim("travelerId", traveler.getId())
-                .claim("email", traveler.getEmail())
-                .claim("role", traveler.getRole().name())
+                .claim("userId", user.getId())
+                .claim("email", user.getEmail())
+                .claim("roles", roleNames)
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS)
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -45,12 +51,12 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(Traveler traveler) {
+    public String generateRefreshToken(UserAccount user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationMs);
 
         return Jwts.builder()
-                .claim("travelerId", traveler.getId())
+                .claim("userId", user.getId())
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_REFRESH)
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -60,7 +66,7 @@ public class JwtTokenProvider {
 
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
-        return claims.get("travelerId", Long.class);
+        return claims.get("userId", Long.class);
     }
 
     public boolean isRefreshToken(String token) {
@@ -97,9 +103,10 @@ public class JwtTokenProvider {
         return claims.get("email", String.class);
     }
 
-    public String getRoleFromToken(String token) {
+    @SuppressWarnings("unchecked")
+    public List<String> getRolesFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
-        return claims.get("role", String.class);
+        return claims.get("roles", List.class);
     }
 
     private Claims getClaimsFromToken(String token) {

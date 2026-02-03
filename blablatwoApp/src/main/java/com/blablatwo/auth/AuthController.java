@@ -6,7 +6,7 @@ import com.blablatwo.auth.dto.LoginRequest;
 import com.blablatwo.auth.dto.RefreshTokenRequest;
 import com.blablatwo.auth.dto.RegisterRequest;
 import com.blablatwo.auth.service.AuthService;
-import com.blablatwo.traveler.TravelerResponseDto;
+import com.blablatwo.user.dto.UserProfileDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,8 +52,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<TravelerResponseDto> getCurrentUser(
+    public ResponseEntity<UserProfileDto> getCurrentUser(
             @AuthenticationPrincipal AppPrincipal principal) {
-        return ResponseEntity.ok(authService.getCurrentUserById(principal.travelerId()));
+        return ResponseEntity.ok(authService.getCurrentUserById(principal.userId()));
     }
 }

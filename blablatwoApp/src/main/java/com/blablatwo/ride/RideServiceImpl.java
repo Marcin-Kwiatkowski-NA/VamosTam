@@ -5,15 +5,19 @@ import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
+import com.blablatwo.exceptions.CannotBookException;
+import com.blablatwo.exceptions.CannotCreateRideException;
+import com.blablatwo.exceptions.ExternalRideNotBookableException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.capability.CapabilityService;
+import com.blablatwo.user.exception.NoSuchUserException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -35,19 +39,22 @@ public class RideServiceImpl implements RideService {
     private final RideMapper rideMapper;
     private final CityMapper cityMapper;
     private final CityResolutionService cityResolutionService;
-    private final TravelerRepository travelerRepository;
+    private final UserAccountRepository userAccountRepository;
     private final RideResponseEnricher rideResponseEnricher;
+    private final CapabilityService capabilityService;
 
     public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper,
                            CityMapper cityMapper, CityResolutionService cityResolutionService,
-                           TravelerRepository travelerRepository,
-                           RideResponseEnricher rideResponseEnricher) {
+                           UserAccountRepository userAccountRepository,
+                           RideResponseEnricher rideResponseEnricher,
+                           CapabilityService capabilityService) {
         this.rideRepository = rideRepository;
         this.rideMapper = rideMapper;
         this.cityMapper = cityMapper;
         this.cityResolutionService = cityResolutionService;
-        this.travelerRepository = travelerRepository;
+        this.userAccountRepository = userAccountRepository;
         this.rideResponseEnricher = rideResponseEnricher;
+        this.capabilityService = capabilityService;
     }
 
     @Override
@@ -59,9 +66,13 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto create(RideCreationDto ride) {
-        Traveler driver = travelerRepository.findById(ride.driverId())
-                .orElseThrow(() -> new NoSuchTravelerException(ride.driverId()));
+    public RideResponseDto createForCurrentUser(RideCreationDto ride, Long userId) {
+        if (!capabilityService.canCreateRide(userId)) {
+            throw new CannotCreateRideException(userId);
+        }
+
+        UserAccount driver = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchUserException(userId));
         City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
         City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
         var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
@@ -168,8 +179,20 @@ public class RideServiceImpl implements RideService {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
-        Traveler passenger = travelerRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchTravelerException(passengerId));
+        if (ride.getSource() != RideSource.INTERNAL) {
+            throw new ExternalRideNotBookableException(rideId);
+        }
+
+        if (!capabilityService.canBook(passengerId)) {
+            throw new CannotBookException(passengerId);
+        }
+
+        if (rideRepository.existsPassenger(rideId, passengerId)) {
+            throw new AlreadyBookedException(rideId, passengerId);
+        }
+
+        UserAccount passenger = userAccountRepository.findById(passengerId)
+                .orElseThrow(() -> new NoSuchUserException(passengerId));
 
         if (ride.getRideStatus() != RideStatus.OPEN) {
             throw new RideNotBookableException(rideId, ride.getRideStatus().name());
@@ -177,11 +200,6 @@ public class RideServiceImpl implements RideService {
 
         if (ride.getAvailableSeats() <= 0) {
             throw new RideFullException(rideId);
-        }
-
-        if (ride.getPassengers() != null &&
-                ride.getPassengers().stream().anyMatch(p -> p.getId().equals(passengerId))) {
-            throw new AlreadyBookedException(rideId, passengerId);
         }
 
         if (ride.getPassengers() == null) {
@@ -205,8 +223,13 @@ public class RideServiceImpl implements RideService {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
-        Traveler passenger = travelerRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchTravelerException(passengerId));
+        if (ride.getSource() != RideSource.INTERNAL) {
+            throw new ExternalRideNotBookableException(rideId);
+        }
+
+        if (!userAccountRepository.existsById(passengerId)) {
+            throw new NoSuchUserException(passengerId);
+        }
 
         if (ride.getPassengers() == null ||
                 ride.getPassengers().stream().noneMatch(p -> p.getId().equals(passengerId))) {
@@ -228,8 +251,8 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional(readOnly = true)
     public List<RideResponseDto> getRidesForPassenger(Long passengerId) {
-        Traveler passenger = travelerRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchTravelerException(passengerId));
+        UserAccount passenger = userAccountRepository.findById(passengerId)
+                .orElseThrow(() -> new NoSuchUserException(passengerId));
 
         List<Ride> rides = rideRepository.findByPassengersContaining(passenger);
         List<RideResponseDto> dtos = rides.stream()

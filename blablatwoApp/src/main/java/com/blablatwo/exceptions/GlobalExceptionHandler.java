@@ -7,12 +7,14 @@ import com.blablatwo.messaging.exception.InvalidDriverException;
 import com.blablatwo.messaging.exception.NotBookedOnRideException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
-import com.blablatwo.traveler.DuplicateEmailException;
+import com.blablatwo.user.exception.DuplicateEmailException;
+import com.blablatwo.user.exception.NoSuchUserException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,8 +34,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PRECONDITION_FAILED, ex.getMessage());
     }
 
-    @ExceptionHandler(NoSuchTravelerException.class)
-    public ProblemDetail handleNoSuchTravelerException(HttpServletRequest request, NoSuchTravelerException ex) {
+    @ExceptionHandler(NoSuchUserException.class)
+    public ProblemDetail handleNoSuchUserException(HttpServletRequest request, NoSuchUserException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -59,7 +61,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ProblemDetail handleBadCredentialsException(HttpServletRequest request, BadCredentialsException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");
     }
 
     @ExceptionHandler(DuplicateEmailException.class)
@@ -95,5 +97,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NotParticipantException.class)
     public ProblemDetail handleNotParticipantException(HttpServletRequest request, NotParticipantException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler({CannotCreateRideException.class, CannotBookException.class})
+    public ProblemDetail handleCapabilityException(HttpServletRequest request, RuntimeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(ExternalRideNotBookableException.class)
+    public ProblemDetail handleExternalRideNotBookableException(HttpServletRequest request, ExternalRideNotBookableException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(FacebookBotMissingException.class)
+    public ResponseEntity<ProblemDetail> handleFacebookBotMissingException(HttpServletRequest request, FacebookBotMissingException ex) {
+        LOGGER.error("Facebook bot account not found - DataInitializer may have failed", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"));
     }
 }

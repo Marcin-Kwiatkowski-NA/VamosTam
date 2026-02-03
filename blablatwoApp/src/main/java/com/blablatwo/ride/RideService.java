@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface RideService {
     Optional<RideResponseDto> getById(Long id);
 
-    RideResponseDto create(RideCreationDto ride);
+    RideResponseDto createForCurrentUser(RideCreationDto ride, Long userId);
 
     RideResponseDto update(RideCreationDto ride, Long id);
 

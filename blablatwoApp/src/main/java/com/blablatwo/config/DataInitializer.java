@@ -1,8 +1,11 @@
 package com.blablatwo.config;
 
-import com.blablatwo.traveler.FacebookProxyConstants;
-import com.blablatwo.traveler.Role;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.AccountStatus;
+import com.blablatwo.user.Role;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.UserProfile;
+import com.blablatwo.user.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -14,35 +17,45 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DataInitializer.class);
 
-    private final TravelerRepository travelerRepository;
+    public static final String FACEBOOK_BOT_EMAIL = "facebook-bot@vamos.internal";
+    private static final String FACEBOOK_BOT_NAME = "Facebook Rides";
 
-    public DataInitializer(TravelerRepository travelerRepository) {
-        this.travelerRepository = travelerRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final UserProfileRepository userProfileRepository;
+
+    public DataInitializer(UserAccountRepository userAccountRepository,
+                           UserProfileRepository userProfileRepository) {
+        this.userAccountRepository = userAccountRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
-        createFacebookProxyUserIfNotExists();
+        createFacebookBotIfNotExists();
     }
 
-    private void createFacebookProxyUserIfNotExists() {
-        if (travelerRepository.existsById(FacebookProxyConstants.FACEBOOK_PROXY_ID)) {
-            LOGGER.debug("Facebook proxy user already exists with ID: {}",
-                    FacebookProxyConstants.FACEBOOK_PROXY_ID);
+    private void createFacebookBotIfNotExists() {
+        if (userAccountRepository.existsByEmail(FACEBOOK_BOT_EMAIL)) {
+            LOGGER.debug("Facebook bot user already exists with email: {}", FACEBOOK_BOT_EMAIL);
             return;
         }
 
-        travelerRepository.insertFacebookProxyIfNotExists(
-                FacebookProxyConstants.FACEBOOK_PROXY_ID,
-                FacebookProxyConstants.FACEBOOK_PROXY_USERNAME,
-                FacebookProxyConstants.FACEBOOK_PROXY_EMAIL,
-                FacebookProxyConstants.FACEBOOK_PROXY_NAME,
-                Role.DRIVER.name(),
-                1
-        );
+        UserAccount bot = UserAccount.builder()
+                .email(FACEBOOK_BOT_EMAIL)
+                .status(AccountStatus.ACTIVE)
+                .build();
+        bot.addRole(Role.SYSTEM);
 
-        LOGGER.info("Created Facebook proxy user with ID: {}",
-                FacebookProxyConstants.FACEBOOK_PROXY_ID);
+        UserAccount savedBot = userAccountRepository.save(bot);
+
+        UserProfile profile = UserProfile.builder()
+                .account(savedBot)
+                .displayName(FACEBOOK_BOT_NAME)
+                .build();
+
+        userProfileRepository.save(profile);
+
+        LOGGER.info("Created Facebook bot user with email: {}", FACEBOOK_BOT_EMAIL);
     }
 }

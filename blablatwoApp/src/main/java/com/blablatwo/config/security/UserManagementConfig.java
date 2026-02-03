@@ -1,7 +1,7 @@
 package com.blablatwo.config.security;
 
-import com.blablatwo.traveler.TravelerRepository;
-import com.blablatwo.traveler.user.TravelerSecurityService;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.UserSecurityService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,8 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class UserManagementConfig {
 
     @Bean
-    public UserDetailsService userDetailsService(TravelerRepository travelerRepository) {
-        return new TravelerSecurityService(travelerRepository);
+    public UserDetailsService userDetailsService(UserAccountRepository userAccountRepository) {
+        return new UserSecurityService(userAccountRepository);
     }
 
     @Bean

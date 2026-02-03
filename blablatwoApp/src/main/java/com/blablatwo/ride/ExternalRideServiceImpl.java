@@ -2,13 +2,14 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityResolutionService;
+import com.blablatwo.config.DataInitializer;
 import com.blablatwo.exceptions.DuplicateExternalRideException;
+import com.blablatwo.exceptions.FacebookBotMissingException;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.external.ExternalRideService;
-import com.blablatwo.traveler.FacebookProxyConstants;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,20 +30,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     private final RideRepository rideRepository;
     private final RideExternalMetaRepository metaRepository;
     private final CityResolutionService cityResolutionService;
-    private final TravelerRepository travelerRepository;
+    private final UserAccountRepository userAccountRepository;
     private final RideMapper rideMapper;
     private final RideResponseEnricher rideResponseEnricher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
                                    CityResolutionService cityResolutionService,
-                                   TravelerRepository travelerRepository,
+                                   UserAccountRepository userAccountRepository,
                                    RideMapper rideMapper,
                                    RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
         this.cityResolutionService = cityResolutionService;
-        this.travelerRepository = travelerRepository;
+        this.userAccountRepository = userAccountRepository;
         this.rideMapper = rideMapper;
         this.rideResponseEnricher = rideResponseEnricher;
     }
@@ -66,9 +67,9 @@ public class ExternalRideServiceImpl implements ExternalRideService {
         City origin = cityResolutionService.resolveCityByName(dto.originCityName(), langCode);
         City destination = cityResolutionService.resolveCityByName(dto.destinationCityName(), langCode);
 
-        // 4. Get Facebook proxy user
-        Traveler proxy = travelerRepository.findById(FacebookProxyConstants.FACEBOOK_PROXY_ID)
-                .orElseThrow(() -> new IllegalStateException("Facebook proxy user not initialized"));
+        // 4. Get Facebook bot user by email
+        UserAccount proxy = userAccountRepository.findByEmail(DataInitializer.FACEBOOK_BOT_EMAIL)
+                .orElseThrow(FacebookBotMissingException::new);
 
         // 5. Build and save Ride
         Ride ride = Ride.builder()

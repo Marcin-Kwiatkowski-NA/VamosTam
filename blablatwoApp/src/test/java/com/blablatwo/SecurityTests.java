@@ -2,7 +2,7 @@ package com.blablatwo;
 
 
 import com.blablatwo.auth.service.JwtTokenProvider;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.UserAccountRepository;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ class SecurityTests {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
-    private TravelerRepository travelerRepository;
+    private UserAccountRepository userAccountRepository;
 
     @Test
     @Disabled("Security not yet implemented - all endpoints currently permit all")

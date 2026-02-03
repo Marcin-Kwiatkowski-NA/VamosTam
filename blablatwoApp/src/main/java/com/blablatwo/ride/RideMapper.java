@@ -13,6 +13,7 @@ import org.mapstruct.MappingTarget;
 public abstract class RideMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "driver", ignore = true)
     @Mapping(target = "rideStatus", constant = "OPEN")
     @Mapping(target = "lastModified", expression = "java(java.time.Instant.now())")
     @Mapping(target = "version", ignore = true)

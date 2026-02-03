@@ -4,8 +4,8 @@ import com.blablatwo.ride.dto.ContactMethodDto;
 import com.blablatwo.ride.dto.ContactType;
 import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideResponseDto;
-import com.blablatwo.traveler.FacebookProxyConstants;
-import com.blablatwo.traveler.Traveler;
+import com.blablatwo.user.UserProfile;
+import com.blablatwo.user.UserProfileRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -15,14 +15,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Component
 public class RideResponseEnricher {
 
     private final RideExternalMetaRepository metaRepository;
+    private final UserProfileRepository userProfileRepository;
 
-    public RideResponseEnricher(RideExternalMetaRepository metaRepository) {
+    public RideResponseEnricher(RideExternalMetaRepository metaRepository,
+                                 UserProfileRepository userProfileRepository) {
         this.metaRepository = metaRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     /**
@@ -35,6 +39,7 @@ public class RideResponseEnricher {
             throw new IllegalArgumentException("Rides and DTOs lists must have the same size");
         }
 
+        // Batch load external meta for FACEBOOK rides
         Set<Long> facebookRideIds = rides.stream()
                 .filter(r -> r.getSource() == RideSource.FACEBOOK)
                 .map(Ride::getId)
@@ -46,12 +51,26 @@ public class RideResponseEnricher {
                         .stream()
                         .collect(Collectors.toMap(RideExternalMeta::getRideId, Function.identity()));
 
+        // Batch load profiles for INTERNAL rides
+        Set<Long> internalDriverIds = rides.stream()
+                .filter(r -> r.getSource() == RideSource.INTERNAL)
+                .map(r -> r.getDriver().getId())
+                .collect(Collectors.toSet());
+
+        Map<Long, UserProfile> profilesById = internalDriverIds.isEmpty()
+                ? Map.of()
+                : StreamSupport.stream(userProfileRepository.findAllById(internalDriverIds).spliterator(), false)
+                        .collect(Collectors.toMap(UserProfile::getId, Function.identity()));
+
         List<RideResponseDto> result = new ArrayList<>(rides.size());
         for (int i = 0; i < rides.size(); i++) {
             Ride ride = rides.get(i);
             RideResponseDto dto = dtos.get(i);
             RideExternalMeta meta = metaByRideId.get(ride.getId());
-            result.add(enrichSingle(ride, dto, meta));
+            UserProfile profile = ride.getSource() == RideSource.INTERNAL
+                    ? profilesById.get(ride.getDriver().getId())
+                    : null;
+            result.add(enrichSingle(ride, dto, meta, profile));
         }
         return result;
     }
@@ -61,15 +80,19 @@ public class RideResponseEnricher {
      */
     public RideResponseDto enrich(Ride ride, RideResponseDto dto) {
         RideExternalMeta meta = null;
+        UserProfile profile = null;
+
         if (ride.getSource() == RideSource.FACEBOOK) {
             meta = metaRepository.findById(ride.getId()).orElse(null);
+        } else {
+            profile = userProfileRepository.findById(ride.getDriver().getId()).orElse(null);
         }
-        return enrichSingle(ride, dto, meta);
+        return enrichSingle(ride, dto, meta, profile);
     }
 
-    private RideResponseDto enrichSingle(Ride ride, RideResponseDto dto, RideExternalMeta meta) {
-        DriverDto driver = buildDriver(ride, meta);
-        List<ContactMethodDto> contactMethods = buildContactMethods(ride, meta);
+    private RideResponseDto enrichSingle(Ride ride, RideResponseDto dto, RideExternalMeta meta, UserProfile profile) {
+        DriverDto driver = buildDriver(ride, meta, profile);
+        List<ContactMethodDto> contactMethods = buildContactMethods(ride, meta, profile);
 
         return dto.toBuilder()
                 .driver(driver)
@@ -77,47 +100,41 @@ public class RideResponseEnricher {
                 .build();
     }
 
-    private DriverDto buildDriver(Ride ride, RideExternalMeta meta) {
-        Long id;
+    private DriverDto buildDriver(Ride ride, RideExternalMeta meta, UserProfile profile) {
+        Long id = ride.getDriver().getId();
         String name;
 
         if (ride.getSource() == RideSource.FACEBOOK) {
             Objects.requireNonNull(meta, "RideExternalMeta required for Facebook ride: rideId=" + ride.getId());
-            id = FacebookProxyConstants.FACEBOOK_PROXY_ID;
             name = Objects.requireNonNull(meta.getAuthorName(),
                     "Author name required for Facebook ride: rideId=" + ride.getId());
         } else {
-            Traveler driver = Objects.requireNonNull(ride.getDriver(),
-                    "Driver required for internal ride: rideId=" + ride.getId());
-            id = Objects.requireNonNull(driver.getId(),
-                    "Driver id required: rideId=" + ride.getId());
-            // TODO: Require name after refactoring user registration to capture name
-            name = driver.getName();
-            if (name == null || name.isBlank()) {
-                name = driver.getEmail().split("@")[0];
+            if (profile == null) {
+                throw new IllegalStateException("UserProfile missing for driver: " + id);
             }
+            String displayName = profile.getDisplayName();
+            if (displayName == null || displayName.isBlank()) {
+                throw new IllegalStateException("displayName blank for driver: " + id);
+            }
+            name = displayName;
         }
 
         return new DriverDto(id, name, null, null);
     }
 
-    private List<ContactMethodDto> buildContactMethods(Ride ride, RideExternalMeta meta) {
+    private List<ContactMethodDto> buildContactMethods(Ride ride, RideExternalMeta meta, UserProfile profile) {
         List<ContactMethodDto> contacts = new ArrayList<>();
 
         if (ride.getSource() == RideSource.FACEBOOK) {
-            // For Facebook rides, use the source URL as contact
             if (meta != null && meta.getSourceUrl() != null) {
                 contacts.add(new ContactMethodDto(ContactType.FACEBOOK_LINK, meta.getSourceUrl()));
             }
-            // Also add phone if available from meta
             if (meta != null && meta.getPhoneNumber() != null && !meta.getPhoneNumber().isBlank()) {
                 contacts.add(new ContactMethodDto(ContactType.PHONE, meta.getPhoneNumber()));
             }
         } else {
-            // For internal rides, use driver's phone number
-            if (ride.getDriver() != null && ride.getDriver().getPhoneNumber() != null
-                    && !ride.getDriver().getPhoneNumber().isBlank()) {
-                contacts.add(new ContactMethodDto(ContactType.PHONE, ride.getDriver().getPhoneNumber()));
+            if (profile != null && profile.getPhoneNumber() != null && !profile.getPhoneNumber().isBlank()) {
+                contacts.add(new ContactMethodDto(ContactType.PHONE, profile.getPhoneNumber()));
             }
         }
 

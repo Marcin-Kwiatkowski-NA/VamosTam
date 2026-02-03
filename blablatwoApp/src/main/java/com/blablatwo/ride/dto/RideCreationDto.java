@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record RideCreationDto(
-        @NotNull(message = "Driver ID cannot be null")
-        Long driverId,
-
         @NotNull(message = "Origin place ID cannot be null")
         Long originPlaceId,
 

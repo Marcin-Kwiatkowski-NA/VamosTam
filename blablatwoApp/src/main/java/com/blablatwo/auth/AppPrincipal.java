@@ -1,5 +1,12 @@
 package com.blablatwo.auth;
 
-import com.blablatwo.traveler.Role;
+import com.blablatwo.user.Role;
 
-public record AppPrincipal(Long travelerId, String email, Role role) {}
+import java.util.Set;
+
+public record AppPrincipal(Long userId, String email, Set<Role> roles) {
+
+    public boolean hasRole(Role role) {
+        return roles.contains(role);
+    }
+}

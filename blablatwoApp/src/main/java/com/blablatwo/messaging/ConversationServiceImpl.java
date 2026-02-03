@@ -1,7 +1,6 @@
 package com.blablatwo.messaging;
 
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.messaging.dto.ConversationDto;
 import com.blablatwo.messaging.dto.CreateConversationRequest;
 import com.blablatwo.messaging.dto.MessageDto;
@@ -10,13 +9,17 @@ import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.ExternalRideException;
 import com.blablatwo.messaging.exception.InvalidDriverException;
+import com.blablatwo.messaging.exception.NotBookedOnRideException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideRepository;
 import com.blablatwo.ride.RideSource;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.UserProfile;
+import com.blablatwo.user.UserProfileRepository;
+import com.blablatwo.user.exception.NoSuchUserException;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,7 +43,8 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final RideRepository rideRepository;
-    private final TravelerRepository travelerRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final UserProfileRepository userProfileRepository;
     private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
     private final ApplicationEventPublisher eventPublisher;
@@ -48,14 +52,16 @@ public class ConversationServiceImpl implements ConversationService {
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
                                    RideRepository rideRepository,
-                                   TravelerRepository travelerRepository,
+                                   UserAccountRepository userAccountRepository,
+                                   UserProfileRepository userProfileRepository,
                                    ConversationMapper conversationMapper,
                                    MessageMapper messageMapper,
                                    ApplicationEventPublisher eventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.rideRepository = rideRepository;
-        this.travelerRepository = travelerRepository;
+        this.userAccountRepository = userAccountRepository;
+        this.userProfileRepository = userProfileRepository;
         this.conversationMapper = conversationMapper;
         this.messageMapper = messageMapper;
         this.eventPublisher = eventPublisher;
@@ -79,6 +85,10 @@ public class ConversationServiceImpl implements ConversationService {
             throw new SelfConversationException();
         }
 
+        if (!rideRepository.existsPassenger(request.rideId(), passengerId)) {
+            throw new NotBookedOnRideException(request.rideId(), passengerId);
+        }
+
         var existingConversation = conversationRepository
                 .findByRideIdAndDriverIdAndPassengerId(request.rideId(), request.driverId(), passengerId);
 
@@ -86,8 +96,8 @@ public class ConversationServiceImpl implements ConversationService {
             return new InitResult(toConversationDto(existingConversation.get(), passengerId), false);
         }
 
-        Traveler passenger = travelerRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchTravelerException(passengerId));
+        UserAccount passenger = userAccountRepository.findById(passengerId)
+                .orElseThrow(() -> new NoSuchUserException(passengerId));
 
         try {
             Conversation conversation = Conversation.builder()
@@ -167,6 +177,15 @@ public class ConversationServiceImpl implements ConversationService {
 
         validateParticipant(conversation, senderId);
 
+        // Non-driver senders must still be booked on the ride
+        boolean isDriver = conversation.getDriver().getId().equals(senderId);
+        if (!isDriver) {
+            Ride ride = conversation.getRide();
+            if (!rideRepository.existsPassenger(ride.getId(), senderId)) {
+                throw new NotBookedOnRideException(ride.getId(), senderId);
+            }
+        }
+
         // Execute the write operation with manual retry
         return executeWithRetry(() ->
                 performSendMessage(conversationId, request, senderId)
@@ -181,7 +200,7 @@ public class ConversationServiceImpl implements ConversationService {
 
         Message message = Message.builder()
                 .conversation(conversation)
-                .sender(travelerRepository.getReferenceById(senderId))
+                .sender(userAccountRepository.getReferenceById(senderId))
                 .body(request.body())
                 .build();
 
@@ -296,12 +315,11 @@ public class ConversationServiceImpl implements ConversationService {
         );
     }
 
-    private String getDisplayName(Traveler traveler) {
-        String name = traveler.getName();
-        if (name == null || name.isBlank()) {
-            return traveler.getEmail().split("@")[0];
-        }
-        return name;
+    private String getDisplayName(UserAccount user) {
+        return userProfileRepository.findById(user.getId())
+                .map(UserProfile::getDisplayName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElseGet(() -> user.getEmail().split("@")[0]);
     }
 
     private MessageDto toMessageDto(Message message, Long viewerId) {

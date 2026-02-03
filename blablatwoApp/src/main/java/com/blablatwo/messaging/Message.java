@@ -1,6 +1,6 @@
 package com.blablatwo.messaging;
 
-import com.blablatwo.traveler.Traveler;
+import com.blablatwo.user.UserAccount;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -34,7 +34,7 @@ public class Message {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
-    private Traveler sender;
+    private UserAccount sender;
 
     @NotBlank
     @Size(max = 2000)

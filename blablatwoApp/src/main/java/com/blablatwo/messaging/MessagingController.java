@@ -39,7 +39,7 @@ public class MessagingController {
             @Valid @RequestBody CreateConversationRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
 
-        ConversationService.InitResult result = conversationService.initConversation(request, principal.travelerId());
+        ConversationService.InitResult result = conversationService.initConversation(request, principal.userId());
 
         if (result.created()) {
             return ResponseEntity
@@ -58,7 +58,7 @@ public class MessagingController {
             @AuthenticationPrincipal AppPrincipal principal) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(conversationService.listConversations(principal.travelerId(), since, pageable));
+        return ResponseEntity.ok(conversationService.listConversations(principal.userId(), since, pageable));
     }
 
     @GetMapping("/{conversationId}/messages")
@@ -73,7 +73,7 @@ public class MessagingController {
 
         int effectiveLimit = Math.min(limit, 100);
         return ResponseEntity.ok(conversationService.getMessages(
-                conversationId, principal.travelerId(), before, since, effectiveLimit));
+                conversationId, principal.userId(), before, since, effectiveLimit));
     }
 
     @PostMapping("/{conversationId}/messages")
@@ -82,7 +82,7 @@ public class MessagingController {
             @Valid @RequestBody SendMessageRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
 
-        MessageDto message = conversationService.sendMessage(conversationId, request, principal.travelerId());
+        MessageDto message = conversationService.sendMessage(conversationId, request, principal.userId());
         return ResponseEntity
                 .created(URI.create("/conversations/" + conversationId + "/messages/" + message.id()))
                 .body(message);

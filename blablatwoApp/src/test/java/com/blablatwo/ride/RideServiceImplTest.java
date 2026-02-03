@@ -7,7 +7,6 @@ import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
 import com.blablatwo.ride.dto.ContactMethodDto;
@@ -16,8 +15,10 @@ import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.capability.CapabilityService;
+import com.blablatwo.user.exception.NoSuchUserException;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleResponseDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,10 +68,13 @@ class RideServiceImplTest {
     CityMapper cityMapper;
 
     @Mock
-    TravelerRepository travelerRepository;
+    UserAccountRepository userAccountRepository;
 
     @Mock
     RideResponseEnricher rideResponseEnricher;
+
+    @Mock
+    CapabilityService capabilityService;
 
     @InjectMocks
     private RideServiceImpl rideService;
@@ -117,7 +121,7 @@ class RideServiceImplTest {
         // Initialize the Ride entity
         ride = Ride.builder()
                 .id(ID_100)
-                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
+                .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
                 .origin(originCityEntity)
                 .destination(destinationCityEntity)
                 .departureTime(LOCAL_DATE_TIME)
@@ -130,9 +134,8 @@ class RideServiceImplTest {
                 .description(RIDE_DESCRIPTION)
                 .build();
 
-        // Initialize RideCreationDto with placeId fields
+        // Initialize RideCreationDto with placeId fields (no driverId - comes from principal)
         rideCreationDTO = new RideCreationDto(
-                ID_ONE,          // driverId
                 ID_ONE,          // originPlaceId
                 2L,              // destinationPlaceId
                 LOCAL_DATE_TIME,
@@ -194,8 +197,10 @@ class RideServiceImplTest {
     @DisplayName("Create a new ride successfully using CityResolutionService")
     void shouldCreateNewRideSuccessfully() {
         // Arrange
-        Traveler driver = ride.getDriver();
-        when(travelerRepository.findById(rideCreationDTO.driverId())).thenReturn(Optional.of(driver));
+        UserAccount driver = ride.getDriver();
+        Long driverId = driver.getId();
+        when(capabilityService.canCreateRide(driverId)).thenReturn(true);
+        when(userAccountRepository.findById(driverId)).thenReturn(Optional.of(driver));
         when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl"))
                 .thenReturn(originCityEntity);
         when(cityResolutionService.resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl"))
@@ -206,14 +211,15 @@ class RideServiceImplTest {
         when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
 
         // Act
-        RideResponseDto result = rideService.create(rideCreationDTO);
+        RideResponseDto result = rideService.createForCurrentUser(rideCreationDTO, driverId);
 
         // Assert
         assertNotNull(result, "Resulting DTO should not be null");
         assertEquals(rideResponseDto, result, "Created ride DTO should match the expected DTO");
 
         // Verify interactions
-        verify(travelerRepository).findById(rideCreationDTO.driverId());
+        verify(capabilityService).canCreateRide(driverId);
+        verify(userAccountRepository).findById(driverId);
         verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.originPlaceId(), "pl");
         verify(cityResolutionService, times(1)).resolveCityByPlaceId(rideCreationDTO.destinationPlaceId(), "pl");
         verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
@@ -384,20 +390,19 @@ class RideServiceImplTest {
     @DisplayName("Book Ride Tests")
     class BookRideTests {
 
-        private Traveler passenger;
+        private UserAccount passenger;
         private Ride bookableRide;
 
         @BeforeEach
         void setUpBooking() {
-            passenger = Traveler.builder()
+            passenger = UserAccount.builder()
                     .id(2L)
-                    .username(TRAVELER_USERNAME_USER2)
                     .email(TRAVELER_EMAIL_USER2)
                     .build();
 
             bookableRide = Ride.builder()
                     .id(ID_100)
-                    .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
+                    .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
                     .origin(originCityEntity)
                     .destination(destinationCityEntity)
                     .departureTime(LOCAL_DATE_TIME)
@@ -413,7 +418,9 @@ class RideServiceImplTest {
         void bookRide_Success() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.save(any(Ride.class))).thenReturn(bookableRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
@@ -433,7 +440,9 @@ class RideServiceImplTest {
             // Arrange
             bookableRide.setAvailableSeats(1);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.save(any(Ride.class))).thenReturn(bookableRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
@@ -451,7 +460,9 @@ class RideServiceImplTest {
             // Arrange
             bookableRide.setAvailableSeats(0);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
 
             // Act & Assert
             assertThrows(RideFullException.class, () -> rideService.bookRide(ID_100, 2L));
@@ -461,9 +472,9 @@ class RideServiceImplTest {
         @DisplayName("Book ride throws exception when already booked")
         void bookRide_ThrowsWhenAlreadyBooked() {
             // Arrange
-            bookableRide.getPassengers().add(passenger);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(true);
 
             // Act & Assert
             assertThrows(AlreadyBookedException.class, () -> rideService.bookRide(ID_100, 2L));
@@ -475,7 +486,9 @@ class RideServiceImplTest {
             // Arrange
             bookableRide.setRideStatus(RideStatus.CANCELLED);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
 
             // Act & Assert
             assertThrows(RideNotBookableException.class, () -> rideService.bookRide(ID_100, 2L));
@@ -496,10 +509,12 @@ class RideServiceImplTest {
         void bookRide_ThrowsWhenTravelerNotFound() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(travelerRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+            when(capabilityService.canBook(NON_EXISTENT_ID)).thenReturn(true);
+            when(rideRepository.existsPassenger(ID_100, NON_EXISTENT_ID)).thenReturn(false);
+            when(userAccountRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThrows(NoSuchTravelerException.class, () -> rideService.bookRide(ID_100, NON_EXISTENT_ID));
+            assertThrows(NoSuchUserException.class, () -> rideService.bookRide(ID_100, NON_EXISTENT_ID));
         }
     }
 
@@ -507,20 +522,19 @@ class RideServiceImplTest {
     @DisplayName("Cancel Booking Tests")
     class CancelBookingTests {
 
-        private Traveler passenger;
+        private UserAccount passenger;
         private Ride bookedRide;
 
         @BeforeEach
         void setUpCancellation() {
-            passenger = Traveler.builder()
+            passenger = UserAccount.builder()
                     .id(2L)
-                    .username(TRAVELER_USERNAME_USER2)
                     .email(TRAVELER_EMAIL_USER2)
                     .build();
 
             bookedRide = Ride.builder()
                     .id(ID_100)
-                    .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).build())
+                    .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
                     .origin(originCityEntity)
                     .destination(destinationCityEntity)
                     .departureTime(LOCAL_DATE_TIME)
@@ -536,7 +550,7 @@ class RideServiceImplTest {
         void cancelBooking_Success() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(userAccountRepository.existsById(2L)).thenReturn(true);
             when(rideRepository.save(any(Ride.class))).thenReturn(bookedRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
@@ -557,7 +571,7 @@ class RideServiceImplTest {
             bookedRide.setRideStatus(RideStatus.FULL);
             bookedRide.setAvailableSeats(0);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(userAccountRepository.existsById(2L)).thenReturn(true);
             when(rideRepository.save(any(Ride.class))).thenReturn(bookedRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
@@ -575,7 +589,7 @@ class RideServiceImplTest {
             // Arrange
             bookedRide.setPassengers(new ArrayList<>());
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(userAccountRepository.existsById(2L)).thenReturn(true);
 
             // Act & Assert
             assertThrows(BookingNotFoundException.class, () -> rideService.cancelBooking(ID_100, 2L));
@@ -600,8 +614,8 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger returns list of rides")
         void getRidesForPassenger_ReturnsList() {
             // Arrange
-            Traveler passenger = Traveler.builder().id(2L).username(TRAVELER_USERNAME_USER2).build();
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            UserAccount passenger = UserAccount.builder().id(2L).email(TRAVELER_EMAIL_USER2).build();
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.findByPassengersContaining(passenger)).thenReturn(List.of(ride));
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
 
@@ -618,8 +632,8 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger returns empty list when no bookings")
         void getRidesForPassenger_ReturnsEmptyList() {
             // Arrange
-            Traveler passenger = Traveler.builder().id(2L).username(TRAVELER_USERNAME_USER2).build();
-            when(travelerRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            UserAccount passenger = UserAccount.builder().id(2L).email(TRAVELER_EMAIL_USER2).build();
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.findByPassengersContaining(passenger)).thenReturn(Collections.emptyList());
 
             // Act
@@ -634,10 +648,10 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger throws exception when traveler not found")
         void getRidesForPassenger_ThrowsWhenTravelerNotFound() {
             // Arrange
-            when(travelerRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+            when(userAccountRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThrows(NoSuchTravelerException.class, () -> rideService.getRidesForPassenger(NON_EXISTENT_ID));
+            assertThrows(NoSuchUserException.class, () -> rideService.getRidesForPassenger(NON_EXISTENT_ID));
         }
     }
 }

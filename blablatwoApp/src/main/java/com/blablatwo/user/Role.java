@@ -1,14 +1,14 @@
-package com.blablatwo.traveler;
+package com.blablatwo.user;
 
 import org.springframework.security.core.GrantedAuthority;
 
 public enum Role implements GrantedAuthority {
-
-    DRIVER, PASSENGER, ADMIN;
+    USER,
+    ADMIN,
+    SYSTEM;
 
     @Override
     public String getAuthority() {
-        // This is the format Spring Security expects for hasRole("DRIVER")
         return "ROLE_" + name();
     }
 }

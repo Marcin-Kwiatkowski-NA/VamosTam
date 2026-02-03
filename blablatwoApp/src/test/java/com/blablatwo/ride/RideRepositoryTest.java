@@ -2,10 +2,15 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityRepository;
-import com.blablatwo.traveler.Role;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.AccountStatus;
+import com.blablatwo.user.Role;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.UserProfile;
+import com.blablatwo.user.UserProfileRepository;
+import com.blablatwo.user.UserStats;
 import com.blablatwo.vehicle.Vehicle;
+import com.blablatwo.vehicle.VehicleRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,8 +22,8 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.blablatwo.util.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,9 +41,13 @@ class RideRepositoryTest {
     @Autowired
     private CityRepository cityRepository;
     @Autowired
-    private TravelerRepository travelerRepository;
+    private UserAccountRepository userAccountRepository;
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+    @Autowired
+    private VehicleRepository vehicleRepository;
 
-    private Traveler driver;
+    private UserAccount driver;
     private Vehicle vehicle;
     private City destination;
     private City origin;
@@ -58,18 +67,23 @@ class RideRepositoryTest {
         cityRepository.save(origin);
         cityRepository.save(destination);
 
-        vehicle = Vehicle.builder().model("911").make("Porsche").build();
-        driver = Traveler.builder()
-                .username(USERNAME)
-                .password(PASSWORD)
-                .enabled(ENABLED)
-                .role(Role.DRIVER)
+        driver = UserAccount.builder()
                 .email(EMAIL)
-                .phoneNumber(TELEPHONE)
-                .name(CRISTIANO)
-                .vehicles(List.of(vehicle))
+                .passwordHash(PASSWORD)
+                .status(AccountStatus.ACTIVE)
+                .roles(Set.of(Role.USER))
                 .build();
-        travelerRepository.save(driver);
+        userAccountRepository.save(driver);
+
+        userProfileRepository.save(UserProfile.builder()
+                .account(driver)
+                .displayName(CRISTIANO)
+                .phoneNumber(TELEPHONE)
+                .stats(new UserStats())
+                .build());
+
+        vehicle = Vehicle.builder().model("911").make("Porsche").owner(driver).build();
+        vehicleRepository.save(vehicle);
     }
 
     @Test

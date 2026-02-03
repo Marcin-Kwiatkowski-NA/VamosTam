@@ -1,5 +1,6 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,8 +50,9 @@ public class RidesController {
     }
 
     @PostMapping("/rides")
-    public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideCreationDto ride) {
-        var newRide = rideService.create(ride);
+    public ResponseEntity<RideResponseDto> createRide(@Valid @RequestBody RideCreationDto ride,
+                                                      @AuthenticationPrincipal AppPrincipal principal) {
+        var newRide = rideService.createForCurrentUser(ride, principal.userId());
         return ResponseEntity.created(getUriFromId(newRide.id()))
                 .body(newRide);
     }
@@ -109,16 +112,16 @@ public class RidesController {
     @PostMapping("/rides/{rideId}/book")
     public ResponseEntity<RideResponseDto> bookRide(
             @PathVariable Long rideId,
-            @RequestParam Long passengerId) {
-        RideResponseDto bookedRide = rideService.bookRide(rideId, passengerId);
+            @AuthenticationPrincipal AppPrincipal principal) {
+        RideResponseDto bookedRide = rideService.bookRide(rideId, principal.userId());
         return ResponseEntity.ok(bookedRide);
     }
 
     @DeleteMapping("/rides/{rideId}/book")
     public ResponseEntity<RideResponseDto> cancelBooking(
             @PathVariable Long rideId,
-            @RequestParam Long passengerId) {
-        RideResponseDto updatedRide = rideService.cancelBooking(rideId, passengerId);
+            @AuthenticationPrincipal AppPrincipal principal) {
+        RideResponseDto updatedRide = rideService.cancelBooking(rideId, principal.userId());
         return ResponseEntity.ok(updatedRide);
     }
 

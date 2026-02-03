@@ -1,7 +1,7 @@
 package com.blablatwo.messaging;
 
 import com.blablatwo.ride.Ride;
-import com.blablatwo.traveler.Traveler;
+import com.blablatwo.user.UserAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,11 +41,11 @@ public class Conversation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "driver_id", nullable = false)
-    private Traveler driver;
+    private UserAccount driver;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "passenger_id", nullable = false)
-    private Traveler passenger;
+    private UserAccount passenger;
 
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;

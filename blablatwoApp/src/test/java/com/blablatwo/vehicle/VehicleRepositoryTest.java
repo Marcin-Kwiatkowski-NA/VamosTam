@@ -1,4 +1,4 @@
-package com.blablatwo.traveler.vehicle;
+package com.blablatwo.vehicle;
 
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleRepository;

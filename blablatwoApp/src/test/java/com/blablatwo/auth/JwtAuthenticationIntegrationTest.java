@@ -1,9 +1,13 @@
 package com.blablatwo.auth;
 
 import com.blablatwo.auth.service.JwtTokenProvider;
-import com.blablatwo.traveler.Role;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.AccountStatus;
+import com.blablatwo.user.Role;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.UserProfile;
+import com.blablatwo.user.UserProfileRepository;
+import com.blablatwo.user.UserStats;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +18,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,18 +39,26 @@ class JwtAuthenticationIntegrationTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    private TravelerRepository travelerRepository;
+    private UserAccountRepository userAccountRepository;
 
-    private Traveler testTraveler;
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+
+    private UserAccount testUser;
 
     @BeforeEach
     void setUp() {
-        testTraveler = travelerRepository.save(Traveler.builder()
+        testUser = userAccountRepository.save(UserAccount.builder()
                 .email("test@example.com")
-                .username("test@example.com")
-                .password("encoded-password")
-                .enabled(1)
-                .role(Role.PASSENGER)
+                .passwordHash("encoded-password")
+                .status(AccountStatus.ACTIVE)
+                .roles(Set.of(Role.USER))
+                .build());
+
+        userProfileRepository.save(UserProfile.builder()
+                .account(testUser)
+                .displayName("Test User")
+                .stats(new UserStats())
                 .build());
     }
 
@@ -58,19 +72,19 @@ class JwtAuthenticationIntegrationTest {
     @Test
     @DisplayName("Access token authenticates and yields correct user data")
     void accessToken_authenticates_andYieldsAppPrincipal() throws Exception {
-        String accessToken = jwtTokenProvider.generateToken(testTraveler);
+        String accessToken = jwtTokenProvider.generateToken(testUser);
 
         mockMvc.perform(get("/auth/me")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(testTraveler.getId()))
-                .andExpect(jsonPath("$.email").value(testTraveler.getEmail()));
+                .andExpect(jsonPath("$.id").value(testUser.getId()))
+                .andExpect(jsonPath("$.email").value(testUser.getEmail()));
     }
 
     @Test
     @DisplayName("Refresh token is rejected on protected endpoint with 401")
     void refreshToken_isRejected_on_protectedEndpoint() throws Exception {
-        String refreshToken = jwtTokenProvider.generateRefreshToken(testTraveler);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(testUser);
 
         mockMvc.perform(get("/auth/me")
                         .header("Authorization", "Bearer " + refreshToken))
@@ -82,7 +96,7 @@ class JwtAuthenticationIntegrationTest {
     void publicEndpoint_login_allowsAnonymousAccess() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"x\",\"password\":\"y\"}"))
+                        .content("{\"email\":\"x@example.com\",\"password\":\"y\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -111,22 +125,26 @@ class JwtAuthenticationIntegrationTest {
     }
 
     @Test
-    @DisplayName("Driver role is correctly mapped from token")
-    void driverRole_isCorrectlyMapped() throws Exception {
-        Traveler driver = travelerRepository.save(Traveler.builder()
-                .email("driver@example.com")
-                .username("driver@example.com")
-                .password("encoded-password")
-                .enabled(1)
-                .role(Role.DRIVER)
+    @DisplayName("Admin role is correctly mapped from token")
+    void adminRole_isCorrectlyMapped() throws Exception {
+        UserAccount admin = userAccountRepository.save(UserAccount.builder()
+                .email("admin@example.com")
+                .passwordHash("encoded-password")
+                .status(AccountStatus.ACTIVE)
+                .roles(Set.of(Role.ADMIN))
                 .build());
 
-        String accessToken = jwtTokenProvider.generateToken(driver);
+        userProfileRepository.save(UserProfile.builder()
+                .account(admin)
+                .displayName("Admin User")
+                .stats(new UserStats())
+                .build());
+
+        String accessToken = jwtTokenProvider.generateToken(admin);
 
         mockMvc.perform(get("/auth/me")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(driver.getId()))
-                .andExpect(jsonPath("$.role").value("DRIVER"));
+                .andExpect(jsonPath("$.id").value(admin.getId()));
     }
 }

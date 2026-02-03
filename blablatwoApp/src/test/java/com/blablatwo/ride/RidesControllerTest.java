@@ -1,12 +1,12 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.auth.service.JwtTokenProvider;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.NoSuchTravelerException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
 import com.blablatwo.ride.dto.ContactMethodDto;
@@ -15,8 +15,10 @@ import com.blablatwo.ride.dto.DriverDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
-import com.blablatwo.traveler.Traveler;
-import com.blablatwo.traveler.TravelerRepository;
+import com.blablatwo.user.Role;
+import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.UserAccountRepository;
+import com.blablatwo.user.exception.NoSuchUserException;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleResponseDto;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -39,13 +41,19 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.blablatwo.util.Constants.*;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -74,7 +82,7 @@ class RidesControllerTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
-    private TravelerRepository travelerRepository;
+    private UserAccountRepository userAccountRepository;
 
     private Ride ride;
     private RideCreationDto rideCreationDTO;
@@ -84,7 +92,7 @@ class RidesControllerTest {
     void setUp() {
         ride = Ride.builder()
                 .id(ID_100)
-                .driver(Traveler.builder().id(ID_ONE).username(TRAVELER_USERNAME_USER1).name(CRISTIANO).phoneNumber(TELEPHONE).build())
+                .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
                 .origin(City.builder().id(ID_ONE).placeId(ID_ONE).namePl(CITY_NAME_ORIGIN).normNamePl(CITY_NAME_ORIGIN.toLowerCase()).build())
                 .destination(City.builder().id(2L).placeId(2L).namePl(CITY_NAME_DESTINATION).normNamePl(CITY_NAME_DESTINATION.toLowerCase()).build())
                 .departureTime(LOCAL_DATE_TIME)
@@ -98,7 +106,6 @@ class RidesControllerTest {
                 .build();
 
         rideCreationDTO = new RideCreationDto(
-                ID_ONE,          // driverId
                 ID_ONE,          // originPlaceId
                 2L,              // destinationPlaceId
                 LOCAL_DATE_TIME,
@@ -163,11 +170,13 @@ class RidesControllerTest {
     @WithMockUser
     void testCreateRide_Success() throws Exception {
         // Arrange
-        when(rideService.create(any(RideCreationDto.class))).thenReturn(rideResponseDto);
+        when(rideService.createForCurrentUser(any(), any())).thenReturn(rideResponseDto);
 
         // Act & Assert
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
         mockMvc.perform(post(BASE_URL)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isCreated())
@@ -179,9 +188,8 @@ class RidesControllerTest {
     @DisplayName("POST /rides - Create ride - Validation Error")
     @WithMockUser
     void testCreateRide_ValidationError() throws Exception {
-        // Arrange
+        // Arrange - no driverId in DTO anymore
         RideCreationDto invalidRide = new RideCreationDto(
-                null,    // driverId - null (invalid)
                 null,    // originPlaceId - null (invalid)
                 null,    // destinationPlaceId - null (invalid)
                 LocalDateTime.now().minusDays(1),
@@ -193,8 +201,10 @@ class RidesControllerTest {
         );
 
         // Act & Assert
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
         mockMvc.perform(post(BASE_URL)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(invalidRide)))
                 .andExpect(status().isBadRequest());
@@ -266,9 +276,8 @@ class RidesControllerTest {
     @DisplayName("PUT /rides/{id} - Update ride - Validation Error (ETag removed)")
     @WithMockUser
     void updateRide_ValidationError() throws Exception {
-        // Arrange
+        // Arrange - no driverId in DTO anymore
         RideCreationDto invalidRide = new RideCreationDto(
-                null,    // driverId - null (invalid)
                 null,    // originPlaceId - null (invalid)
                 null,    // destinationPlaceId - null (invalid)
                 LocalDateTime.now().minusDays(1),
@@ -389,17 +398,19 @@ class RidesControllerTest {
     @DisplayName("POST /rides/{rideId}/book - Book Ride")
     class BookRideTests {
 
+        private static final Long PASSENGER_ID = 2L;
+
         @Test
         @DisplayName("POST /rides/{id}/book - Book ride successfully")
-        @WithMockUser
         void bookRide_Success() throws Exception {
             // Arrange
-            when(rideService.bookRide(ID_100, 2L)).thenReturn(rideResponseDto);
+            when(rideService.bookRide(any(), any())).thenReturn(rideResponseDto);
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID_100));
@@ -407,80 +418,80 @@ class RidesControllerTest {
 
         @Test
         @DisplayName("POST /rides/{id}/book - Ride not found")
-        @WithMockUser
         void bookRide_RideNotFound() throws Exception {
             // Arrange
-            when(rideService.bookRide(NON_EXISTENT_ID, 2L))
+            when(rideService.bookRide(any(), any()))
                     .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + NON_EXISTENT_ID + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("POST /rides/{id}/book - Traveler not found")
-        @WithMockUser
         void bookRide_TravelerNotFound() throws Exception {
             // Arrange
-            when(rideService.bookRide(ID_100, NON_EXISTENT_ID))
-                    .thenThrow(new NoSuchTravelerException(NON_EXISTENT_ID));
+            when(rideService.bookRide(any(), any()))
+                    .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
+            AppPrincipal principal = new AppPrincipal(NON_EXISTENT_ID, "unknown@test.com", Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", NON_EXISTENT_ID.toString())
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("POST /rides/{id}/book - Ride is full")
-        @WithMockUser
         void bookRide_RideFull() throws Exception {
             // Arrange
-            when(rideService.bookRide(ID_100, 2L))
+            when(rideService.bookRide(any(), any()))
                     .thenThrow(new RideFullException(ID_100));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isConflict());
         }
 
         @Test
         @DisplayName("POST /rides/{id}/book - Already booked")
-        @WithMockUser
         void bookRide_AlreadyBooked() throws Exception {
             // Arrange
-            when(rideService.bookRide(ID_100, 2L))
-                    .thenThrow(new AlreadyBookedException(ID_100, 2L));
+            when(rideService.bookRide(any(), any()))
+                    .thenThrow(new AlreadyBookedException(ID_100, PASSENGER_ID));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isConflict());
         }
 
         @Test
         @DisplayName("POST /rides/{id}/book - Ride not bookable")
-        @WithMockUser
         void bookRide_NotBookable() throws Exception {
             // Arrange
-            when(rideService.bookRide(ID_100, 2L))
+            when(rideService.bookRide(any(), any()))
                     .thenThrow(new RideNotBookableException(ID_100, "CANCELLED"));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest());
         }
@@ -490,17 +501,19 @@ class RidesControllerTest {
     @DisplayName("DELETE /rides/{rideId}/book - Cancel Booking")
     class CancelBookingTests {
 
+        private static final Long PASSENGER_ID = 2L;
+
         @Test
         @DisplayName("DELETE /rides/{id}/book - Cancel booking successfully")
-        @WithMockUser
         void cancelBooking_Success() throws Exception {
             // Arrange
-            when(rideService.cancelBooking(ID_100, 2L)).thenReturn(rideResponseDto);
+            when(rideService.cancelBooking(any(), any())).thenReturn(rideResponseDto);
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(delete(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID_100));
@@ -508,32 +521,32 @@ class RidesControllerTest {
 
         @Test
         @DisplayName("DELETE /rides/{id}/book - Booking not found")
-        @WithMockUser
         void cancelBooking_NotFound() throws Exception {
             // Arrange
-            when(rideService.cancelBooking(ID_100, 2L))
-                    .thenThrow(new BookingNotFoundException(ID_100, 2L));
+            when(rideService.cancelBooking(any(), any()))
+                    .thenThrow(new BookingNotFoundException(ID_100, PASSENGER_ID));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(delete(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("DELETE /rides/{id}/book - Ride not found")
-        @WithMockUser
         void cancelBooking_RideNotFound() throws Exception {
             // Arrange
-            when(rideService.cancelBooking(NON_EXISTENT_ID, 2L))
+            when(rideService.cancelBooking(any(), any()))
                     .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
+            AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
             mockMvc.perform(delete(BASE_URL + "/" + NON_EXISTENT_ID + "/book")
                             .with(csrf())
-                            .param("passengerId", "2")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -579,7 +592,7 @@ class RidesControllerTest {
         void getPassengerRides_TravelerNotFound() throws Exception {
             // Arrange
             when(rideService.getRidesForPassenger(NON_EXISTENT_ID))
-                    .thenThrow(new NoSuchTravelerException(NON_EXISTENT_ID));
+                    .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
 
             // Act & Assert
             mockMvc.perform(get("/travelers/" + NON_EXISTENT_ID + "/rides")

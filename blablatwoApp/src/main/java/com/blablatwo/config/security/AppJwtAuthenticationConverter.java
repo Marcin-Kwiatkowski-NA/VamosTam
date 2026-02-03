@@ -1,7 +1,7 @@
 package com.blablatwo.config.security;
 
 import com.blablatwo.auth.AppPrincipal;
-import com.blablatwo.traveler.Role;
+import com.blablatwo.user.Role;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,16 +9,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class AppJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private static final String CLAIM_TYPE = "type";
     private static final String TYPE_ACCESS = "access";
-    private static final String CLAIM_TRAVELER_ID = "travelerId";
+    private static final String CLAIM_USER_ID = "userId";
     private static final String CLAIM_EMAIL = "email";
-    private static final String CLAIM_ROLE = "role";
+    private static final String CLAIM_ROLES = "roles";
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
@@ -27,43 +29,59 @@ public class AppJwtAuthenticationConverter implements Converter<Jwt, AbstractAut
             throw new InvalidBearerTokenException("Only access tokens are allowed for API access");
         }
 
-        Long travelerId = extractTravelerId(jwt);
+        Long userId = extractUserId(jwt);
 
         String email = jwt.getClaimAsString(CLAIM_EMAIL);
         if (email == null) {
             throw new InvalidBearerTokenException("Token missing required 'email' claim");
         }
 
-        String roleName = jwt.getClaimAsString(CLAIM_ROLE);
-        if (roleName == null) {
-            throw new InvalidBearerTokenException("Token missing required 'role' claim");
+        Set<Role> roles = extractRoles(jwt);
+        if (roles.isEmpty()) {
+            throw new InvalidBearerTokenException("Token missing required 'roles' claim");
         }
 
-        Role role;
-        try {
-            role = Role.valueOf(roleName);
-        } catch (IllegalArgumentException e) {
-            throw new InvalidBearerTokenException("Invalid role in token: " + roleName);
-        }
+        var authorities = roles.stream()
+                .map(role -> new SimpleGrantedAuthority(role.getAuthority()))
+                .toList();
 
-        var authorities = List.of(new SimpleGrantedAuthority(role.getAuthority()));
-        AppPrincipal principal = new AppPrincipal(travelerId, email, role);
+        AppPrincipal principal = new AppPrincipal(userId, email, roles);
 
         return new AppJwtAuthenticationToken(jwt, principal, authorities);
     }
 
-    private Long extractTravelerId(Jwt jwt) {
-        Object travelerId = jwt.getClaim(CLAIM_TRAVELER_ID);
-        if (travelerId == null) {
-            throw new InvalidBearerTokenException("Token missing required 'travelerId' claim");
+    private Long extractUserId(Jwt jwt) {
+        Object userId = jwt.getClaim(CLAIM_USER_ID);
+        if (userId == null) {
+            throw new InvalidBearerTokenException("Token missing required 'userId' claim");
         }
-        if (travelerId instanceof Number num) {
+        if (userId instanceof Number num) {
             return num.longValue();
         }
         try {
-            return Long.parseLong(travelerId.toString());
+            return Long.parseLong(userId.toString());
         } catch (NumberFormatException e) {
-            throw new InvalidBearerTokenException("Invalid travelerId in token");
+            throw new InvalidBearerTokenException("Invalid userId in token");
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<Role> extractRoles(Jwt jwt) {
+        Object rolesObj = jwt.getClaim(CLAIM_ROLES);
+        if (rolesObj == null) {
+            return Set.of();
+        }
+
+        Set<Role> roles = new HashSet<>();
+        if (rolesObj instanceof List<?> roleList) {
+            for (Object roleName : roleList) {
+                try {
+                    roles.add(Role.valueOf(roleName.toString()));
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidBearerTokenException("Invalid role in token: " + roleName);
+                }
+            }
+        }
+        return roles;
     }
 }
