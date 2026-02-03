@@ -14,8 +14,21 @@ import java.util.UUID;
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
+    @Query("""
+        SELECT c FROM Conversation c
+        JOIN FETCH c.ride r
+        JOIN FETCH r.origin
+        JOIN FETCH r.destination
+        JOIN FETCH c.driver
+        JOIN FETCH c.passenger
+        WHERE c.ride.id = :rideId
+        AND c.driver.id = :driverId
+        AND c.passenger.id = :passengerId
+        """)
     Optional<Conversation> findByRideIdAndDriverIdAndPassengerId(
-        Long rideId, Long driverId, Long passengerId);
+        @Param("rideId") Long rideId,
+        @Param("driverId") Long driverId,
+        @Param("passengerId") Long passengerId);
 
     @Query("""
         SELECT c FROM Conversation c
