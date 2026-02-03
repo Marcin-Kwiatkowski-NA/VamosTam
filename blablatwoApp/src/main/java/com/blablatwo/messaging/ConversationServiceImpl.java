@@ -277,19 +277,31 @@ public class ConversationServiceImpl implements ConversationService {
                 ? conversation.getDriverUnreadCount()
                 : conversation.getPassengerUnreadCount();
 
+        // Apply name fallback (same logic as RideResponseEnricher)
+        String driverName = getDisplayName(conversation.getDriver());
+        String passengerName = getDisplayName(conversation.getPassenger());
+
         return new ConversationDto(
                 baseDto.id(),
                 baseDto.rideId(),
                 baseDto.driverId(),
-                baseDto.driverName(),
+                driverName,
                 baseDto.passengerId(),
-                baseDto.passengerName(),
+                passengerName,
                 baseDto.originName(),
                 baseDto.destinationName(),
                 lastMessage,
                 unreadCount,
                 baseDto.updatedAt()
         );
+    }
+
+    private String getDisplayName(Traveler traveler) {
+        String name = traveler.getName();
+        if (name == null || name.isBlank()) {
+            return traveler.getEmail().split("@")[0];
+        }
+        return name;
     }
 
     private MessageDto toMessageDto(Message message, Long viewerId) {
