@@ -1,6 +1,12 @@
 package com.blablatwo.exceptions;
 
 import com.blablatwo.auth.exception.InvalidTokenException;
+import com.blablatwo.messaging.exception.ConversationNotFoundException;
+import com.blablatwo.messaging.exception.ExternalRideException;
+import com.blablatwo.messaging.exception.InvalidDriverException;
+import com.blablatwo.messaging.exception.NotBookedOnRideException;
+import com.blablatwo.messaging.exception.NotParticipantException;
+import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.traveler.DuplicateEmailException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -74,5 +80,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(GeocodingException.class)
     public ProblemDetail handleGeocodingException(HttpServletRequest request, GeocodingException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ProblemDetail handleConversationNotFoundException(HttpServletRequest request, ConversationNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler({ExternalRideException.class, InvalidDriverException.class, SelfConversationException.class, NotBookedOnRideException.class})
+    public ProblemDetail handleMessagingBadRequest(HttpServletRequest request, RuntimeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(NotParticipantException.class)
+    public ProblemDetail handleNotParticipantException(HttpServletRequest request, NotParticipantException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 }
