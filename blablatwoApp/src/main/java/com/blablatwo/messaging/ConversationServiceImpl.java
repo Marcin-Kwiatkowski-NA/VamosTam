@@ -10,7 +10,6 @@ import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.ExternalRideException;
 import com.blablatwo.messaging.exception.InvalidDriverException;
-import com.blablatwo.messaging.exception.NotBookedOnRideException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.ride.Ride;
@@ -78,10 +77,6 @@ public class ConversationServiceImpl implements ConversationService {
 
         if (passengerId.equals(request.driverId())) {
             throw new SelfConversationException();
-        }
-
-        if (!isPassengerBookedOnRide(request.rideId(), passengerId)) {
-            throw new NotBookedOnRideException(request.rideId(), passengerId);
         }
 
         var existingConversation = conversationRepository
@@ -248,10 +243,6 @@ public class ConversationServiceImpl implements ConversationService {
         if (!isDriver && !isPassenger) {
             throw new NotParticipantException(conversation.getId(), travelerId);
         }
-    }
-
-    private boolean isPassengerBookedOnRide(Long rideId, Long passengerId) {
-        return rideRepository.existsByIdAndPassengers_Id(rideId, passengerId);
     }
 
     private void resetUnreadCount(Conversation conversation, Long travelerId) {
