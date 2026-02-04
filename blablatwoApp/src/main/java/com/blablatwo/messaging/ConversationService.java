@@ -16,9 +16,9 @@ public interface ConversationService {
 
     InitResult initConversation(CreateConversationRequest request, Long passengerId);
 
-    List<ConversationDto> listConversations(Long travelerId, Instant since, Pageable pageable);
+    List<ConversationDto> listConversations(Long userId, Instant since, Pageable pageable);
 
-    List<MessageDto> getMessages(UUID conversationId, Long travelerId, Instant before, Instant since, int limit);
+    List<MessageDto> getMessages(UUID conversationId, Long userId, Instant before, Instant since, int limit);
 
     MessageDto sendMessage(UUID conversationId, SendMessageRequest request, Long senderId);
 }

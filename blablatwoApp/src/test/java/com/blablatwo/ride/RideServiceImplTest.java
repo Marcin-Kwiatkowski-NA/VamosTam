@@ -505,8 +505,8 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Book ride throws exception when traveler not found")
-        void bookRide_ThrowsWhenTravelerNotFound() {
+        @DisplayName("Book ride throws exception when user not found")
+        void bookRide_ThrowsWhenUserNotFound() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(NON_EXISTENT_ID)).thenReturn(true);
@@ -645,8 +645,8 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Get rides for passenger throws exception when traveler not found")
-        void getRidesForPassenger_ThrowsWhenTravelerNotFound() {
+        @DisplayName("Get rides for passenger throws exception when user not found")
+        void getRidesForPassenger_ThrowsWhenUserNotFound() {
             // Arrange
             when(userAccountRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 

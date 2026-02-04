@@ -37,11 +37,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
         JOIN FETCH r.destination
         JOIN FETCH c.driver
         JOIN FETCH c.passenger
-        WHERE c.driver.id = :travelerId OR c.passenger.id = :travelerId
+        WHERE c.driver.id = :userId OR c.passenger.id = :userId
         ORDER BY c.updatedAt DESC
         """)
     List<Conversation> findByParticipantId(
-        @Param("travelerId") Long travelerId,
+        @Param("userId") Long userId,
         Pageable pageable);
 
     @Query("""
@@ -51,12 +51,12 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
         JOIN FETCH r.destination
         JOIN FETCH c.driver
         JOIN FETCH c.passenger
-        WHERE (c.driver.id = :travelerId OR c.passenger.id = :travelerId)
+        WHERE (c.driver.id = :userId OR c.passenger.id = :userId)
         AND c.updatedAt > :since
         ORDER BY c.updatedAt DESC
         """)
     List<Conversation> findByParticipantIdAndUpdatedAtAfter(
-        @Param("travelerId") Long travelerId,
+        @Param("userId") Long userId,
         @Param("since") Instant since,
         Pageable pageable);
 }

@@ -114,27 +114,27 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConversationDto> listConversations(Long travelerId, Instant since, Pageable pageable) {
+    public List<ConversationDto> listConversations(Long userId, Instant since, Pageable pageable) {
         List<Conversation> conversations;
 
         if (since != null) {
-            conversations = conversationRepository.findByParticipantIdAndUpdatedAtAfter(travelerId, since, pageable);
+            conversations = conversationRepository.findByParticipantIdAndUpdatedAtAfter(userId, since, pageable);
         } else {
-            conversations = conversationRepository.findByParticipantId(travelerId, pageable);
+            conversations = conversationRepository.findByParticipantId(userId, pageable);
         }
 
         return conversations.stream()
-                .map(c -> toConversationDto(c, travelerId))
+                .map(c -> toConversationDto(c, userId))
                 .toList();
     }
 
     @Override
     @Transactional
-    public List<MessageDto> getMessages(UUID conversationId, Long travelerId, Instant before, Instant since, int limit) {
+    public List<MessageDto> getMessages(UUID conversationId, Long userId, Instant before, Instant since, int limit) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
-        validateParticipant(conversation, travelerId);
+        validateParticipant(conversation, userId);
 
         List<Message> messages;
         Pageable pageable = PageRequest.of(0, limit);
@@ -157,10 +157,10 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         // Reset viewer's unread count (opening thread marks all as read)
-        resetUnreadCount(conversation, travelerId);
+        resetUnreadCount(conversation, userId);
 
         return messages.stream()
-                .map(m -> toMessageDto(m, travelerId))
+                .map(m -> toMessageDto(m, userId))
                 .toList();
     }
 
@@ -242,16 +242,16 @@ public class ConversationServiceImpl implements ConversationService {
         throw new IllegalStateException("Retry loop exited without result");
     }
 
-    private void validateParticipant(Conversation conversation, Long travelerId) {
-        boolean isDriver = conversation.getDriver().getId().equals(travelerId);
-        boolean isPassenger = conversation.getPassenger().getId().equals(travelerId);
+    private void validateParticipant(Conversation conversation, Long userId) {
+        boolean isDriver = conversation.getDriver().getId().equals(userId);
+        boolean isPassenger = conversation.getPassenger().getId().equals(userId);
         if (!isDriver && !isPassenger) {
-            throw new NotParticipantException(conversation.getId(), travelerId);
+            throw new NotParticipantException(conversation.getId(), userId);
         }
     }
 
-    private void resetUnreadCount(Conversation conversation, Long travelerId) {
-        boolean isDriver = conversation.getDriver().getId().equals(travelerId);
+    private void resetUnreadCount(Conversation conversation, Long userId) {
+        boolean isDriver = conversation.getDriver().getId().equals(userId);
         if (isDriver) {
             conversation.setDriverUnreadCount(0);
         } else {

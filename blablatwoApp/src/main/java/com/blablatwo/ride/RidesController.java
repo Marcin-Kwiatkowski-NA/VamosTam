@@ -125,8 +125,8 @@ public class RidesController {
         return ResponseEntity.ok(updatedRide);
     }
 
-    @GetMapping("/travelers/{travelerId}/rides")
-    public ResponseEntity<List<RideResponseDto>> getPassengerRides(@PathVariable Long travelerId) {
-        return ResponseEntity.ok(rideService.getRidesForPassenger(travelerId));
+    @GetMapping("/me/rides")
+    public ResponseEntity<List<RideResponseDto>> getMyRides(@AuthenticationPrincipal AppPrincipal principal) {
+        return ResponseEntity.ok(rideService.getRidesForPassenger(principal.userId()));
     }
 }

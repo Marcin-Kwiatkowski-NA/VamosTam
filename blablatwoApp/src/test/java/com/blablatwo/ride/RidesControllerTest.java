@@ -433,8 +433,8 @@ class RidesControllerTest {
         }
 
         @Test
-        @DisplayName("POST /rides/{id}/book - Traveler not found")
-        void bookRide_TravelerNotFound() throws Exception {
+        @DisplayName("POST /rides/{id}/book - User not found")
+        void bookRide_UserNotFound() throws Exception {
             // Arrange
             when(rideService.bookRide(any(), any()))
                     .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
@@ -553,18 +553,21 @@ class RidesControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /travelers/{travelerId}/rides - Passenger Rides")
-    class GetPassengerRidesTests {
+    @DisplayName("GET /me/rides - My Rides")
+    class GetMyRidesTests {
+
+        private static final Long USER_ID = 2L;
 
         @Test
-        @DisplayName("GET /travelers/{id}/rides - Returns passenger's rides")
-        @WithMockUser
-        void getPassengerRides_Success() throws Exception {
+        @DisplayName("GET /me/rides - Returns user's rides")
+        void getMyRides_Success() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(2L)).thenReturn(List.of(rideResponseDto));
+            when(rideService.getRidesForPassenger(any())).thenReturn(List.of(rideResponseDto));
+            AppPrincipal principal = new AppPrincipal(USER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
-            mockMvc.perform(get("/travelers/2/rides")
+            mockMvc.perform(get("/me/rides")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
@@ -573,29 +576,31 @@ class RidesControllerTest {
         }
 
         @Test
-        @DisplayName("GET /travelers/{id}/rides - Returns empty list when no bookings")
-        @WithMockUser
-        void getPassengerRides_Empty() throws Exception {
+        @DisplayName("GET /me/rides - Returns empty list when no bookings")
+        void getMyRides_Empty() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(2L)).thenReturn(Collections.emptyList());
+            when(rideService.getRidesForPassenger(any())).thenReturn(Collections.emptyList());
+            AppPrincipal principal = new AppPrincipal(USER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
-            mockMvc.perform(get("/travelers/2/rides")
+            mockMvc.perform(get("/me/rides")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
 
         @Test
-        @DisplayName("GET /travelers/{id}/rides - Traveler not found")
-        @WithMockUser
-        void getPassengerRides_TravelerNotFound() throws Exception {
+        @DisplayName("GET /me/rides - User not found")
+        void getMyRides_UserNotFound() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(NON_EXISTENT_ID))
+            when(rideService.getRidesForPassenger(any()))
                     .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
+            AppPrincipal principal = new AppPrincipal(NON_EXISTENT_ID, "unknown@test.com", Set.of(Role.USER));
 
             // Act & Assert
-            mockMvc.perform(get("/travelers/" + NON_EXISTENT_ID + "/rides")
+            mockMvc.perform(get("/me/rides")
+                            .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
