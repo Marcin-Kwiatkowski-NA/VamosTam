@@ -9,7 +9,6 @@ import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.ExternalRideException;
 import com.blablatwo.messaging.exception.InvalidDriverException;
-import com.blablatwo.messaging.exception.NotBookedOnRideException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.ride.Ride;
@@ -83,10 +82,6 @@ public class ConversationServiceImpl implements ConversationService {
 
         if (passengerId.equals(request.driverId())) {
             throw new SelfConversationException();
-        }
-
-        if (!rideRepository.existsPassenger(request.rideId(), passengerId)) {
-            throw new NotBookedOnRideException(request.rideId(), passengerId);
         }
 
         var existingConversation = conversationRepository
@@ -176,15 +171,6 @@ public class ConversationServiceImpl implements ConversationService {
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
         validateParticipant(conversation, senderId);
-
-        // Non-driver senders must still be booked on the ride
-        boolean isDriver = conversation.getDriver().getId().equals(senderId);
-        if (!isDriver) {
-            Ride ride = conversation.getRide();
-            if (!rideRepository.existsPassenger(ride.getId(), senderId)) {
-                throw new NotBookedOnRideException(ride.getId(), senderId);
-            }
-        }
 
         // Execute the write operation with manual retry
         return executeWithRetry(() ->
