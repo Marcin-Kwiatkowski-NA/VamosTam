@@ -17,8 +17,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     @Query("""
         SELECT c FROM Conversation c
         JOIN FETCH c.ride r
-        JOIN FETCH r.origin
-        JOIN FETCH r.destination
+        JOIN FETCH r.segment.origin
+        JOIN FETCH r.segment.destination
         JOIN FETCH c.driver
         JOIN FETCH c.passenger
         WHERE c.ride.id = :rideId
@@ -33,8 +33,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     @Query("""
         SELECT c FROM Conversation c
         JOIN FETCH c.ride r
-        JOIN FETCH r.origin
-        JOIN FETCH r.destination
+        JOIN FETCH r.segment.origin
+        JOIN FETCH r.segment.destination
         JOIN FETCH c.driver
         JOIN FETCH c.passenger
         WHERE c.driver.id = :userId OR c.passenger.id = :userId
@@ -47,8 +47,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     @Query("""
         SELECT c FROM Conversation c
         JOIN FETCH c.ride r
-        JOIN FETCH r.origin
-        JOIN FETCH r.destination
+        JOIN FETCH r.segment.origin
+        JOIN FETCH r.segment.destination
         JOIN FETCH c.driver
         JOIN FETCH c.passenger
         WHERE (c.driver.id = :userId OR c.passenger.id = :userId)

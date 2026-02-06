@@ -1,4 +1,4 @@
-package com.blablatwo.ride;
+package com.blablatwo.seat;
 
 import com.blablatwo.domain.AbstractExternalMeta;
 import jakarta.persistence.Entity;
@@ -13,20 +13,20 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "ride_external_meta")
+@Table(name = "seat_external_meta")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class RideExternalMeta extends AbstractExternalMeta {
+public class SeatExternalMeta extends AbstractExternalMeta {
 
     @OneToOne
     @MapsId
-    @JoinColumn(name = "ride_id")
-    private Ride ride;
+    @JoinColumn(name = "seat_id")
+    private Seat seat;
 
-    public Long getRideId() {
+    public Long getSeatId() {
         return getId();
     }
 }

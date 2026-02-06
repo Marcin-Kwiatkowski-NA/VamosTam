@@ -24,8 +24,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(NoSuchRideException.class)
-    public ProblemDetail handleNoSuchRideException(HttpServletRequest request, NoSuchRideException ex) {
+    @ExceptionHandler({NoSuchRideException.class, NoSuchSeatException.class})
+    public ProblemDetail handleNotFoundEntity(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -74,8 +74,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(DuplicateExternalRideException.class)
-    public ProblemDetail handleDuplicateExternalRideException(HttpServletRequest request, DuplicateExternalRideException ex) {
+    @ExceptionHandler(DuplicateExternalEntityException.class)
+    public ProblemDetail handleDuplicateExternalEntityException(HttpServletRequest request, DuplicateExternalEntityException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 

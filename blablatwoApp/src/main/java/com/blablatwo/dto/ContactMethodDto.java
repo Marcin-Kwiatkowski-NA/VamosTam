@@ -1,4 +1,4 @@
-package com.blablatwo.ride.dto;
+package com.blablatwo.dto;
 
 public record ContactMethodDto(
         ContactType type,

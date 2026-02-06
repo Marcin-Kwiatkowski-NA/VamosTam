@@ -4,14 +4,17 @@ import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
+import com.blablatwo.domain.Segment;
+import com.blablatwo.domain.Status;
+import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
-import com.blablatwo.ride.dto.ContactMethodDto;
-import com.blablatwo.ride.dto.ContactType;
-import com.blablatwo.ride.dto.DriverDto;
+import com.blablatwo.dto.ContactMethodDto;
+import com.blablatwo.dto.ContactType;
+import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -122,13 +125,12 @@ class RideServiceImplTest {
         ride = Ride.builder()
                 .id(ID_100)
                 .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                .origin(originCityEntity)
-                .destination(destinationCityEntity)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(originCityEntity, destinationCityEntity))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(Vehicle.builder().id(ID_ONE).licensePlate(VEHICLE_LICENSE_PLATE_1).build())
-                .rideStatus(RideStatus.OPEN)
+                .status(Status.ACTIVE)
                 .lastModified(INSTANT)
                 .passengers(Collections.emptyList())
                 .description(RIDE_DESCRIPTION)
@@ -146,7 +148,7 @@ class RideServiceImplTest {
                 RIDE_DESCRIPTION
         );
 
-        // Initialize RideResponseDto with new structure
+        // Initialize RideResponseDto with flat structure
         rideResponseDto = RideResponseDto.builder()
                 .id(ID_100)
                 .source(RideSource.INTERNAL)
@@ -158,7 +160,7 @@ class RideServiceImplTest {
                 .availableSeats(ONE)
                 .seatsTaken(0)
                 .description(RIDE_DESCRIPTION)
-                .driver(new DriverDto(ID_ONE, CRISTIANO, null, null))
+                .driver(new UserCardDto(ID_ONE, CRISTIANO, null, null))
                 .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
                 .vehicle(new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1))
                 .rideStatus(RideStatus.OPEN)
@@ -403,12 +405,11 @@ class RideServiceImplTest {
             bookableRide = Ride.builder()
                     .id(ID_100)
                     .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                    .origin(originCityEntity)
-                    .destination(destinationCityEntity)
-                    .departureTime(LOCAL_DATE_TIME)
+                    .segment(new Segment(originCityEntity, destinationCityEntity))
+                    .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                     .availableSeats(3)
                     .pricePerSeat(BIG_DECIMAL)
-                    .rideStatus(RideStatus.OPEN)
+                    .status(Status.ACTIVE)
                     .passengers(new ArrayList<>())
                     .build();
         }
@@ -451,7 +452,7 @@ class RideServiceImplTest {
 
             // Assert
             assertEquals(0, bookableRide.getAvailableSeats());
-            assertEquals(RideStatus.FULL, bookableRide.getRideStatus());
+            assertEquals(RideStatus.FULL, bookableRide.computeRideStatus());
         }
 
         @Test
@@ -484,7 +485,7 @@ class RideServiceImplTest {
         @DisplayName("Book ride throws exception when ride is not OPEN")
         void bookRide_ThrowsWhenNotOpen() {
             // Arrange
-            bookableRide.setRideStatus(RideStatus.CANCELLED);
+            bookableRide.setStatus(Status.CANCELLED);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(2L)).thenReturn(true);
             when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
@@ -535,12 +536,11 @@ class RideServiceImplTest {
             bookedRide = Ride.builder()
                     .id(ID_100)
                     .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                    .origin(originCityEntity)
-                    .destination(destinationCityEntity)
-                    .departureTime(LOCAL_DATE_TIME)
+                    .segment(new Segment(originCityEntity, destinationCityEntity))
+                    .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                     .availableSeats(2)
                     .pricePerSeat(BIG_DECIMAL)
-                    .rideStatus(RideStatus.OPEN)
+                    .status(Status.ACTIVE)
                     .passengers(new ArrayList<>(List.of(passenger)))
                     .build();
         }
@@ -568,7 +568,6 @@ class RideServiceImplTest {
         @DisplayName("Cancel booking sets status to OPEN when ride was FULL")
         void cancelBooking_SetsStatusToOpen_WhenWasFull() {
             // Arrange
-            bookedRide.setRideStatus(RideStatus.FULL);
             bookedRide.setAvailableSeats(0);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
             when(userAccountRepository.existsById(2L)).thenReturn(true);
@@ -580,7 +579,7 @@ class RideServiceImplTest {
 
             // Assert
             assertEquals(1, bookedRide.getAvailableSeats());
-            assertEquals(RideStatus.OPEN, bookedRide.getRideStatus());
+            assertEquals(RideStatus.OPEN, bookedRide.computeRideStatus());
         }
 
         @Test

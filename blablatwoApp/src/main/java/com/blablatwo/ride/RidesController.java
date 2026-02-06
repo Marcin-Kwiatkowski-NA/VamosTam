@@ -29,12 +29,17 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.blablatwo.utils.ControllersUtil.getUriFromId;
+import static com.blablatwo.utils.SortMappingUtil.translateSort;
 
 @RestController
 public class RidesController {
     private static final Logger LOGGER = LoggerFactory.getLogger(RidesController.class);
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "departureTime", "pricePerSeat", "availableSeats", "lastModified");
+
     private final RideService rideService;
 
     @Autowired
@@ -81,8 +86,7 @@ public class RidesController {
             @RequestParam(defaultValue = "departureTime") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        Sort sort = sortDir.equalsIgnoreCase("desc") ?
-                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Sort sort = resolveSort(sortBy, sortDir);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return ResponseEntity.ok(rideService.getAllRides(pageable));
@@ -104,7 +108,9 @@ public class RidesController {
                 originPlaceId, destinationPlaceId, lang,
                 departureDate, departureDateTo, departureTimeFrom, minSeats
         );
-        Pageable pageable = PageRequest.of(page, size, Sort.by("departureTime").ascending());
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by("timeSlot.departureDate").ascending()
+                        .and(Sort.by("timeSlot.departureTime").ascending()));
 
         return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
     }
@@ -128,5 +134,13 @@ public class RidesController {
     @GetMapping("/me/rides")
     public ResponseEntity<List<RideResponseDto>> getMyRides(@AuthenticationPrincipal AppPrincipal principal) {
         return ResponseEntity.ok(rideService.getRidesForPassenger(principal.userId()));
+    }
+
+    private Sort resolveSort(String sortBy, String sortDir) {
+        try {
+            return translateSort(sortBy, sortDir, ALLOWED_SORT_FIELDS);
+        } catch (IllegalArgumentException e) {
+            return translateSort("departureTime", sortDir, ALLOWED_SORT_FIELDS);
+        }
     }
 }

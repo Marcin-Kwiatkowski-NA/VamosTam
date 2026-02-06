@@ -29,6 +29,12 @@ public class CapabilityServiceImpl implements CapabilityService {
     @Override
     @Transactional(readOnly = true)
     public boolean canCreateRide(Long userId) {
+        return isActive(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isActive(Long userId) {
         UserAccount account = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 

@@ -16,4 +16,10 @@ public interface CapabilityService {
      * Requirements: ACTIVE status
      */
     boolean canCreateRide(Long userId);
+
+    /**
+     * Checks if a user account is active.
+     * General-purpose check used for seat creation and other non-specific capabilities.
+     */
+    boolean isActive(Long userId);
 }

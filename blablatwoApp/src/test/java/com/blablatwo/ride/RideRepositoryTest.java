@@ -2,6 +2,9 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityRepository;
+import com.blablatwo.domain.Segment;
+import com.blablatwo.domain.Status;
+import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.user.AccountStatus;
 import com.blablatwo.user.Role;
 import com.blablatwo.user.UserAccount;
@@ -92,13 +95,12 @@ class RideRepositoryTest {
         // Arrange
         Ride ride = Ride.builder()
                 .driver(driver)
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
-                .rideStatus(RideStatus.OPEN)
+                .status(Status.ACTIVE)
                 .lastModified(INSTANT)
                 .description(RIDE_DESCRIPTION)
                 .build();
@@ -110,15 +112,16 @@ class RideRepositoryTest {
         assertAll(
                 () -> assertNotNull(savedRide.getId(), "Saved ride should have an ID"),
                 () -> assertEquals(driver.getId(), savedRide.getDriver().getId(), "Driver should match"),
-                () -> assertEquals(origin.getId(), savedRide.getOrigin().getId(), "Origin should match"),
-                () -> assertEquals(origin.getPlaceId(), savedRide.getOrigin().getPlaceId(), "Origin placeId should match"),
-                () -> assertEquals(destination.getId(), savedRide.getDestination().getId(), "Destination should match"),
-                () -> assertEquals(destination.getPlaceId(), savedRide.getDestination().getPlaceId(), "Destination placeId should match"),
-                () -> assertEquals(LOCAL_DATE_TIME, savedRide.getDepartureTime(), "Departure time should match"),
+                () -> assertEquals(origin.getId(), savedRide.getSegment().getOrigin().getId(), "Origin should match"),
+                () -> assertEquals(origin.getPlaceId(), savedRide.getSegment().getOrigin().getPlaceId(), "Origin placeId should match"),
+                () -> assertEquals(destination.getId(), savedRide.getSegment().getDestination().getId(), "Destination should match"),
+                () -> assertEquals(destination.getPlaceId(), savedRide.getSegment().getDestination().getPlaceId(), "Destination placeId should match"),
+                () -> assertEquals(LOCAL_DATE, savedRide.getTimeSlot().getDepartureDate(), "Departure date should match"),
+                () -> assertEquals(LOCAL_TIME, savedRide.getTimeSlot().getDepartureTime(), "Departure time should match"),
                 () -> assertEquals(ONE, savedRide.getAvailableSeats(), "Available seats should match"),
                 () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),
                 () -> assertEquals(vehicle.getId(), savedRide.getVehicle().getId(), "Vehicle should match"),
-                () -> assertEquals(RideStatus.OPEN, savedRide.getRideStatus(), "Ride status should match"),
+                () -> assertEquals(Status.ACTIVE, savedRide.getStatus(), "Status should match"),
                 () -> assertEquals(INSTANT, savedRide.getLastModified(), "Last modified should match"),
                 () -> assertEquals(RIDE_DESCRIPTION, savedRide.getDescription(), "Description should match")
         );
@@ -130,13 +133,12 @@ class RideRepositoryTest {
         // Arrange
         Ride ride = Ride.builder()
                 .driver(driver)
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
-                .rideStatus(RideStatus.OPEN)
+                .status(Status.ACTIVE)
                 .lastModified(INSTANT)
                 .description(RIDE_DESCRIPTION)
                 .build();
@@ -149,7 +151,7 @@ class RideRepositoryTest {
         assertAll(
                 () -> assertTrue(retrievedRide.isPresent(), "Ride should be found by ID"),
                 () -> assertEquals(savedRide.getId(), retrievedRide.get().getId(), "IDs should match"),
-                () -> assertEquals(RideStatus.OPEN, retrievedRide.get().getRideStatus(), "Ride status should match")
+                () -> assertEquals(Status.ACTIVE, retrievedRide.get().getStatus(), "Status should match")
         );
     }
 
@@ -159,13 +161,12 @@ class RideRepositoryTest {
         // Arrange
         Ride ride = Ride.builder()
                 .driver(driver)
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
-                .rideStatus(RideStatus.OPEN)
+                .status(Status.ACTIVE)
                 .lastModified(INSTANT)
                 .description(RIDE_DESCRIPTION)
                 .build();
@@ -174,7 +175,7 @@ class RideRepositoryTest {
         savedRide.setAvailableSeats(2);
         savedRide.setPricePerSeat(BIG_DECIMAL.add(BigDecimal.ONE));
         savedRide.setLastModified(INSTANT.plusSeconds(60));
-        savedRide.setRideStatus(RideStatus.COMPLETED);
+        savedRide.setStatus(Status.CANCELLED);
         savedRide.setDescription("Updated description");
 
         // Act
@@ -185,7 +186,7 @@ class RideRepositoryTest {
                 () -> assertEquals(2, updatedRide.getAvailableSeats(), "Available seats should be updated"),
                 () -> assertEquals(BIG_DECIMAL.add(BigDecimal.ONE), updatedRide.getPricePerSeat(), "Price per seat should be updated"),
                 () -> assertEquals(INSTANT.plusSeconds(60), updatedRide.getLastModified(), "Last modified should be updated"),
-                () -> assertEquals(RideStatus.COMPLETED, updatedRide.getRideStatus(), "Ride status should be updated"),
+                () -> assertEquals(Status.CANCELLED, updatedRide.getStatus(), "Status should be updated"),
                 () -> assertEquals("Updated description", updatedRide.getDescription(), "Description should be updated")
         );
     }
@@ -195,9 +196,8 @@ class RideRepositoryTest {
     void shouldDeleteRide() {
         // Arrange
         Ride ride = Ride.builder()
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .description(RIDE_DESCRIPTION)
                 .build();
         Ride savedRide = rideRepository.save(ride);
@@ -221,12 +221,11 @@ class RideRepositoryTest {
     }
 
     @Test
-    @DisplayName("Save a ride with null destination throws exception")
-    void saveRideWithNullDestination() {
+    @DisplayName("Save a ride with null segment throws exception")
+    void saveRideWithNullSegment() {
         // Arrange
         Ride ride = Ride.builder()
-                .origin(origin)
-                .departureTime(LOCAL_DATE_TIME)
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .description(RIDE_DESCRIPTION)
                 .build();
 
@@ -234,7 +233,7 @@ class RideRepositoryTest {
         assertThrows(ConstraintViolationException.class, () -> {
             rideRepository.save(ride);
             entityManager.flush();
-        }, "Saving a ride with null destination should throw an exception");
+        }, "Saving a ride with null segment should throw an exception");
     }
 
     @Test
@@ -256,15 +255,13 @@ class RideRepositoryTest {
     void findAllRidesTest() {
         // Arrange
         Ride ride1 = Ride.builder()
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME)
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
                 .description(RIDE_DESCRIPTION)
                 .build();
         Ride ride2 = Ride.builder()
-                .origin(origin)
-                .destination(destination)
-                .departureTime(LOCAL_DATE_TIME.plusHours(1))
+                .segment(new Segment(origin, destination))
+                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME.plusHours(1), false))
                 .description(RIDE_DESCRIPTION)
                 .build();
         rideRepository.save(ride1);
@@ -295,9 +292,8 @@ class RideRepositoryTest {
         // Arrange
         Ride nonExistentRide = new Ride();
         nonExistentRide.setId(NON_EXISTENT_ID);
-        nonExistentRide.setOrigin(origin);
-        nonExistentRide.setDestination(destination);
-        nonExistentRide.setDepartureTime(LOCAL_DATE_TIME);
+        nonExistentRide.setSegment(new Segment(origin, destination));
+        nonExistentRide.setTimeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false));
         nonExistentRide.setDescription(RIDE_DESCRIPTION);
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {

@@ -1,25 +1,18 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
-import com.blablatwo.city.CityResolutionService;
-import com.blablatwo.config.DataInitializer;
-import com.blablatwo.exceptions.DuplicateExternalRideException;
-import com.blablatwo.exceptions.FacebookBotMissingException;
+import com.blablatwo.domain.ExternalImportSupport;
+import com.blablatwo.domain.Status;
+import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.external.ExternalRideService;
 import com.blablatwo.user.UserAccount;
-import com.blablatwo.user.UserAccountRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Optional;
 
 @Service
@@ -29,21 +22,18 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
     private final RideRepository rideRepository;
     private final RideExternalMetaRepository metaRepository;
-    private final CityResolutionService cityResolutionService;
-    private final UserAccountRepository userAccountRepository;
+    private final ExternalImportSupport importSupport;
     private final RideMapper rideMapper;
     private final RideResponseEnricher rideResponseEnricher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
-                                   CityResolutionService cityResolutionService,
-                                   UserAccountRepository userAccountRepository,
+                                   ExternalImportSupport importSupport,
                                    RideMapper rideMapper,
                                    RideResponseEnricher rideResponseEnricher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
-        this.cityResolutionService = cityResolutionService;
-        this.userAccountRepository = userAccountRepository;
+        this.importSupport = importSupport;
         this.rideMapper = rideMapper;
         this.rideResponseEnricher = rideResponseEnricher;
     }
@@ -51,44 +41,30 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     @Override
     @Transactional
     public RideResponseDto createExternalRide(ExternalRideCreationDto dto) {
-        // 1. Content hash deduplication (same post across multiple groups)
-        String contentHash = computeHash(dto.rawContent());
-        if (contentHash != null && metaRepository.existsByContentHash(contentHash)) {
-            throw new DuplicateExternalRideException("Duplicate content detected");
-        }
+        String contentHash = importSupport.computeHash(dto.rawContent());
+        importSupport.validateAndDeduplicate(
+                dto.externalId(), contentHash,
+                metaRepository::existsByExternalId,
+                metaRepository::existsByContentHash);
 
-        // 2. External ID deduplication (same post ID)
-        if (metaRepository.existsByExternalId(dto.externalId())) {
-            throw new DuplicateExternalRideException(dto.externalId());
-        }
-
-        // 3. Resolve cities via CityResolutionService (uses geocoding with lang strategy)
         String langCode = dto.lang() != null ? dto.lang().getCode() : null;
-        City origin = cityResolutionService.resolveCityByName(dto.originCityName(), langCode);
-        City destination = cityResolutionService.resolveCityByName(dto.destinationCityName(), langCode);
+        var segment = importSupport.resolveSegment(dto.originCityName(), dto.destinationCityName(), langCode);
+        UserAccount proxy = importSupport.resolveProxyUser();
 
-        // 4. Get Facebook bot user by email
-        UserAccount proxy = userAccountRepository.findByEmail(DataInitializer.FACEBOOK_BOT_EMAIL)
-                .orElseThrow(FacebookBotMissingException::new);
-
-        // 5. Build and save Ride
         Ride ride = Ride.builder()
                 .driver(proxy)
-                .origin(origin)
-                .destination(destination)
-                .departureTime(dto.departureDate().atTime(dto.departureTime()))
-                .isApproximate(dto.isApproximate())
+                .segment(segment)
+                .timeSlot(new TimeSlot(dto.departureDate(), dto.departureTime(), dto.isApproximate()))
                 .source(RideSource.FACEBOOK)
                 .availableSeats(dto.availableSeats())
                 .pricePerSeat(dto.pricePerSeat())
-                .rideStatus(RideStatus.OPEN)
+                .status(Status.ACTIVE)
                 .description(dto.description())
                 .lastModified(Instant.now())
                 .build();
 
         Ride saved = rideRepository.save(ride);
 
-        // 7. Save external metadata
         RideExternalMeta meta = RideExternalMeta.builder()
                 .ride(saved)
                 .sourceUrl(dto.sourceUrl())
@@ -122,19 +98,4 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                     return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
                 });
     }
-
-    private String computeHash(String content) {
-        if (content == null || content.isBlank()) {
-            return null;
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.error("SHA-256 algorithm not available", e);
-            return null;
-        }
-    }
-
 }

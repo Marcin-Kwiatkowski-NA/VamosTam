@@ -1,6 +1,5 @@
-package com.blablatwo.ride.dto;
+package com.blablatwo.seat.dto;
 
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -9,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record RideCreationDto(
+public record SeatCreationDto(
         @NotNull(message = "Origin place ID cannot be null")
         Long originPlaceId,
 
@@ -22,15 +21,10 @@ public record RideCreationDto(
 
         boolean isApproximate,
 
-        @NotNull(message = "Available seats cannot be null")
-        @Min(value = 1, message = "Available seats must be at least 1")
-        int availableSeats,
+        @Min(value = 1, message = "Count must be at least 1")
+        int count,
 
-        @NotNull(message = "Price per seat cannot be null")
-        @DecimalMin(value = "0.0", inclusive = true, message = "Price per seat cannot be negative")
-        BigDecimal pricePerSeat,
-
-        Long vehicleId,
+        BigDecimal priceWillingToPay,
 
         @Size(max = 500, message = "Description cannot exceed 500 characters")
         String description

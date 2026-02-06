@@ -4,9 +4,9 @@ import com.blablatwo.city.CityDto;
 import com.blablatwo.city.Lang;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
-import com.blablatwo.ride.dto.ContactMethodDto;
-import com.blablatwo.ride.dto.ContactType;
-import com.blablatwo.ride.dto.DriverDto;
+import com.blablatwo.dto.ContactMethodDto;
+import com.blablatwo.dto.ContactType;
+import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
@@ -87,7 +87,7 @@ class ExternalRideSecurityTest {
                 .availableSeats(3)
                 .seatsTaken(0)
                 .description("Test ride description")
-                .driver(new DriverDto(9999L, "Jean Dupont", null, null))
+                .driver(new UserCardDto(9999L, "Jean Dupont", null, null))
                 .contactMethods(List.of(new ContactMethodDto(ContactType.FACEBOOK_LINK, "https://facebook.com/groups/rides/12345")))
                 .vehicle(null)
                 .rideStatus(RideStatus.OPEN)

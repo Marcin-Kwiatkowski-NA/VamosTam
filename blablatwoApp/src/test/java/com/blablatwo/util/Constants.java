@@ -2,7 +2,9 @@ package com.blablatwo.util;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class Constants {
     public static final int ONE = 1;
@@ -30,6 +32,8 @@ public class Constants {
     public static final int ENABLED = 1;
 
     public static final LocalDateTime LOCAL_DATE_TIME = LocalDateTime.now().plusDays(30);
+    public static final LocalDate LOCAL_DATE = LOCAL_DATE_TIME.toLocalDate();
+    public static final LocalTime LOCAL_TIME = LOCAL_DATE_TIME.toLocalTime();
 
     public static final String TRAVELER_USERNAME_JOHN_DOE = "johndoe";
     public static final String TRAVELER_PASSWORD = "password123";

@@ -71,6 +71,7 @@ public class WebAuthorizationConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/cities", "/cities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
+                .requestMatchers(HttpMethod.GET, "/seats/search").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )

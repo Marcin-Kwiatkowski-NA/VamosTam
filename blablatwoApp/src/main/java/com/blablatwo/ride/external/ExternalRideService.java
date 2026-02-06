@@ -14,7 +14,7 @@ public interface ExternalRideService {
      * @param dto the external ride data
      * @return the created ride response
      * @throws com.blablatwo.exceptions.NoSuchCityException if origin or destination city not found
-     * @throws com.blablatwo.exceptions.DuplicateExternalRideException if externalId or content already exists
+     * @throws com.blablatwo.exceptions.DuplicateExternalEntityException if externalId or content already exists
      */
     RideResponseDto createExternalRide(ExternalRideCreationDto dto);
 
