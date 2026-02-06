@@ -40,7 +40,7 @@ public class RideResponseEnricher {
     }
 
     private Map<Long, RideExternalMeta> fetchAllMeta(Set<Long> rideIds) {
-        return metaRepository.findAllByRideIdIn(rideIds)
+        return metaRepository.findAllByIdIn(rideIds)
                 .stream()
                 .collect(Collectors.toMap(RideExternalMeta::getRideId, Function.identity()));
     }

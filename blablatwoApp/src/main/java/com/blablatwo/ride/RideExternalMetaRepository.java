@@ -16,5 +16,5 @@ public interface RideExternalMetaRepository extends JpaRepository<RideExternalMe
 
     boolean existsByContentHash(String contentHash);
 
-    List<RideExternalMeta> findAllByRideIdIn(Collection<Long> rideIds);
+    List<RideExternalMeta> findAllByIdIn(Collection<Long> rideIds);
 }
