@@ -1,6 +1,5 @@
 package com.blablatwo.messaging;
 
-import com.blablatwo.ride.Ride;
 import com.blablatwo.user.UserAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -15,12 +14,12 @@ import java.util.UUID;
 @Entity
 @Table(
     uniqueConstraints = @UniqueConstraint(
-        name = "uk_conversation_ride_driver_passenger",
-        columnNames = {"ride_id", "driver_id", "passenger_id"}),
+        name = "uk_conversation_topic_participants",
+        columnNames = {"topic_key", "participant_a_id", "participant_b_id"}),
     indexes = {
-        @Index(name = "idx_conv_driver_updated", columnList = "driver_id, updated_at"),
-        @Index(name = "idx_conv_passenger_updated", columnList = "passenger_id, updated_at"),
-        @Index(name = "idx_conv_ride", columnList = "ride_id"),
+        @Index(name = "idx_conv_topic", columnList = "topic_key"),
+        @Index(name = "idx_conv_participant_a_updated", columnList = "participant_a_id, updated_at"),
+        @Index(name = "idx_conv_participant_b_updated", columnList = "participant_b_id, updated_at"),
         @Index(name = "idx_conv_updated", columnList = "updated_at")
     }
 )
@@ -35,17 +34,16 @@ public class Conversation {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ride_id", nullable = false)
-    private Ride ride;
+    @Column(name = "topic_key", nullable = false, length = 100)
+    private String topicKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "driver_id", nullable = false)
-    private UserAccount driver;
+    @JoinColumn(name = "participant_a_id", nullable = false)
+    private UserAccount participantA;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "passenger_id", nullable = false)
-    private UserAccount passenger;
+    @JoinColumn(name = "participant_b_id", nullable = false)
+    private UserAccount participantB;
 
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;
@@ -67,13 +65,13 @@ public class Conversation {
     private Long lastMessageSenderId;
 
     // Denormalized unread counts (avoids N+1 on inbox listing)
-    @Column(name = "driver_unread_count", nullable = false)
+    @Column(name = "participant_a_unread_count", nullable = false)
     @Builder.Default
-    private int driverUnreadCount = 0;
+    private int participantAUnreadCount = 0;
 
-    @Column(name = "passenger_unread_count", nullable = false)
+    @Column(name = "participant_b_unread_count", nullable = false)
     @Builder.Default
-    private int passengerUnreadCount = 0;
+    private int participantBUnreadCount = 0;
 
     // Optimistic locking to prevent lost updates on concurrent sends
     @Version

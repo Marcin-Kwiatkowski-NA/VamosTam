@@ -1,19 +1,14 @@
 package com.blablatwo.messaging;
 
-import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.messaging.dto.ConversationDto;
-import com.blablatwo.messaging.dto.CreateConversationRequest;
+import com.blablatwo.messaging.dto.ConversationOpenRequest;
+import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
+import com.blablatwo.messaging.dto.PeerUserDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
 import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
-import com.blablatwo.messaging.exception.ExternalRideException;
-import com.blablatwo.messaging.exception.InvalidDriverException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
-import com.blablatwo.ride.Ride;
-import com.blablatwo.ride.RideRepository;
-import com.blablatwo.ride.RideSource;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfile;
@@ -41,80 +36,69 @@ public class ConversationServiceImpl implements ConversationService {
 
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
-    private final RideRepository rideRepository;
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
-    private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
     private final ApplicationEventPublisher eventPublisher;
 
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
-                                   RideRepository rideRepository,
                                    UserAccountRepository userAccountRepository,
                                    UserProfileRepository userProfileRepository,
-                                   ConversationMapper conversationMapper,
                                    MessageMapper messageMapper,
                                    ApplicationEventPublisher eventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
-        this.rideRepository = rideRepository;
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
-        this.conversationMapper = conversationMapper;
         this.messageMapper = messageMapper;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
     @Transactional
-    public InitResult initConversation(CreateConversationRequest request, Long passengerId) {
-        Ride ride = rideRepository.findById(request.rideId())
-                .orElseThrow(() -> new NoSuchRideException(request.rideId()));
-
-        if (ride.getSource() != RideSource.INTERNAL) {
-            throw new ExternalRideException();
-        }
-
-        if (!ride.getDriver().getId().equals(request.driverId())) {
-            throw new InvalidDriverException(request.driverId(), ride.getDriver().getId());
-        }
-
-        if (passengerId.equals(request.driverId())) {
+    public OpenResult openConversation(ConversationOpenRequest request, Long currentUserId) {
+        if (currentUserId.equals(request.peerUserId())) {
             throw new SelfConversationException();
         }
 
-        var existingConversation = conversationRepository
-                .findByRideIdAndDriverIdAndPassengerId(request.rideId(), request.driverId(), passengerId);
+        // Normalize participant IDs (A = min, B = max)
+        Long participantAId = Math.min(currentUserId, request.peerUserId());
+        Long participantBId = Math.max(currentUserId, request.peerUserId());
 
-        if (existingConversation.isPresent()) {
-            return new InitResult(toConversationDto(existingConversation.get(), passengerId), false);
+        var existing = conversationRepository
+                .findByTopicKeyAndParticipants(request.topicKey(), participantAId, participantBId);
+
+        if (existing.isPresent()) {
+            return new OpenResult(toResponseDto(existing.get(), currentUserId), false);
         }
 
-        UserAccount passenger = userAccountRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchUserException(passengerId));
+        UserAccount participantA = userAccountRepository.findById(participantAId)
+                .orElseThrow(() -> new NoSuchUserException(participantAId));
+        UserAccount participantB = userAccountRepository.findById(participantBId)
+                .orElseThrow(() -> new NoSuchUserException(participantBId));
 
         try {
             Conversation conversation = Conversation.builder()
-                    .ride(ride)
-                    .driver(ride.getDriver())
-                    .passenger(passenger)
+                    .topicKey(request.topicKey())
+                    .participantA(participantA)
+                    .participantB(participantB)
                     .build();
 
             Conversation saved = conversationRepository.save(conversation);
-            return new InitResult(toConversationDto(saved, passengerId), true);
+            return new OpenResult(toResponseDto(saved, currentUserId), true);
         } catch (DataIntegrityViolationException e) {
             // Race condition: another request created the conversation
             var created = conversationRepository
-                    .findByRideIdAndDriverIdAndPassengerId(request.rideId(), request.driverId(), passengerId)
+                    .findByTopicKeyAndParticipants(request.topicKey(), participantAId, participantBId)
                     .orElseThrow(() -> e);
-            return new InitResult(toConversationDto(created, passengerId), false);
+            return new OpenResult(toResponseDto(created, currentUserId), false);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConversationDto> listConversations(Long userId, Instant since, Pageable pageable) {
+    public List<ConversationResponseDto> listConversations(Long userId, Instant since, Pageable pageable) {
         List<Conversation> conversations;
 
         if (since != null) {
@@ -124,7 +108,7 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         return conversations.stream()
-                .map(c -> toConversationDto(c, userId))
+                .map(c -> toResponseDto(c, userId))
                 .toList();
     }
 
@@ -199,13 +183,13 @@ public class ConversationServiceImpl implements ConversationService {
         conversation.setLastMessageSenderId(senderId);
 
         // Update unread counts
-        boolean isDriver = conversation.getDriver().getId().equals(senderId);
-        if (isDriver) {
-            conversation.setPassengerUnreadCount(conversation.getPassengerUnreadCount() + 1);
-            conversation.setDriverUnreadCount(0);
+        boolean isParticipantA = conversation.getParticipantA().getId().equals(senderId);
+        if (isParticipantA) {
+            conversation.setParticipantBUnreadCount(conversation.getParticipantBUnreadCount() + 1);
+            conversation.setParticipantAUnreadCount(0);
         } else {
-            conversation.setDriverUnreadCount(conversation.getDriverUnreadCount() + 1);
-            conversation.setPassengerUnreadCount(0);
+            conversation.setParticipantAUnreadCount(conversation.getParticipantAUnreadCount() + 1);
+            conversation.setParticipantBUnreadCount(0);
         }
 
         conversationRepository.save(conversation);
@@ -243,69 +227,62 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private void validateParticipant(Conversation conversation, Long userId) {
-        boolean isDriver = conversation.getDriver().getId().equals(userId);
-        boolean isPassenger = conversation.getPassenger().getId().equals(userId);
-        if (!isDriver && !isPassenger) {
+        boolean isParticipantA = conversation.getParticipantA().getId().equals(userId);
+        boolean isParticipantB = conversation.getParticipantB().getId().equals(userId);
+        if (!isParticipantA && !isParticipantB) {
             throw new NotParticipantException(conversation.getId(), userId);
         }
     }
 
     private void resetUnreadCount(Conversation conversation, Long userId) {
-        boolean isDriver = conversation.getDriver().getId().equals(userId);
-        if (isDriver) {
-            conversation.setDriverUnreadCount(0);
+        boolean isParticipantA = conversation.getParticipantA().getId().equals(userId);
+        if (isParticipantA) {
+            conversation.setParticipantAUnreadCount(0);
         } else {
-            conversation.setPassengerUnreadCount(0);
+            conversation.setParticipantBUnreadCount(0);
         }
         // JPA flushes dirty entities on commit - no explicit save needed
     }
 
-    private ConversationDto toConversationDto(Conversation conversation, Long viewerId) {
-        ConversationDto baseDto = conversationMapper.toDto(conversation);
+    private ConversationResponseDto toResponseDto(Conversation conversation, Long viewerId) {
+        boolean isParticipantA = conversation.getParticipantA().getId().equals(viewerId);
 
-        // Build lastMessage from denormalized fields if present
-        MessageDto lastMessage = null;
-        if (conversation.getLastMessageId() != null) {
-            lastMessage = new MessageDto(
-                    conversation.getLastMessageId(),
-                    conversation.getId(),
-                    conversation.getLastMessageSenderId(),
-                    conversation.getLastMessageSenderId().equals(viewerId),
-                    conversation.getLastMessageBody(),
-                    conversation.getLastMessageCreatedAt()
-            );
-        }
+        UserAccount peer = isParticipantA
+                ? conversation.getParticipantB()
+                : conversation.getParticipantA();
 
-        // Determine unread count based on viewer role
-        boolean isDriver = conversation.getDriver().getId().equals(viewerId);
-        int unreadCount = isDriver
-                ? conversation.getDriverUnreadCount()
-                : conversation.getPassengerUnreadCount();
+        PeerUserDto peerUser = buildPeerUserDto(peer);
 
-        // Apply name fallback (same logic as RideResponseEnricher)
-        String driverName = getDisplayName(conversation.getDriver());
-        String passengerName = getDisplayName(conversation.getPassenger());
+        int unreadCount = isParticipantA
+                ? conversation.getParticipantAUnreadCount()
+                : conversation.getParticipantBUnreadCount();
 
-        return new ConversationDto(
-                baseDto.id(),
-                baseDto.rideId(),
-                baseDto.driverId(),
-                driverName,
-                baseDto.passengerId(),
-                passengerName,
-                baseDto.originName(),
-                baseDto.destinationName(),
-                lastMessage,
-                unreadCount,
-                baseDto.updatedAt()
+        return new ConversationResponseDto(
+                conversation.getId(),
+                conversation.getTopicKey(),
+                peerUser,
+                conversation.getLastMessageBody(),
+                conversation.getLastMessageCreatedAt(),
+                unreadCount
         );
     }
 
-    private String getDisplayName(UserAccount user) {
-        return userProfileRepository.findById(user.getId())
-                .map(UserProfile::getDisplayName)
-                .filter(name -> name != null && !name.isBlank())
-                .orElseGet(() -> user.getEmail().split("@")[0]);
+    private PeerUserDto buildPeerUserDto(UserAccount user) {
+        UserProfile profile = userProfileRepository.findById(user.getId()).orElse(null);
+
+        String displayName;
+        String avatarUrl = null;
+
+        if (profile != null) {
+            displayName = (profile.getDisplayName() != null && !profile.getDisplayName().isBlank())
+                    ? profile.getDisplayName()
+                    : user.getEmail().split("@")[0];
+            avatarUrl = profile.getAvatarUrl();
+        } else {
+            displayName = user.getEmail().split("@")[0];
+        }
+
+        return new PeerUserDto(user.getId(), displayName, avatarUrl);
     }
 
     private MessageDto toMessageDto(Message message, Long viewerId) {

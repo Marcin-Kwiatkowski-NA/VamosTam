@@ -16,28 +16,22 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     @Query("""
         SELECT c FROM Conversation c
-        JOIN FETCH c.ride r
-        JOIN FETCH r.segment.origin
-        JOIN FETCH r.segment.destination
-        JOIN FETCH c.driver
-        JOIN FETCH c.passenger
-        WHERE c.ride.id = :rideId
-        AND c.driver.id = :driverId
-        AND c.passenger.id = :passengerId
+        JOIN FETCH c.participantA
+        JOIN FETCH c.participantB
+        WHERE c.topicKey = :topicKey
+        AND c.participantA.id = :participantAId
+        AND c.participantB.id = :participantBId
         """)
-    Optional<Conversation> findByRideIdAndDriverIdAndPassengerId(
-        @Param("rideId") Long rideId,
-        @Param("driverId") Long driverId,
-        @Param("passengerId") Long passengerId);
+    Optional<Conversation> findByTopicKeyAndParticipants(
+        @Param("topicKey") String topicKey,
+        @Param("participantAId") Long participantAId,
+        @Param("participantBId") Long participantBId);
 
     @Query("""
         SELECT c FROM Conversation c
-        JOIN FETCH c.ride r
-        JOIN FETCH r.segment.origin
-        JOIN FETCH r.segment.destination
-        JOIN FETCH c.driver
-        JOIN FETCH c.passenger
-        WHERE c.driver.id = :userId OR c.passenger.id = :userId
+        JOIN FETCH c.participantA
+        JOIN FETCH c.participantB
+        WHERE c.participantA.id = :userId OR c.participantB.id = :userId
         ORDER BY c.updatedAt DESC
         """)
     List<Conversation> findByParticipantId(
@@ -46,12 +40,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     @Query("""
         SELECT c FROM Conversation c
-        JOIN FETCH c.ride r
-        JOIN FETCH r.segment.origin
-        JOIN FETCH r.segment.destination
-        JOIN FETCH c.driver
-        JOIN FETCH c.passenger
-        WHERE (c.driver.id = :userId OR c.passenger.id = :userId)
+        JOIN FETCH c.participantA
+        JOIN FETCH c.participantB
+        WHERE (c.participantA.id = :userId OR c.participantB.id = :userId)
         AND c.updatedAt > :since
         ORDER BY c.updatedAt DESC
         """)

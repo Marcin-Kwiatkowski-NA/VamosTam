@@ -2,9 +2,6 @@ package com.blablatwo.exceptions;
 
 import com.blablatwo.auth.exception.InvalidTokenException;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
-import com.blablatwo.messaging.exception.ExternalRideException;
-import com.blablatwo.messaging.exception.InvalidDriverException;
-import com.blablatwo.messaging.exception.NotBookedOnRideException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.user.exception.DuplicateEmailException;
@@ -89,8 +86,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler({ExternalRideException.class, InvalidDriverException.class, SelfConversationException.class, NotBookedOnRideException.class})
-    public ProblemDetail handleMessagingBadRequest(HttpServletRequest request, RuntimeException ex) {
+    @ExceptionHandler(SelfConversationException.class)
+    public ProblemDetail handleMessagingBadRequest(HttpServletRequest request, SelfConversationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

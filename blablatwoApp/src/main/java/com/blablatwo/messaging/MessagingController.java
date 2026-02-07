@@ -1,8 +1,8 @@
 package com.blablatwo.messaging;
 
 import com.blablatwo.auth.AppPrincipal;
-import com.blablatwo.messaging.dto.ConversationDto;
-import com.blablatwo.messaging.dto.CreateConversationRequest;
+import com.blablatwo.messaging.dto.ConversationOpenRequest;
+import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
 import jakarta.validation.Valid;
@@ -34,12 +34,12 @@ public class MessagingController {
         this.conversationService = conversationService;
     }
 
-    @PostMapping("/init")
-    public ResponseEntity<ConversationDto> initConversation(
-            @Valid @RequestBody CreateConversationRequest request,
+    @PostMapping("/open")
+    public ResponseEntity<ConversationResponseDto> openConversation(
+            @Valid @RequestBody ConversationOpenRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
 
-        ConversationService.InitResult result = conversationService.initConversation(request, principal.userId());
+        ConversationService.OpenResult result = conversationService.openConversation(request, principal.userId());
 
         if (result.created()) {
             return ResponseEntity
@@ -50,7 +50,7 @@ public class MessagingController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConversationDto>> listConversations(
+    public ResponseEntity<List<ConversationResponseDto>> listConversations(
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant since,
             @RequestParam(defaultValue = "0") int page,

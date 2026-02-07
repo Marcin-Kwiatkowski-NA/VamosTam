@@ -1,7 +1,7 @@
 package com.blablatwo.messaging;
 
-import com.blablatwo.messaging.dto.ConversationDto;
-import com.blablatwo.messaging.dto.CreateConversationRequest;
+import com.blablatwo.messaging.dto.ConversationOpenRequest;
+import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,11 +12,11 @@ import java.util.UUID;
 
 public interface ConversationService {
 
-    record InitResult(ConversationDto conversation, boolean created) {}
+    record OpenResult(ConversationResponseDto conversation, boolean created) {}
 
-    InitResult initConversation(CreateConversationRequest request, Long passengerId);
+    OpenResult openConversation(ConversationOpenRequest request, Long currentUserId);
 
-    List<ConversationDto> listConversations(Long userId, Instant since, Pageable pageable);
+    List<ConversationResponseDto> listConversations(Long userId, Instant since, Pageable pageable);
 
     List<MessageDto> getMessages(UUID conversationId, Long userId, Instant before, Instant since, int limit);
 
