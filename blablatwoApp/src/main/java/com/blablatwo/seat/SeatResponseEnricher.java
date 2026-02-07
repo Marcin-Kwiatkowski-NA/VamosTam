@@ -40,7 +40,7 @@ public class SeatResponseEnricher {
     }
 
     private Map<Long, SeatExternalMeta> fetchAllMeta(Set<Long> seatIds) {
-        return metaRepository.findAllBySeatIdIn(seatIds)
+        return metaRepository.findAllByIdIn(seatIds)
                 .stream()
                 .collect(Collectors.toMap(SeatExternalMeta::getSeatId, Function.identity()));
     }
