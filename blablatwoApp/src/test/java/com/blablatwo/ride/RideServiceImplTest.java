@@ -4,17 +4,12 @@ import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
-import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
-import com.blablatwo.dto.ContactMethodDto;
-import com.blablatwo.dto.ContactType;
-import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -22,8 +17,6 @@ import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
 import com.blablatwo.user.exception.NoSuchUserException;
-import com.blablatwo.vehicle.Vehicle;
-import com.blablatwo.vehicle.VehicleResponseDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -93,78 +87,18 @@ class RideServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Configure enricher to return input unchanged (pass-through for INTERNAL rides)
         lenient().when(rideResponseEnricher.enrich(any(Ride.class), any(RideResponseDto.class)))
                 .thenAnswer(invocation -> invocation.getArgument(1));
         lenient().when(rideResponseEnricher.enrich(anyList(), anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
 
-        // Initialize CityDto objects for clarity (now using placeId instead of osmId)
-        originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L);
-        destinationCityDto = new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L);
-
-        // Initialize City entities with new schema
-        originCityEntity = City.builder()
-                .id(ID_ONE)
-                .placeId(ID_ONE)
-                .namePl(CITY_NAME_ORIGIN)
-                .normNamePl(CITY_NAME_ORIGIN.toLowerCase())
-                .countryCode("PL")
-                .population(100000L)
-                .build();
-        destinationCityEntity = City.builder()
-                .id(2L)
-                .placeId(2L)
-                .namePl(CITY_NAME_DESTINATION)
-                .normNamePl(CITY_NAME_DESTINATION.toLowerCase())
-                .countryCode("PL")
-                .population(200000L)
-                .build();
-
-        // Initialize the Ride entity
-        ride = Ride.builder()
-                .id(ID_100)
-                .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                .segment(new Segment(originCityEntity, destinationCityEntity))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .availableSeats(ONE)
-                .pricePerSeat(BIG_DECIMAL)
-                .vehicle(Vehicle.builder().id(ID_ONE).licensePlate(VEHICLE_LICENSE_PLATE_1).build())
-                .status(Status.ACTIVE)
-                .lastModified(INSTANT)
-                .passengers(Collections.emptyList())
-                .description(RIDE_DESCRIPTION)
-                .build();
-
-        // Initialize RideCreationDto with placeId fields (no driverId - comes from principal)
-        rideCreationDTO = new RideCreationDto(
-                ID_ONE,          // originPlaceId
-                2L,              // destinationPlaceId
-                LOCAL_DATE_TIME,
-                false, // isApproximate
-                ONE,
-                BIG_DECIMAL,
-                ID_ONE,
-                RIDE_DESCRIPTION
-        );
-
-        // Initialize RideResponseDto with flat structure
-        rideResponseDto = RideResponseDto.builder()
-                .id(ID_100)
-                .source(RideSource.INTERNAL)
-                .origin(originCityDto)
-                .destination(destinationCityDto)
-                .departureTime(LOCAL_DATE_TIME)
-                .isApproximate(false)
-                .pricePerSeat(BIG_DECIMAL)
-                .availableSeats(ONE)
-                .seatsTaken(0)
-                .description(RIDE_DESCRIPTION)
-                .driver(new UserCardDto(ID_ONE, CRISTIANO, null, null))
-                .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
-                .vehicle(new VehicleResponseDto(ID_ONE, VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, VEHICLE_PRODUCTION_YEAR_2021, VEHICLE_COLOR_RED, VEHICLE_LICENSE_PLATE_1))
-                .rideStatus(RideStatus.OPEN)
-                .build();
+        originCityDto = originCityDto();
+        destinationCityDto = destinationCityDto();
+        originCityEntity = anOriginCity().build();
+        destinationCityEntity = aDestinationCity().build();
+        ride = aRide(originCityEntity, destinationCityEntity).build();
+        rideCreationDTO = aRideCreationDto().build();
+        rideResponseDto = aRideResponseDto().build();
     }
 
     @Test
@@ -397,19 +331,10 @@ class RideServiceImplTest {
 
         @BeforeEach
         void setUpBooking() {
-            passenger = UserAccount.builder()
-                    .id(2L)
-                    .email(TRAVELER_EMAIL_USER2)
-                    .build();
-
-            bookableRide = Ride.builder()
-                    .id(ID_100)
-                    .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                    .segment(new Segment(originCityEntity, destinationCityEntity))
-                    .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
+            passenger = aPassengerAccount().build();
+            bookableRide = aRide(originCityEntity, destinationCityEntity)
                     .availableSeats(3)
-                    .pricePerSeat(BIG_DECIMAL)
-                    .status(Status.ACTIVE)
+                    .vehicle(null)
                     .passengers(new ArrayList<>())
                     .build();
         }
@@ -528,19 +453,10 @@ class RideServiceImplTest {
 
         @BeforeEach
         void setUpCancellation() {
-            passenger = UserAccount.builder()
-                    .id(2L)
-                    .email(TRAVELER_EMAIL_USER2)
-                    .build();
-
-            bookedRide = Ride.builder()
-                    .id(ID_100)
-                    .driver(UserAccount.builder().id(ID_ONE).email(TRAVELER_EMAIL_USER1).build())
-                    .segment(new Segment(originCityEntity, destinationCityEntity))
-                    .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
+            passenger = aPassengerAccount().build();
+            bookedRide = aRide(originCityEntity, destinationCityEntity)
                     .availableSeats(2)
-                    .pricePerSeat(BIG_DECIMAL)
-                    .status(Status.ACTIVE)
+                    .vehicle(null)
                     .passengers(new ArrayList<>(List.of(passenger)))
                     .build();
         }
@@ -613,7 +529,7 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger returns list of rides")
         void getRidesForPassenger_ReturnsList() {
             // Arrange
-            UserAccount passenger = UserAccount.builder().id(2L).email(TRAVELER_EMAIL_USER2).build();
+            UserAccount passenger = aPassengerAccount().build();
             when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.findByPassengersContaining(passenger)).thenReturn(List.of(ride));
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
@@ -631,7 +547,7 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger returns empty list when no bookings")
         void getRidesForPassenger_ReturnsEmptyList() {
             // Arrange
-            UserAccount passenger = UserAccount.builder().id(2L).email(TRAVELER_EMAIL_USER2).build();
+            UserAccount passenger = aPassengerAccount().build();
             when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
             when(rideRepository.findByPassengersContaining(passenger)).thenReturn(Collections.emptyList());
 

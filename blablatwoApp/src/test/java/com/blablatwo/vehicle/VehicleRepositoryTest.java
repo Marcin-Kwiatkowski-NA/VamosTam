@@ -12,6 +12,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -27,13 +28,7 @@ class VehicleRepositoryTest {
     @DisplayName("Save a new vehicle successfully")
     void saveNewVehicle() {
         // Arrange
-        Vehicle vehicle = Vehicle.builder()
-                .make(VEHICLE_MAKE_TESLA)
-                .model(VEHICLE_MODEL_MODEL_S)
-                .productionYear(VEHICLE_PRODUCTION_YEAR_2021)
-                .color(VEHICLE_COLOR_RED)
-                .licensePlate(VEHICLE_LICENSE_PLATE_1)
-                .build();
+        Vehicle vehicle = aTesla().id(null).build();
 
         // Act
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
@@ -53,13 +48,7 @@ class VehicleRepositoryTest {
     @DisplayName("Find a vehicle by valid ID")
     void findVehicleById() {
         // Arrange
-        Vehicle vehicle = Vehicle.builder()
-                .make(VEHICLE_MAKE_BMW)
-                .model(VEHICLE_MODEL_X5)
-                .productionYear(VEHICLE_PRODUCTION_YEAR_2020)
-                .color(VEHICLE_COLOR_BLACK)
-                .licensePlate(VEHICLE_LICENSE_PLATE_2)
-                .build();
+        Vehicle vehicle = aBmw().id(null).build();
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
 
         // Act
@@ -80,13 +69,7 @@ class VehicleRepositoryTest {
     @DisplayName("Update a vehicle's details successfully")
     void shouldUpdateVehicleDetails() {
         // Arrange
-        Vehicle vehicle = Vehicle.builder()
-                .make(VEHICLE_MAKE_TESLA)
-                .model(VEHICLE_MODEL_MODEL_S)
-                .productionYear(VEHICLE_PRODUCTION_YEAR_2021)
-                .color(VEHICLE_COLOR_RED)
-                .licensePlate(VEHICLE_LICENSE_PLATE_1)
-                .build();
+        Vehicle vehicle = aTesla().id(null).build();
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
 
         // Update details

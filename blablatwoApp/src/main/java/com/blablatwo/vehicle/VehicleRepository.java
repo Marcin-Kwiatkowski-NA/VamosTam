@@ -5,10 +5,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface VehicleRepository extends ListCrudRepository<Vehicle, Long> {
     Optional<Vehicle> findByLicensePlate(String licensePlate);
 
     List<Vehicle> findByOwnerId(Long ownerId);
+
+    List<Vehicle> findByOwnerIdIn(Set<Long> ownerIds);
 }

@@ -5,13 +5,9 @@ import com.blablatwo.city.CityRepository;
 import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimeSlot;
-import com.blablatwo.user.AccountStatus;
-import com.blablatwo.user.Role;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
-import com.blablatwo.user.UserProfile;
 import com.blablatwo.user.UserProfileRepository;
-import com.blablatwo.user.UserStats;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleRepository;
 import jakarta.persistence.EntityManager;
@@ -26,9 +22,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.Set;
 
 import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -57,35 +53,17 @@ class RideRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        origin = City.builder()
-                .placeId(ID_ONE)
-                .namePl(CITY_NAME_ORIGIN)
-                .normNamePl(CITY_NAME_ORIGIN.toLowerCase())
-                .build();
-        destination = City.builder()
-                .placeId(2L)
-                .namePl(CITY_NAME_DESTINATION)
-                .normNamePl(CITY_NAME_DESTINATION.toLowerCase())
-                .build();
+        origin = anOriginCity().id(null).build();
+        destination = aDestinationCity().id(null).build();
         cityRepository.save(origin);
         cityRepository.save(destination);
 
-        driver = UserAccount.builder()
-                .email(EMAIL)
-                .passwordHash(PASSWORD)
-                .status(AccountStatus.ACTIVE)
-                .roles(Set.of(Role.USER))
-                .build();
+        driver = anActiveUserAccount().build();
         userAccountRepository.save(driver);
 
-        userProfileRepository.save(UserProfile.builder()
-                .account(driver)
-                .displayName(CRISTIANO)
-                .phoneNumber(TELEPHONE)
-                .stats(new UserStats())
-                .build());
+        userProfileRepository.save(aUserProfile(driver).build());
 
-        vehicle = Vehicle.builder().model("911").make("Porsche").owner(driver).build();
+        vehicle = aTesla().id(null).owner(driver).build();
         vehicleRepository.save(vehicle);
     }
 
@@ -93,16 +71,11 @@ class RideRepositoryTest {
     @DisplayName("Save a new ride successfully")
     void saveNewRide() {
         // Arrange
-        Ride ride = Ride.builder()
+        Ride ride = aRide(origin, destination)
+                .id(null)
                 .driver(driver)
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .availableSeats(ONE)
-                .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
                 .status(Status.ACTIVE)
-                .lastModified(INSTANT)
-                .description(RIDE_DESCRIPTION)
                 .build();
 
         // Act
@@ -131,16 +104,11 @@ class RideRepositoryTest {
     @DisplayName("Find a ride by valid ID")
     void findRideById() {
         // Arrange
-        Ride ride = Ride.builder()
+        Ride ride = aRide(origin, destination)
+                .id(null)
                 .driver(driver)
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .availableSeats(ONE)
-                .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
                 .status(Status.ACTIVE)
-                .lastModified(INSTANT)
-                .description(RIDE_DESCRIPTION)
                 .build();
         Ride savedRide = rideRepository.save(ride);
 
@@ -159,16 +127,11 @@ class RideRepositoryTest {
     @DisplayName("Update a ride's details successfully")
     void shouldUpdateRideDetails() {
         // Arrange
-        Ride ride = Ride.builder()
+        Ride ride = aRide(origin, destination)
+                .id(null)
                 .driver(driver)
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .availableSeats(ONE)
-                .pricePerSeat(BIG_DECIMAL)
                 .vehicle(vehicle)
                 .status(Status.ACTIVE)
-                .lastModified(INSTANT)
-                .description(RIDE_DESCRIPTION)
                 .build();
         Ride savedRide = rideRepository.save(ride);
 

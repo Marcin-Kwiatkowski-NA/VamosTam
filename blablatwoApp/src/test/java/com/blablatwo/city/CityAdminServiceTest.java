@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -20,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,18 +30,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CityAdminServiceTest {
-
-    private static final Long ID_100 = 100L;
-    private static final Long NON_EXISTENT_ID = 999L;
-    private static final String CITY_NAME = "Kraków";
-    private static final String CITY_NAME_NORMALIZED = "krakow";
-    private static final String ANOTHER_CITY_NAME = "Warszawa";
-    private static final String ANOTHER_CITY_NAME_NORMALIZED = "warszawa";
-    private static final Long PLACE_ID_1 = 3094802L;
-    private static final Long PLACE_ID_2 = 756135L;
-    private static final String COUNTRY_CODE = "PL";
-    private static final Long POPULATION = 800000L;
-
 
     @Mock
     private CityRepository cityRepository;
@@ -58,16 +48,8 @@ class CityAdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        city = City.builder()
-                .id(ID_100)
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME)
-                .normNamePl(CITY_NAME_NORMALIZED)
-                .countryCode(COUNTRY_CODE)
-                .population(POPULATION)
-                .build();
-
-        cityDto = new CityDto(PLACE_ID_1, CITY_NAME, COUNTRY_CODE, POPULATION);
+        city = aKrakowCity().id(ID_100).build();
+        cityDto = krakowCityDto();
     }
 
     @Test
@@ -96,24 +78,24 @@ class CityAdminServiceTest {
     @Test
     @DisplayName("Return city when finding by existing placeId")
     void findByPlaceIdReturnsCity() {
-        when(cityRepository.findByPlaceId(PLACE_ID_1)).thenReturn(Optional.of(city));
+        when(cityRepository.findByPlaceId(PLACE_ID_KRAKOW)).thenReturn(Optional.of(city));
 
-        Optional<City> result = cityAdminService.findByPlaceId(PLACE_ID_1);
+        Optional<City> result = cityAdminService.findByPlaceId(PLACE_ID_KRAKOW);
 
         assertTrue(result.isPresent());
         assertEquals(city, result.get());
-        verify(cityRepository).findByPlaceId(PLACE_ID_1);
+        verify(cityRepository).findByPlaceId(PLACE_ID_KRAKOW);
     }
 
     @Test
     @DisplayName("Return empty when finding by non-existent placeId")
     void findByPlaceIdReturnsEmptyForNonExistentPlaceId() {
-        when(cityRepository.findByPlaceId(PLACE_ID_2)).thenReturn(Optional.empty());
+        when(cityRepository.findByPlaceId(PLACE_ID_WARSAW)).thenReturn(Optional.empty());
 
-        Optional<City> result = cityAdminService.findByPlaceId(PLACE_ID_2);
+        Optional<City> result = cityAdminService.findByPlaceId(PLACE_ID_WARSAW);
 
         assertFalse(result.isPresent());
-        verify(cityRepository).findByPlaceId(PLACE_ID_2);
+        verify(cityRepository).findByPlaceId(PLACE_ID_WARSAW);
     }
 
     @Test
@@ -132,10 +114,10 @@ class CityAdminServiceTest {
     @Test
     @DisplayName("Create new city successfully")
     void createNewCitySuccessfully() {
-        CityDto cityResponseDto = new CityDto(PLACE_ID_1, CITY_NAME, COUNTRY_CODE, POPULATION);
+        CityDto cityResponseDto = krakowCityDto();
 
-        when(cityRepository.findByPlaceId(PLACE_ID_1)).thenReturn(Optional.empty());
-        when(cityNameNormalizer.normalize(CITY_NAME)).thenReturn(CITY_NAME_NORMALIZED);
+        when(cityRepository.findByPlaceId(PLACE_ID_KRAKOW)).thenReturn(Optional.empty());
+        when(cityNameNormalizer.normalize(CITY_NAME_KRAKOW)).thenReturn(CITY_NAME_KRAKOW.toLowerCase());
         when(cityRepository.save(any(City.class))).thenReturn(city);
         when(cityMapper.cityEntityToCityDto(city)).thenReturn(cityResponseDto);
 
@@ -143,8 +125,8 @@ class CityAdminServiceTest {
 
         assertNotNull(result);
         assertEquals(cityResponseDto, result);
-        verify(cityRepository).findByPlaceId(PLACE_ID_1);
-        verify(cityNameNormalizer).normalize(CITY_NAME);
+        verify(cityRepository).findByPlaceId(PLACE_ID_KRAKOW);
+        verify(cityNameNormalizer).normalize(CITY_NAME_KRAKOW);
         verify(cityRepository).save(any(City.class));
         verify(cityMapper).cityEntityToCityDto(city);
     }
@@ -152,31 +134,24 @@ class CityAdminServiceTest {
     @Test
     @DisplayName("Throw EntityExistsException when creating city with existing placeId")
     void createThrowsExceptionForExistingPlaceId() {
-        when(cityRepository.findByPlaceId(PLACE_ID_1)).thenReturn(Optional.of(city));
+        when(cityRepository.findByPlaceId(PLACE_ID_KRAKOW)).thenReturn(Optional.of(city));
 
         assertThrows(EntityExistsException.class,
                 () -> cityAdminService.create(cityDto));
-        verify(cityRepository).findByPlaceId(PLACE_ID_1);
+        verify(cityRepository).findByPlaceId(PLACE_ID_KRAKOW);
         verify(cityRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Update existing city successfully")
     void updateExistingCitySuccessfully() {
-        City updatedCity = City.builder()
-                .id(ID_100)
-                .placeId(PLACE_ID_2)
-                .namePl(ANOTHER_CITY_NAME)
-                .normNamePl(ANOTHER_CITY_NAME_NORMALIZED)
-                .countryCode(COUNTRY_CODE)
-                .population(POPULATION)
-                .build();
-        CityDto updateDto = new CityDto(PLACE_ID_2, ANOTHER_CITY_NAME, COUNTRY_CODE, POPULATION);
-        CityDto updatedResponseDto = new CityDto(PLACE_ID_2, ANOTHER_CITY_NAME, COUNTRY_CODE, POPULATION);
+        City updatedCity = aWarsawCity().id(ID_100).build();
+        CityDto updateDto = warsawCityDto();
+        CityDto updatedResponseDto = warsawCityDto();
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
-        when(cityRepository.findByPlaceId(PLACE_ID_2)).thenReturn(Optional.empty());
-        when(cityNameNormalizer.normalize(ANOTHER_CITY_NAME)).thenReturn(ANOTHER_CITY_NAME_NORMALIZED);
+        when(cityRepository.findByPlaceId(PLACE_ID_WARSAW)).thenReturn(Optional.empty());
+        when(cityNameNormalizer.normalize(CITY_NAME_WARSAW)).thenReturn(CITY_NAME_WARSAW.toLowerCase());
         when(cityRepository.save(any(City.class))).thenReturn(updatedCity);
         when(cityMapper.cityEntityToCityDto(updatedCity)).thenReturn(updatedResponseDto);
 
@@ -185,8 +160,8 @@ class CityAdminServiceTest {
         assertNotNull(result);
         assertEquals(updatedResponseDto, result);
         verify(cityRepository).findById(ID_100);
-        verify(cityRepository).findByPlaceId(PLACE_ID_2);
-        verify(cityNameNormalizer).normalize(ANOTHER_CITY_NAME);
+        verify(cityRepository).findByPlaceId(PLACE_ID_WARSAW);
+        verify(cityNameNormalizer).normalize(CITY_NAME_WARSAW);
         verify(cityRepository).save(any(City.class));
         verify(cityMapper).cityEntityToCityDto(updatedCity);
     }
@@ -205,43 +180,33 @@ class CityAdminServiceTest {
     @Test
     @DisplayName("Throw EntityExistsException when updating city with placeId that clashes with another city")
     void updateThrowsExceptionWhenPlaceIdClashes() {
-        City existingOtherCity = City.builder()
-                .id(200L)
-                .placeId(PLACE_ID_2)
-                .namePl(ANOTHER_CITY_NAME)
-                .normNamePl(ANOTHER_CITY_NAME_NORMALIZED)
-                .countryCode(COUNTRY_CODE)
-                .population(POPULATION)
-                .build();
-        CityDto updateDto = new CityDto(PLACE_ID_2, ANOTHER_CITY_NAME, COUNTRY_CODE, POPULATION);
+        City existingOtherCity = aWarsawCity().id(200L).build();
+        CityDto updateDto = warsawCityDto();
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
-        when(cityRepository.findByPlaceId(PLACE_ID_2)).thenReturn(Optional.of(existingOtherCity));
+        when(cityRepository.findByPlaceId(PLACE_ID_WARSAW)).thenReturn(Optional.of(existingOtherCity));
 
         assertThrows(EntityExistsException.class,
                 () -> cityAdminService.update(updateDto, ID_100));
         verify(cityRepository).findById(ID_100);
-        verify(cityRepository).findByPlaceId(PLACE_ID_2);
+        verify(cityRepository).findByPlaceId(PLACE_ID_WARSAW);
         verify(cityRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Update city with same placeId succeeds (no conflict)")
     void updateCityWithSamePlaceIdSucceeds() {
-        CityDto updateDto = new CityDto(PLACE_ID_1, ANOTHER_CITY_NAME, COUNTRY_CODE, POPULATION);
-        City updatedCity = City.builder()
+        CityDto updateDto = new CityDto(PLACE_ID_KRAKOW, CITY_NAME_WARSAW, "PL", POPULATION_KRAKOW);
+        City updatedCity = aKrakowCity()
                 .id(ID_100)
-                .placeId(PLACE_ID_1)
-                .namePl(ANOTHER_CITY_NAME)
-                .normNamePl(ANOTHER_CITY_NAME_NORMALIZED)
-                .countryCode(COUNTRY_CODE)
-                .population(POPULATION)
+                .namePl(CITY_NAME_WARSAW)
+                .normNamePl(CITY_NAME_WARSAW.toLowerCase())
                 .build();
-        CityDto updatedResponseDto = new CityDto(PLACE_ID_1, ANOTHER_CITY_NAME, COUNTRY_CODE, POPULATION);
+        CityDto updatedResponseDto = new CityDto(PLACE_ID_KRAKOW, CITY_NAME_WARSAW, "PL", POPULATION_KRAKOW);
 
         when(cityRepository.findById(ID_100)).thenReturn(Optional.of(city));
-        when(cityRepository.findByPlaceId(PLACE_ID_1)).thenReturn(Optional.of(city));
-        when(cityNameNormalizer.normalize(ANOTHER_CITY_NAME)).thenReturn(ANOTHER_CITY_NAME_NORMALIZED);
+        when(cityRepository.findByPlaceId(PLACE_ID_KRAKOW)).thenReturn(Optional.of(city));
+        when(cityNameNormalizer.normalize(CITY_NAME_WARSAW)).thenReturn(CITY_NAME_WARSAW.toLowerCase());
         when(cityRepository.save(any(City.class))).thenReturn(updatedCity);
         when(cityMapper.cityEntityToCityDto(updatedCity)).thenReturn(updatedResponseDto);
 
@@ -250,8 +215,8 @@ class CityAdminServiceTest {
         assertNotNull(result);
         assertEquals(updatedResponseDto, result);
         verify(cityRepository).findById(ID_100);
-        verify(cityRepository).findByPlaceId(PLACE_ID_1);
-        verify(cityNameNormalizer).normalize(ANOTHER_CITY_NAME);
+        verify(cityRepository).findByPlaceId(PLACE_ID_KRAKOW);
+        verify(cityNameNormalizer).normalize(CITY_NAME_WARSAW);
         verify(cityRepository).save(any(City.class));
     }
 

@@ -4,6 +4,7 @@ import com.blablatwo.city.Lang;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.time.LocalTime;
  * City names are accepted and resolved to placeId by the backend.
  * If lang is provided, geocoding uses that language; otherwise, tries both pl and en.
  */
+@Builder(toBuilder = true)
 public record ExternalRideCreationDto(
         @NotBlank(message = "Origin city name is required")
         String originCityName,

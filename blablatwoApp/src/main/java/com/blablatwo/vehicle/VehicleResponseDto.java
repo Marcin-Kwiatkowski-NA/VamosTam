@@ -1,5 +1,8 @@
 package com.blablatwo.vehicle;
 
+import lombok.Builder;
+
+@Builder(toBuilder = true)
 public record VehicleResponseDto(
         Long id,
         String make,

@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Optional;
 
+import static com.blablatwo.util.Constants.ID_ONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
@@ -28,7 +29,6 @@ class CapabilityServiceTest {
     @InjectMocks
     private CapabilityServiceImpl capabilityService;
 
-    private static final Long USER_ID = 1L;
 
     @Nested
     class CanBook {
@@ -36,68 +36,68 @@ class CapabilityServiceTest {
         @Test
         void returnsTrue_whenActiveAndPhoneVerified() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.ACTIVE)
                     .phoneVerifiedAt(Instant.now())
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canBook(USER_ID)).isTrue();
+            assertThat(capabilityService.canBook(ID_ONE)).isTrue();
         }
 
         @Test
         void returnsFalse_whenActiveButPhoneNotVerified() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.ACTIVE)
                     .phoneVerifiedAt(null)
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canBook(USER_ID)).isFalse();
+            assertThat(capabilityService.canBook(ID_ONE)).isFalse();
         }
 
         @Test
         void returnsFalse_whenDisabledWithPhoneVerified() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.DISABLED)
                     .phoneVerifiedAt(Instant.now())
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canBook(USER_ID)).isFalse();
+            assertThat(capabilityService.canBook(ID_ONE)).isFalse();
         }
 
         @Test
         void returnsFalse_whenBannedWithPhoneVerified() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.BANNED)
                     .phoneVerifiedAt(Instant.now())
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canBook(USER_ID)).isFalse();
+            assertThat(capabilityService.canBook(ID_ONE)).isFalse();
         }
 
         @Test
         void returnsFalse_whenDisabledAndPhoneNotVerified() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.DISABLED)
                     .phoneVerifiedAt(null)
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canBook(USER_ID)).isFalse();
+            assertThat(capabilityService.canBook(ID_ONE)).isFalse();
         }
 
         @Test
         void throwsNoSuchUserException_whenUserNotFound() {
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.empty());
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> capabilityService.canBook(USER_ID))
+            assertThatThrownBy(() -> capabilityService.canBook(ID_ONE))
                     .isInstanceOf(NoSuchUserException.class);
         }
     }
@@ -108,41 +108,41 @@ class CapabilityServiceTest {
         @Test
         void returnsTrue_whenActive() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.ACTIVE)
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canCreateRide(USER_ID)).isTrue();
+            assertThat(capabilityService.canCreateRide(ID_ONE)).isTrue();
         }
 
         @Test
         void returnsFalse_whenDisabled() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.DISABLED)
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canCreateRide(USER_ID)).isFalse();
+            assertThat(capabilityService.canCreateRide(ID_ONE)).isFalse();
         }
 
         @Test
         void returnsFalse_whenBanned() {
             UserAccount account = UserAccount.builder()
-                    .id(USER_ID)
+                    .id(ID_ONE)
                     .status(AccountStatus.BANNED)
                     .build();
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.of(account));
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
-            assertThat(capabilityService.canCreateRide(USER_ID)).isFalse();
+            assertThat(capabilityService.canCreateRide(ID_ONE)).isFalse();
         }
 
         @Test
         void throwsNoSuchUserException_whenUserNotFound() {
-            when(userAccountRepository.findById(USER_ID)).thenReturn(Optional.empty());
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> capabilityService.canCreateRide(USER_ID))
+            assertThatThrownBy(() -> capabilityService.canCreateRide(ID_ONE))
                     .isInstanceOf(NoSuchUserException.class);
         }
     }

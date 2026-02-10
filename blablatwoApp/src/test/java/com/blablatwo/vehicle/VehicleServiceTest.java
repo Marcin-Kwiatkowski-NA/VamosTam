@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,9 +28,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class VehicleServiceTest {
-
-    private static final Long ID_100 = 100L;
-    private static final Long NON_EXISTENT_ID = 999L;
 
     @Mock
     private VehicleRepository vehicleRepository;
@@ -45,22 +44,9 @@ class VehicleServiceTest {
 
     @BeforeEach
     void setUp() {
-        vehicle = Vehicle.builder()
-                .id(ID_100)
-                .make("Toyota")
-                .model("Camry")
-                .productionYear(2020)
-                .color("Blue")
-                .licensePlate("KR12345")
-                .build();
-
-        vehicleCreationDto = new VehicleCreationDto(
-                "Toyota", "Camry", 2020, "Blue", "KR12345"
-        );
-
-        vehicleResponseDto = new VehicleResponseDto(
-                ID_100, "Toyota", "Camry", 2020, "Blue", "KR12345"
-        );
+        vehicle = aTesla().build();
+        vehicleCreationDto = aVehicleCreation().build();
+        vehicleResponseDto = aTeslaVehicleResponse().build();
     }
 
     @Test

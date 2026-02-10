@@ -12,18 +12,14 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
-import static com.blablatwo.util.Constants.CITY_NAME_DESTINATION;
-import static com.blablatwo.util.Constants.CITY_NAME_KRAKOW;
-import static com.blablatwo.util.Constants.ID_100;
-import static com.blablatwo.util.Constants.NON_EXISTENT_ID;
+import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
 class CityRepositoryImplTest {
 
-    private static final Long PLACE_ID_1 = 3094802L;
-    private static final Long PLACE_ID_2 = 756135L;
     private static final String CITY_NAME_KRAKOW_NORMALIZED = "krakow";
     private static final String CITY_NAME_DESTINATION_NORMALIZED = "warsaw";
 
@@ -37,11 +33,7 @@ class CityRepositoryImplTest {
     @DisplayName("Find a city by valid ID")
     void findCityById() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
         var savedCity = cityRepository.save(city);
 
         // Act
@@ -59,11 +51,7 @@ class CityRepositoryImplTest {
     @Order(1)
     void saveNewCity() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
 
         // Act
         var savedCity = cityRepository.save(city);
@@ -72,7 +60,7 @@ class CityRepositoryImplTest {
         assertAll(
                 () -> assertNotNull(savedCity.getId(), "Saved city should have an ID"),
                 () -> assertEquals(CITY_NAME_KRAKOW, savedCity.getNamePl(), "City name should match"),
-                () -> assertEquals(PLACE_ID_1, savedCity.getPlaceId(), "PlaceId should match")
+                () -> assertEquals(PLACE_ID_KRAKOW, savedCity.getPlaceId(), "PlaceId should match")
         );
     }
 
@@ -80,21 +68,17 @@ class CityRepositoryImplTest {
     @DisplayName("Find a city by placeId")
     void findCityByPlaceId() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
         cityRepository.save(city);
 
         // Act
-        Optional<City> retrievedCity = cityRepository.findByPlaceId(PLACE_ID_1);
+        Optional<City> retrievedCity = cityRepository.findByPlaceId(PLACE_ID_KRAKOW);
 
         // Assert
         assertAll(
                 () -> assertTrue(retrievedCity.isPresent(), "City should be found by placeId"),
                 () -> assertEquals(CITY_NAME_KRAKOW, retrievedCity.get().getNamePl(), "City name should match"),
-                () -> assertEquals(PLACE_ID_1, retrievedCity.get().getPlaceId(), "PlaceId should match")
+                () -> assertEquals(PLACE_ID_KRAKOW, retrievedCity.get().getPlaceId(), "PlaceId should match")
         );
     }
 
@@ -122,25 +106,21 @@ class CityRepositoryImplTest {
     @DisplayName("Update a city's details successfully")
     void shouldUpdateCityDetails() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
 
         // Act
         var saved = cityRepository.save(city);
         var savedId = saved.getId();
         saved.setNamePl(CITY_NAME_DESTINATION);
         saved.setNormNamePl(CITY_NAME_DESTINATION_NORMALIZED);
-        saved.setPlaceId(PLACE_ID_2);
+        saved.setPlaceId(PLACE_ID_WARSAW);
         var updatedCity = cityRepository.save(city);
 
         // Assert
         assertAll(
                 () -> assertEquals(savedId, updatedCity.getId(), "Updated city should have same ID"),
                 () -> assertEquals(CITY_NAME_DESTINATION, updatedCity.getNamePl(), "City name should be updated"),
-                () -> assertEquals(PLACE_ID_2, updatedCity.getPlaceId(), "PlaceId should be updated")
+                () -> assertEquals(PLACE_ID_WARSAW, updatedCity.getPlaceId(), "PlaceId should be updated")
         );
     }
 
@@ -148,11 +128,7 @@ class CityRepositoryImplTest {
     @DisplayName("Delete a city successfully")
     void shouldDeleteCity() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
         City savedCity = cityRepository.save(city);
         Long savedId = savedCity.getId();
 
@@ -170,7 +146,7 @@ class CityRepositoryImplTest {
         // Arrange
         City nonExistentCity = new City();
         nonExistentCity.setId(NON_EXISTENT_ID);
-        nonExistentCity.setPlaceId(PLACE_ID_1);
+        nonExistentCity.setPlaceId(PLACE_ID_KRAKOW);
         nonExistentCity.setNamePl("Non-Existent City");
         nonExistentCity.setNormNamePl("non-existent city");
 
@@ -185,7 +161,7 @@ class CityRepositoryImplTest {
     void saveCityWithNullNamePl() {
         // Arrange
         City city = City.builder()
-                .placeId(PLACE_ID_1)
+                .placeId(PLACE_ID_KRAKOW)
                 .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
                 .build();
 
@@ -229,11 +205,7 @@ class CityRepositoryImplTest {
     @DisplayName("Find city by normalized Polish name")
     void findCityByNormNamePl() {
         // Arrange
-        City city = City.builder()
-                .placeId(PLACE_ID_1)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl(CITY_NAME_KRAKOW_NORMALIZED)
-                .build();
+        City city = aKrakowCity().id(null).build();
         cityRepository.save(city);
 
         // Act

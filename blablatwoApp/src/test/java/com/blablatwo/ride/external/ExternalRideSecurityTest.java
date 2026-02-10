@@ -1,15 +1,7 @@
 package com.blablatwo.ride.external;
 
-import com.blablatwo.city.CityDto;
-import com.blablatwo.city.Lang;
-import com.blablatwo.ride.RideSource;
-import com.blablatwo.ride.RideStatus;
-import com.blablatwo.dto.ContactMethodDto;
-import com.blablatwo.dto.ContactType;
-import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
-import com.blablatwo.vehicle.VehicleResponseDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,12 +14,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
+
+import static com.blablatwo.util.TestFixtures.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -59,39 +48,8 @@ class ExternalRideSecurityTest {
 
     @BeforeEach
     void setUp() {
-        validDto = new ExternalRideCreationDto(
-                "Paris",
-                "Lyon",
-                Lang.EN,
-                LocalDate.of(2025, 6, 15),
-                LocalTime.of(10, 0),
-                false,
-                3,
-                new BigDecimal("25.00"),
-                "Test ride description",
-                "fb-12345",
-                "Raw content from Facebook",
-                "+33123456789",
-                "Jean Dupont",
-                "https://facebook.com/groups/rides/12345"
-        );
-
-        responseDto = RideResponseDto.builder()
-                .id(1L)
-                .source(RideSource.FACEBOOK)
-                .origin(new CityDto(1L, "Paris", "FR", 2000000L))
-                .destination(new CityDto(2L, "Lyon", "FR", 500000L))
-                .departureTime(LocalDateTime.of(2025, 6, 15, 10, 0))
-                .isApproximate(false)
-                .pricePerSeat(new BigDecimal("25.00"))
-                .availableSeats(3)
-                .seatsTaken(0)
-                .description("Test ride description")
-                .driver(new UserCardDto(9999L, "Jean Dupont", null, null))
-                .contactMethods(List.of(new ContactMethodDto(ContactType.FACEBOOK_LINK, "https://facebook.com/groups/rides/12345")))
-                .vehicle(null)
-                .rideStatus(RideStatus.OPEN)
-                .build();
+        validDto = aFrenchRideCreation().build();
+        responseDto = aFrenchRideResponse().id(1L).build();
     }
 
     @Test

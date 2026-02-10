@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ import java.time.LocalTime;
  * DTO for external seat ingestion (scraper microservice).
  * City names are accepted and resolved to placeId by the backend.
  */
+@Builder(toBuilder = true)
 public record ExternalSeatCreationDto(
         @NotBlank(message = "Origin city name is required")
         String originCityName,

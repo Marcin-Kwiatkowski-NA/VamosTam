@@ -1,13 +1,6 @@
 package com.blablatwo.seat.external;
 
 import com.blablatwo.auth.service.JwtTokenProvider;
-import com.blablatwo.city.CityDto;
-import com.blablatwo.city.Lang;
-import com.blablatwo.dto.ContactMethodDto;
-import com.blablatwo.dto.ContactType;
-import com.blablatwo.dto.UserCardDto;
-import com.blablatwo.ride.RideSource;
-import com.blablatwo.seat.SeatStatus;
 import com.blablatwo.seat.dto.ExternalSeatCreationDto;
 import com.blablatwo.seat.dto.SeatResponseDto;
 import com.blablatwo.user.UserAccountRepository;
@@ -22,13 +15,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
+import static com.blablatwo.util.TestFixtures.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -63,40 +53,9 @@ class ExternalSeatControllerTest {
 
     @BeforeEach
     void setUp() {
-        creationDto = new ExternalSeatCreationDto(
-                CITY_NAME_ORIGIN,
-                CITY_NAME_DESTINATION,
-                Lang.PL,
-                LOCAL_DATE,
-                LOCAL_TIME,
-                false,
-                ONE,
-                BIG_DECIMAL,
-                "Looking for a ride",
-                EXTERNAL_ID,
-                "raw content",
-                TELEPHONE,
-                CRISTIANO,
-                "https://facebook.com/post/12345"
-        );
+        creationDto = anExternalSeatCreationDto().externalId(EXTERNAL_ID).build();
 
-        CityDto originCityDto = new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100000L);
-        CityDto destinationCityDto = new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200000L);
-
-        seatResponseDto = SeatResponseDto.builder()
-                .id(ID_100)
-                .source(RideSource.FACEBOOK)
-                .origin(originCityDto)
-                .destination(destinationCityDto)
-                .departureTime(LOCAL_DATE.atTime(LOCAL_TIME))
-                .isApproximate(false)
-                .count(ONE)
-                .priceWillingToPay(BIG_DECIMAL)
-                .description("Looking for a ride")
-                .passenger(new UserCardDto(ID_ONE, CRISTIANO, null, null))
-                .contactMethods(List.of(new ContactMethodDto(ContactType.PHONE, TELEPHONE)))
-                .seatStatus(SeatStatus.SEARCHING)
-                .build();
+        seatResponseDto = aSeatResponseDto().build();
     }
 
     @Test

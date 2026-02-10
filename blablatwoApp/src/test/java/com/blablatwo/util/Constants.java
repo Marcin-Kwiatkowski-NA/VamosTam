@@ -15,6 +15,11 @@ public class Constants {
     public static final String CITY_NAME_DESTINATION = "Destination";
     public static final String CITY_NAME_ORIGIN = "Origin";
     public static final String CITY_NAME_KRAKOW = "Kraków";
+    public static final String CITY_NAME_WARSAW = "Warszawa";
+    public static final Long PLACE_ID_KRAKOW = 3094802L;
+    public static final Long PLACE_ID_WARSAW = 756135L;
+    public static final Long POPULATION_KRAKOW = 800_000L;
+    public static final Long POPULATION_WARSAW = 1_800_000L;
 
     public static final String RIDE_DESCRIPTION = "A scenic ride through the countryside.";
 
@@ -78,6 +83,15 @@ public class Constants {
     public static final String VEHICLE_LICENSE_PLATE_1 = "123-ABC";
     public static final String VEHICLE_LICENSE_PLATE_2 = "456-DEF";
     public static final String VEHICLE_LICENSE_PLATE_3 = "789-GHI";
+
+    // ── French scenario ──
+    public static final String CITY_NAME_PARIS = "Paris";
+    public static final String CITY_NAME_LYON = "Lyon";
+    public static final String JEAN_DUPONT = "Jean Dupont";
+    public static final String TELEPHONE_FR = "+33123456789";
+    public static final String FRENCH_RIDE_DESCRIPTION = "Voyage en France";
+    public static final BigDecimal PRICE_25 = new BigDecimal("25.00");
+    public static final String FACEBOOK_GROUP_URL = "https://facebook.com/groups/rides/12345";
 
     private Constants() {
     }
