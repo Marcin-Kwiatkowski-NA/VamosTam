@@ -14,7 +14,5 @@ public interface SeatExternalMetaRepository extends JpaRepository<SeatExternalMe
 
     boolean existsByExternalId(String externalId);
 
-    boolean existsByContentHash(String contentHash);
-
     List<SeatExternalMeta> findAllByIdIn(Collection<Long> seatIds);
 }

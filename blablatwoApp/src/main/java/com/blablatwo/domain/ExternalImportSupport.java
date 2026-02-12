@@ -6,20 +6,12 @@ import com.blablatwo.exceptions.DuplicateExternalEntityException;
 import com.blablatwo.exceptions.FacebookBotMissingException;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.function.Function;
 
 @Component
 public class ExternalImportSupport {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExternalImportSupport.class);
 
     private final CityResolutionService cityResolutionService;
     private final UserAccountRepository userAccountRepository;
@@ -30,26 +22,14 @@ public class ExternalImportSupport {
         this.userAccountRepository = userAccountRepository;
     }
 
-    public String computeHash(String rawContent) {
-        if (rawContent == null || rawContent.isBlank()) {
-            return null;
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(rawContent.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.error("SHA-256 algorithm not available", e);
-            return null;
-        }
-    }
-
-    public void validateAndDeduplicate(String externalId, String contentHash,
-                                        Function<String, Boolean> existsByExternalIdFn,
-                                        Function<String, Boolean> existsByHashFn) {
-        if (contentHash != null && !contentHash.isBlank() && existsByHashFn.apply(contentHash)) {
-            throw new DuplicateExternalEntityException("Duplicate by contentHash");
-        }
+    /**
+     * Deduplication relies solely on externalId, which is a SHA-256 fingerprint
+     * computed by the scraper from: normalize(author)|normalize(origin)|normalize(destination)|formatDate(date)
+     * where normalize() trims + lowercases (Polish locale) and formatDate() uses ISO YYYY-MM-DD.
+     * This is group-independent by design — cross-posted rides across different Facebook groups
+     * produce the same externalId, so the API returns HTTP 409 for duplicates.
+     */
+    public void validateNotDuplicate(String externalId, Function<String, Boolean> existsByExternalIdFn) {
         if (externalId != null && !externalId.isBlank() && existsByExternalIdFn.apply(externalId)) {
             throw new DuplicateExternalEntityException("Duplicate by externalId: " + externalId);
         }

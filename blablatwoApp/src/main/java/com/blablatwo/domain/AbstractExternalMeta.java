@@ -31,9 +31,6 @@ public abstract class AbstractExternalMeta {
     @Column(name = "raw_content", columnDefinition = "TEXT")
     private String rawContent;
 
-    @Column(name = "content_hash", length = 64)
-    private String contentHash;
-
     @Column(name = "phone_number", length = 32)
     private String phoneNumber;
 

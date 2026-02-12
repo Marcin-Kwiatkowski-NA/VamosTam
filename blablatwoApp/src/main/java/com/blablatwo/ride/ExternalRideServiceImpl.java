@@ -41,11 +41,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     @Override
     @Transactional
     public RideResponseDto createExternalRide(ExternalRideCreationDto dto) {
-        String contentHash = importSupport.computeHash(dto.rawContent());
-        importSupport.validateAndDeduplicate(
-                dto.externalId(), contentHash,
-                metaRepository::existsByExternalId,
-                metaRepository::existsByContentHash);
+        importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
         String langCode = dto.lang() != null ? dto.lang().getCode() : null;
         var segment = importSupport.resolveSegment(dto.originCityName(), dto.destinationCityName(), langCode);
@@ -70,7 +66,6 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .sourceUrl(dto.sourceUrl())
                 .externalId(dto.externalId())
                 .rawContent(dto.rawContent())
-                .contentHash(contentHash)
                 .phoneNumber(dto.phoneNumber())
                 .authorName(dto.authorName())
                 .build();

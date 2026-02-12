@@ -48,11 +48,7 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
     @Override
     @Transactional
     public SeatResponseDto createExternalSeat(ExternalSeatCreationDto dto) {
-        String contentHash = importSupport.computeHash(dto.rawContent());
-        importSupport.validateAndDeduplicate(
-                dto.externalId(), contentHash,
-                metaRepository::existsByExternalId,
-                metaRepository::existsByContentHash);
+        importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
         String langCode = dto.lang() != null ? dto.lang().getCode() : null;
         Segment segment = importSupport.resolveSegment(dto.originCityName(), dto.destinationCityName(), langCode);
@@ -77,7 +73,6 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
                 .sourceUrl(dto.sourceUrl())
                 .externalId(dto.externalId())
                 .rawContent(dto.rawContent())
-                .contentHash(contentHash)
                 .phoneNumber(dto.phoneNumber())
                 .authorName(dto.authorName())
                 .build();
