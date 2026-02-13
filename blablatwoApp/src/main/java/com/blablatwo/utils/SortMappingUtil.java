@@ -12,7 +12,7 @@ public final class SortMappingUtil {
     /**
      * Translates an API-level sort field name to internal JPA sort.
      * <p>
-     * "departureTime" maps to the composite embedded path: timeSlot.departureDate + timeSlot.departureTime.
+     * "departureTime" maps to the composite path: departureDate + departureTime.
      *
      * @throws IllegalArgumentException if sortBy is not in the allowed set
      */
@@ -21,8 +21,8 @@ public final class SortMappingUtil {
                 ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         if ("departureTime".equals(sortBy)) {
-            return Sort.by(direction, "timeSlot.departureDate")
-                    .and(Sort.by(direction, "timeSlot.departureTime"));
+            return Sort.by(direction, "departureDate")
+                    .and(Sort.by(direction, "departureTime"));
         }
 
         if (allowedFields.contains(sortBy)) {

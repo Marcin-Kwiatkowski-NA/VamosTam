@@ -1,5 +1,6 @@
 package com.blablatwo.domain;
 
+import com.blablatwo.city.City;
 import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.config.DataInitializer;
 import com.blablatwo.exceptions.DuplicateExternalEntityException;
@@ -35,10 +36,17 @@ public class ExternalImportSupport {
         }
     }
 
-    public Segment resolveSegment(String originCityName, String destinationCityName, String langCode) {
+    public record ResolvedCities(City origin, City destination) {
+    }
+
+    public ResolvedCities resolveCities(String originCityName, String destinationCityName, String langCode) {
         var origin = cityResolutionService.resolveCityByName(originCityName, langCode);
         var destination = cityResolutionService.resolveCityByName(destinationCityName, langCode);
-        return new Segment(origin, destination);
+        return new ResolvedCities(origin, destination);
+    }
+
+    public City resolveCityByName(String cityName, String langCode) {
+        return cityResolutionService.resolveCityByName(cityName, langCode);
     }
 
     public UserAccount resolveProxyUser() {

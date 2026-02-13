@@ -9,6 +9,7 @@ import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder(toBuilder = true)
 public record RideCreationDto(
@@ -18,9 +19,13 @@ public record RideCreationDto(
         @NotNull(message = "Destination place ID cannot be null")
         Long destinationPlaceId,
 
+        List<@NotNull Long> intermediateStopPlaceIds,
+
         @NotNull(message = "Departure time cannot be null")
         @Future(message = "Departure time must be in the future")
         LocalDateTime departureTime,
+
+        List<@NotNull @Future LocalDateTime> intermediateStopDepartureTimes,
 
         boolean isApproximate,
 
@@ -28,7 +33,6 @@ public record RideCreationDto(
         @Min(value = 1, message = "Available seats must be at least 1")
         int availableSeats,
 
-        @NotNull(message = "Price per seat cannot be null")
         @DecimalMin(value = "0.0", inclusive = true, message = "Price per seat cannot be negative")
         BigDecimal pricePerSeat,
 

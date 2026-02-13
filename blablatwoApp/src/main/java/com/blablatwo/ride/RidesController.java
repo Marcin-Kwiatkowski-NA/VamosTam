@@ -2,6 +2,7 @@ package com.blablatwo.ride;
 
 import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.exceptions.NoSuchRideException;
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -38,7 +39,7 @@ import static com.blablatwo.utils.SortMappingUtil.translateSort;
 public class RidesController {
     private static final Logger LOGGER = LoggerFactory.getLogger(RidesController.class);
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "departureTime", "pricePerSeat", "availableSeats", "lastModified");
+            "departureTime", "pricePerSeat", "totalSeats", "lastModified");
 
     private final RideService rideService;
 
@@ -109,8 +110,8 @@ public class RidesController {
                 departureDate, departureDateTo, departureTimeFrom, minSeats
         );
         Pageable pageable = PageRequest.of(page, size,
-                Sort.by("timeSlot.departureDate").ascending()
-                        .and(Sort.by("timeSlot.departureTime").ascending()));
+                Sort.by("departureDate").ascending()
+                        .and(Sort.by("departureTime").ascending()));
 
         return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
     }
@@ -118,8 +119,9 @@ public class RidesController {
     @PostMapping("/rides/{rideId}/book")
     public ResponseEntity<RideResponseDto> bookRide(
             @PathVariable Long rideId,
+            @Valid @RequestBody BookRideRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
-        RideResponseDto bookedRide = rideService.bookRide(rideId, principal.userId());
+        RideResponseDto bookedRide = rideService.bookRide(rideId, principal.userId(), request);
         return ResponseEntity.ok(bookedRide);
     }
 

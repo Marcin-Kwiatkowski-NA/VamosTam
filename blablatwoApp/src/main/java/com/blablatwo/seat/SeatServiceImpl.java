@@ -3,10 +3,8 @@ package com.blablatwo.seat;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
-import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.exceptions.NoSuchSeatException;
 import com.blablatwo.seat.dto.SeatCreationDto;
 import com.blablatwo.seat.dto.SeatResponseDto;
@@ -68,8 +66,11 @@ public class SeatServiceImpl implements SeatService {
 
         Seat seat = seatMapper.seatCreationDtoToEntity(dto);
         seat.setPassenger(passenger);
-        seat.setSegment(new Segment(origin, destination));
-        seat.setTimeSlot(TimeSlot.of(dto.departureTime(), dto.isApproximate()));
+        seat.setOrigin(origin);
+        seat.setDestination(destination);
+        seat.setDepartureDate(dto.departureTime().toLocalDate());
+        seat.setDepartureTime(dto.departureTime().toLocalTime());
+        seat.setApproximate(dto.isApproximate());
         seat.setLastModified(Instant.now());
 
         Seat saved = seatRepository.save(seat);
@@ -138,8 +139,8 @@ public class SeatServiceImpl implements SeatService {
     private SeatResponseDto mapSeatToResponseDto(Seat seat, String lang) {
         SeatResponseDto dto = seatMapper.seatEntityToResponseDto(seat);
         return dto.toBuilder()
-                .origin(cityMapper.cityEntityToCityDto(seat.getSegment().getOrigin(), lang))
-                .destination(cityMapper.cityEntityToCityDto(seat.getSegment().getDestination(), lang))
+                .origin(cityMapper.cityEntityToCityDto(seat.getOrigin(), lang))
+                .destination(cityMapper.cityEntityToCityDto(seat.getDestination(), lang))
                 .build();
     }
 }

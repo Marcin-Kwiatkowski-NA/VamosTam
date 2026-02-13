@@ -20,13 +20,13 @@ public class SeatSpecifications {
     public static Specification<Seat> originPlaceIdEquals(Long placeId) {
         return (root, query, cb) ->
                 placeId == null ? null :
-                        cb.equal(root.get("segment").get("origin").get("placeId"), placeId);
+                        cb.equal(root.get("origin").get("placeId"), placeId);
     }
 
     public static Specification<Seat> destinationPlaceIdEquals(Long placeId) {
         return (root, query, cb) ->
                 placeId == null ? null :
-                        cb.equal(root.get("segment").get("destination").get("placeId"), placeId);
+                        cb.equal(root.get("destination").get("placeId"), placeId);
     }
 
     public static Specification<Seat> departsOnOrAfter(LocalDate date, LocalTime time) {

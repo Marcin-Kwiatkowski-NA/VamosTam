@@ -9,6 +9,7 @@ import lombok.Builder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 /**
  * DTO for external ride ingestion (scraper microservice).
@@ -23,6 +24,8 @@ public record ExternalRideCreationDto(
 
         @NotBlank(message = "Destination city name is required")
         String destinationCityName,
+
+        List<@NotBlank String> intermediateStopCityNames,
 
         Lang lang,
 

@@ -1,9 +1,8 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.city.City;
 import com.blablatwo.domain.ExternalImportSupport;
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimeSlot;
-import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.external.ExternalRideService;
 import com.blablatwo.user.UserAccount;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Service
@@ -40,19 +40,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
     @Override
     @Transactional
-    public RideResponseDto createExternalRide(ExternalRideCreationDto dto) {
+    public RideResponseDto createExternalRide(com.blablatwo.ride.dto.ExternalRideCreationDto dto) {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
         String langCode = dto.lang() != null ? dto.lang().getCode() : null;
-        var segment = importSupport.resolveSegment(dto.originCityName(), dto.destinationCityName(), langCode);
+        var cities = importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), langCode);
         UserAccount proxy = importSupport.resolveProxyUser();
 
         Ride ride = Ride.builder()
                 .driver(proxy)
-                .segment(segment)
-                .timeSlot(new TimeSlot(dto.departureDate(), dto.departureTime(), dto.isApproximate()))
+                .departureDate(dto.departureDate())
+                .departureTime(dto.departureTime())
+                .isApproximate(dto.isApproximate())
                 .source(RideSource.FACEBOOK)
-                .availableSeats(dto.availableSeats())
+                .totalSeats(dto.availableSeats())
                 .pricePerSeat(dto.pricePerSeat())
                 .status(Status.ACTIVE)
                 .description(dto.description())
@@ -60,6 +61,33 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .build();
 
         Ride saved = rideRepository.save(ride);
+
+        // Build stops: origin + intermediate (if any) + destination
+        var stops = new ArrayList<RideStop>();
+        int order = 0;
+
+        stops.add(RideStop.builder()
+                .ride(saved).city(cities.origin()).stopOrder(order++)
+                .departureTime(dto.departureDate().atTime(dto.departureTime()))
+                .build());
+
+        if (dto.intermediateStopCityNames() != null) {
+            for (String cityName : dto.intermediateStopCityNames()) {
+                City city = importSupport.resolveCityByName(cityName, langCode);
+                stops.add(RideStop.builder()
+                        .ride(saved).city(city).stopOrder(order++)
+                        .departureTime(null)
+                        .build());
+            }
+        }
+
+        stops.add(RideStop.builder()
+                .ride(saved).city(cities.destination()).stopOrder(order)
+                .departureTime(null)
+                .build());
+
+        saved.setStops(stops);
+        rideRepository.save(saved);
 
         RideExternalMeta meta = RideExternalMeta.builder()
                 .ride(saved)

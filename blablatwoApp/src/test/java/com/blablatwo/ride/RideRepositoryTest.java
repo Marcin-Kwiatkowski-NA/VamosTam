@@ -2,16 +2,13 @@ package com.blablatwo.ride;
 
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityRepository;
-import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfileRepository;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +18,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Optional;
 
 import static com.blablatwo.util.Constants.*;
@@ -30,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")
 class RideRepositoryTest {
-
 
     @Autowired
     private EntityManager entityManager;
@@ -67,31 +64,34 @@ class RideRepositoryTest {
         vehicleRepository.save(vehicle);
     }
 
-    @Test
-    @DisplayName("Save a new ride successfully")
-    void saveNewRide() {
-        // Arrange
-        Ride ride = aRide(origin, destination)
+    private Ride createRideWithStops(City orig, City dest) {
+        Ride ride = aRide(orig, dest)
                 .id(null)
                 .driver(driver)
                 .vehicle(vehicle)
                 .status(Status.ACTIVE)
+                .stops(new ArrayList<>())
                 .build();
+        ride.getStops().addAll(buildStops(ride, orig, dest));
+        return ride;
+    }
 
-        // Act
+    @Test
+    @DisplayName("Save a new ride with stops successfully")
+    void saveNewRide() {
+        Ride ride = createRideWithStops(origin, destination);
+
         Ride savedRide = rideRepository.save(ride);
 
-        // Assert
         assertAll(
                 () -> assertNotNull(savedRide.getId(), "Saved ride should have an ID"),
                 () -> assertEquals(driver.getId(), savedRide.getDriver().getId(), "Driver should match"),
-                () -> assertEquals(origin.getId(), savedRide.getSegment().getOrigin().getId(), "Origin should match"),
-                () -> assertEquals(origin.getPlaceId(), savedRide.getSegment().getOrigin().getPlaceId(), "Origin placeId should match"),
-                () -> assertEquals(destination.getId(), savedRide.getSegment().getDestination().getId(), "Destination should match"),
-                () -> assertEquals(destination.getPlaceId(), savedRide.getSegment().getDestination().getPlaceId(), "Destination placeId should match"),
-                () -> assertEquals(LOCAL_DATE, savedRide.getTimeSlot().getDepartureDate(), "Departure date should match"),
-                () -> assertEquals(LOCAL_TIME, savedRide.getTimeSlot().getDepartureTime(), "Departure time should match"),
-                () -> assertEquals(ONE, savedRide.getAvailableSeats(), "Available seats should match"),
+                () -> assertEquals(2, savedRide.getStops().size(), "Should have 2 stops"),
+                () -> assertEquals(origin.getId(), savedRide.getOrigin().getId(), "Origin should match"),
+                () -> assertEquals(destination.getId(), savedRide.getDestination().getId(), "Destination should match"),
+                () -> assertEquals(LOCAL_DATE, savedRide.getDepartureDate(), "Departure date should match"),
+                () -> assertEquals(LOCAL_TIME, savedRide.getDepartureTime(), "Departure time should match"),
+                () -> assertEquals(ONE, savedRide.getTotalSeats(), "Total seats should match"),
                 () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),
                 () -> assertEquals(vehicle.getId(), savedRide.getVehicle().getId(), "Vehicle should match"),
                 () -> assertEquals(Status.ACTIVE, savedRide.getStatus(), "Status should match"),
@@ -103,19 +103,11 @@ class RideRepositoryTest {
     @Test
     @DisplayName("Find a ride by valid ID")
     void findRideById() {
-        // Arrange
-        Ride ride = aRide(origin, destination)
-                .id(null)
-                .driver(driver)
-                .vehicle(vehicle)
-                .status(Status.ACTIVE)
-                .build();
+        Ride ride = createRideWithStops(origin, destination);
         Ride savedRide = rideRepository.save(ride);
 
-        // Act
         Optional<Ride> retrievedRide = rideRepository.findById(savedRide.getId());
 
-        // Assert
         assertAll(
                 () -> assertTrue(retrievedRide.isPresent(), "Ride should be found by ID"),
                 () -> assertEquals(savedRide.getId(), retrievedRide.get().getId(), "IDs should match"),
@@ -126,27 +118,19 @@ class RideRepositoryTest {
     @Test
     @DisplayName("Update a ride's details successfully")
     void shouldUpdateRideDetails() {
-        // Arrange
-        Ride ride = aRide(origin, destination)
-                .id(null)
-                .driver(driver)
-                .vehicle(vehicle)
-                .status(Status.ACTIVE)
-                .build();
+        Ride ride = createRideWithStops(origin, destination);
         Ride savedRide = rideRepository.save(ride);
 
-        savedRide.setAvailableSeats(2);
+        savedRide.setTotalSeats(2);
         savedRide.setPricePerSeat(BIG_DECIMAL.add(BigDecimal.ONE));
         savedRide.setLastModified(INSTANT.plusSeconds(60));
         savedRide.setStatus(Status.CANCELLED);
         savedRide.setDescription("Updated description");
 
-        // Act
         Ride updatedRide = rideRepository.save(savedRide);
 
-        // Assert
         assertAll(
-                () -> assertEquals(2, updatedRide.getAvailableSeats(), "Available seats should be updated"),
+                () -> assertEquals(2, updatedRide.getTotalSeats(), "Total seats should be updated"),
                 () -> assertEquals(BIG_DECIMAL.add(BigDecimal.ONE), updatedRide.getPricePerSeat(), "Price per seat should be updated"),
                 () -> assertEquals(INSTANT.plusSeconds(60), updatedRide.getLastModified(), "Last modified should be updated"),
                 () -> assertEquals(Status.CANCELLED, updatedRide.getStatus(), "Status should be updated"),
@@ -157,18 +141,11 @@ class RideRepositoryTest {
     @Test
     @DisplayName("Delete a ride successfully")
     void shouldDeleteRide() {
-        // Arrange
-        Ride ride = Ride.builder()
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .description(RIDE_DESCRIPTION)
-                .build();
+        Ride ride = createRideWithStops(origin, destination);
         Ride savedRide = rideRepository.save(ride);
 
-        // Act
         rideRepository.deleteById(savedRide.getId());
 
-        // Assert
         Optional<Ride> deletedRide = rideRepository.findById(savedRide.getId());
         assertFalse(deletedRide.isPresent(), "Ride should be deleted successfully");
     }
@@ -176,87 +153,44 @@ class RideRepositoryTest {
     @Test
     @DisplayName("Return empty when finding by non-existent ID")
     void returnEmptyForNonExistentId() {
-        // Act
         Optional<Ride> retrievedRide = rideRepository.findById(NON_EXISTENT_ID);
 
-        // Assert
         assertFalse(retrievedRide.isPresent(), "No ride should be found with non-existent ID");
-    }
-
-    @Test
-    @DisplayName("Save a ride with null segment throws exception")
-    void saveRideWithNullSegment() {
-        // Arrange
-        Ride ride = Ride.builder()
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .description(RIDE_DESCRIPTION)
-                .build();
-
-        // Act & Assert
-        assertThrows(ConstraintViolationException.class, () -> {
-            rideRepository.save(ride);
-            entityManager.flush();
-        }, "Saving a ride with null segment should throw an exception");
     }
 
     @Test
     @DisplayName("Find all rides when no rides exist returns empty list")
     void findAllRidesWhenNoneExist() {
-        // Arrange
         rideRepository.deleteAll();
 
-        // Act
         Iterable<Ride> rides = rideRepository.findAll();
 
-
-        // Assert
         assertFalse(rides.iterator().hasNext(), "Should return an empty list when no rides exist");
     }
 
     @Test
     @DisplayName("Find all rides returns list bigger than 0")
     void findAllRidesTest() {
-        // Arrange
-        Ride ride1 = Ride.builder()
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .description(RIDE_DESCRIPTION)
-                .build();
-        Ride ride2 = Ride.builder()
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME.plusHours(1), false))
-                .description(RIDE_DESCRIPTION)
-                .build();
+        Ride ride1 = createRideWithStops(origin, destination);
+        Ride ride2 = createRideWithStops(origin, destination);
+        ride2.setDepartureTime(LOCAL_TIME.plusHours(1));
+        ride2.getStops().get(0).setDepartureTime(LOCAL_DATE.atTime(LOCAL_TIME.plusHours(1)));
+
         rideRepository.save(ride1);
         rideRepository.save(ride2);
 
-        // Act
         Iterable<Ride> rides = rideRepository.findAll();
 
-        // Assert
         assertTrue(rides.iterator().hasNext(), "Ride list should not be empty");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void printConstraint7() {
-        var rows = entityManager.createNativeQuery("""
-      SELECT CONSTRAINT_NAME, CHECK_CLAUSE
-      FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS
-      WHERE CONSTRAINT_NAME = 'CONSTRAINT_7'
-      """).getResultList();
-
-        rows.forEach(r -> System.out.println(java.util.Arrays.toString((Object[]) r)));
     }
 
     @Test
     @DisplayName("Attempt to update a non-existent ride returns exception")
     void updateNonExistentRide() {
-        // Arrange
         Ride nonExistentRide = new Ride();
         nonExistentRide.setId(NON_EXISTENT_ID);
-        nonExistentRide.setSegment(new Segment(origin, destination));
-        nonExistentRide.setTimeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false));
+        nonExistentRide.setDepartureDate(LOCAL_DATE);
+        nonExistentRide.setDepartureTime(LOCAL_TIME);
         nonExistentRide.setDescription(RIDE_DESCRIPTION);
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {

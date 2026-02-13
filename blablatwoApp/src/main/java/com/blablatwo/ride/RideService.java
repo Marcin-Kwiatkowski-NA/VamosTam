@@ -1,5 +1,6 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -22,7 +23,7 @@ public interface RideService {
 
     Page<RideResponseDto> getAllRides(Pageable pageable);
 
-    RideResponseDto bookRide(Long rideId, Long passengerId);
+    RideResponseDto bookRide(Long rideId, Long passengerId, BookRideRequest request);
 
     RideResponseDto cancelBooking(Long rideId, Long passengerId);
 

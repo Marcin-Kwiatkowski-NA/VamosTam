@@ -8,8 +8,9 @@ import com.blablatwo.domain.Status;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
+import com.blablatwo.exceptions.SegmentFullException;
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -31,6 +32,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -54,6 +56,9 @@ class RideServiceImplTest {
 
     @Mock
     private RideRepository rideRepository;
+
+    @Mock
+    private RideBookingRepository bookingRepository;
 
     @Mock
     private RideMapper rideMapper;
@@ -96,7 +101,7 @@ class RideServiceImplTest {
         destinationCityDto = destinationCityDto();
         originCityEntity = anOriginCity().build();
         destinationCityEntity = aDestinationCity().build();
-        ride = aRide(originCityEntity, destinationCityEntity).build();
+        ride = buildRideWithStops(originCityEntity, destinationCityEntity);
         rideCreationDTO = aRideCreationDto().build();
         rideResponseDto = aRideResponseDto().build();
     }
@@ -328,70 +333,61 @@ class RideServiceImplTest {
 
         private UserAccount passenger;
         private Ride bookableRide;
+        private BookRideRequest bookRequest;
 
         @BeforeEach
         void setUpBooking() {
             passenger = aPassengerAccount().build();
             bookableRide = aRide(originCityEntity, destinationCityEntity)
-                    .availableSeats(3)
+                    .totalSeats(3)
                     .vehicle(null)
-                    .passengers(new ArrayList<>())
+                    .source(RideSource.INTERNAL)
                     .build();
+            bookableRide.setStops(new ArrayList<>(buildStops(bookableRide, originCityEntity, destinationCityEntity)));
+            bookableRide.setBookings(new ArrayList<>());
+            bookRequest = aBookRideRequest().build();
         }
 
         @Test
-        @DisplayName("Book ride successfully decreases available seats")
+        @DisplayName("Book ride successfully creates a booking")
         void bookRide_Success() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(2L)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(bookingRepository.existsByRideIdAndPassengerId(ID_100, 2L)).thenReturn(false);
             when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
+            when(bookingRepository.save(any(RideBooking.class))).thenAnswer(inv -> inv.getArgument(0));
             when(rideRepository.save(any(Ride.class))).thenReturn(bookableRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
             // Act
-            RideResponseDto result = rideService.bookRide(ID_100, 2L);
+            RideResponseDto result = rideService.bookRide(ID_100, 2L, bookRequest);
 
             // Assert
             assertNotNull(result);
-            assertEquals(2, bookableRide.getAvailableSeats());
-            assertTrue(bookableRide.getPassengers().contains(passenger));
+            verify(bookingRepository).save(any(RideBooking.class));
             verify(rideRepository).save(bookableRide);
         }
 
         @Test
-        @DisplayName("Book ride sets status to FULL when last seat is taken")
-        void bookRide_SetsStatusToFull_WhenLastSeat() {
-            // Arrange
-            bookableRide.setAvailableSeats(1);
+        @DisplayName("Book ride throws exception when segment is full")
+        void bookRide_ThrowsWhenSegmentFull() {
+            // Arrange - fill all seats with existing bookings
+            RideStop originStop = bookableRide.getStops().get(0);
+            RideStop destStop = bookableRide.getStops().get(1);
+            for (int i = 0; i < 3; i++) {
+                bookableRide.getBookings().add(RideBooking.builder()
+                        .ride(bookableRide).passenger(aDriverAccount().id((long) (10 + i)).build())
+                        .boardStop(originStop).alightStop(destStop)
+                        .bookedAt(Instant.now()).build());
+            }
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(2L)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
-            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
-            when(rideRepository.save(any(Ride.class))).thenReturn(bookableRide);
-            when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
-
-            // Act
-            rideService.bookRide(ID_100, 2L);
-
-            // Assert
-            assertEquals(0, bookableRide.getAvailableSeats());
-            assertEquals(RideStatus.FULL, bookableRide.computeRideStatus());
-        }
-
-        @Test
-        @DisplayName("Book ride throws exception when ride is full")
-        void bookRide_ThrowsWhenFull() {
-            // Arrange
-            bookableRide.setAvailableSeats(0);
-            when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
-            when(capabilityService.canBook(2L)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(bookingRepository.existsByRideIdAndPassengerId(ID_100, 2L)).thenReturn(false);
             when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
 
             // Act & Assert
-            assertThrows(RideFullException.class, () -> rideService.bookRide(ID_100, 2L));
+            assertThrows(RideNotBookableException.class, () -> rideService.bookRide(ID_100, 2L, bookRequest));
         }
 
         @Test
@@ -400,10 +396,10 @@ class RideServiceImplTest {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(2L)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(true);
+            when(bookingRepository.existsByRideIdAndPassengerId(ID_100, 2L)).thenReturn(true);
 
             // Act & Assert
-            assertThrows(AlreadyBookedException.class, () -> rideService.bookRide(ID_100, 2L));
+            assertThrows(AlreadyBookedException.class, () -> rideService.bookRide(ID_100, 2L, bookRequest));
         }
 
         @Test
@@ -413,11 +409,11 @@ class RideServiceImplTest {
             bookableRide.setStatus(Status.CANCELLED);
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(2L)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, 2L)).thenReturn(false);
+            when(bookingRepository.existsByRideIdAndPassengerId(ID_100, 2L)).thenReturn(false);
             when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
 
             // Act & Assert
-            assertThrows(RideNotBookableException.class, () -> rideService.bookRide(ID_100, 2L));
+            assertThrows(RideNotBookableException.class, () -> rideService.bookRide(ID_100, 2L, bookRequest));
         }
 
         @Test
@@ -427,7 +423,7 @@ class RideServiceImplTest {
             when(rideRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThrows(NoSuchRideException.class, () -> rideService.bookRide(NON_EXISTENT_ID, 2L));
+            assertThrows(NoSuchRideException.class, () -> rideService.bookRide(NON_EXISTENT_ID, 2L, bookRequest));
         }
 
         @Test
@@ -436,11 +432,11 @@ class RideServiceImplTest {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookableRide));
             when(capabilityService.canBook(NON_EXISTENT_ID)).thenReturn(true);
-            when(rideRepository.existsPassenger(ID_100, NON_EXISTENT_ID)).thenReturn(false);
+            when(bookingRepository.existsByRideIdAndPassengerId(ID_100, NON_EXISTENT_ID)).thenReturn(false);
             when(userAccountRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThrows(NoSuchUserException.class, () -> rideService.bookRide(ID_100, NON_EXISTENT_ID));
+            assertThrows(NoSuchUserException.class, () -> rideService.bookRide(ID_100, NON_EXISTENT_ID, bookRequest));
         }
     }
 
@@ -450,23 +446,37 @@ class RideServiceImplTest {
 
         private UserAccount passenger;
         private Ride bookedRide;
+        private RideBooking existingBooking;
 
         @BeforeEach
         void setUpCancellation() {
             passenger = aPassengerAccount().build();
             bookedRide = aRide(originCityEntity, destinationCityEntity)
-                    .availableSeats(2)
+                    .totalSeats(3)
                     .vehicle(null)
-                    .passengers(new ArrayList<>(List.of(passenger)))
+                    .source(RideSource.INTERNAL)
                     .build();
+            bookedRide.setStops(new ArrayList<>(buildStops(bookedRide, originCityEntity, destinationCityEntity)));
+            bookedRide.setBookings(new ArrayList<>());
+
+            existingBooking = RideBooking.builder()
+                    .ride(bookedRide)
+                    .passenger(passenger)
+                    .boardStop(bookedRide.getStops().get(0))
+                    .alightStop(bookedRide.getStops().get(1))
+                    .bookedAt(Instant.now())
+                    .build();
+            bookedRide.getBookings().add(existingBooking);
         }
 
         @Test
-        @DisplayName("Cancel booking successfully increases available seats")
+        @DisplayName("Cancel booking successfully removes booking")
         void cancelBooking_Success() {
             // Arrange
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
             when(userAccountRepository.existsById(2L)).thenReturn(true);
+            when(bookingRepository.findByRideIdAndPassengerId(ID_100, 2L))
+                    .thenReturn(Optional.of(existingBooking));
             when(rideRepository.save(any(Ride.class))).thenReturn(bookedRide);
             when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
 
@@ -475,36 +485,18 @@ class RideServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals(3, bookedRide.getAvailableSeats());
-            assertFalse(bookedRide.getPassengers().contains(passenger));
+            verify(bookingRepository).delete(existingBooking);
             verify(rideRepository).save(bookedRide);
-        }
-
-        @Test
-        @DisplayName("Cancel booking sets status to OPEN when ride was FULL")
-        void cancelBooking_SetsStatusToOpen_WhenWasFull() {
-            // Arrange
-            bookedRide.setAvailableSeats(0);
-            when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
-            when(userAccountRepository.existsById(2L)).thenReturn(true);
-            when(rideRepository.save(any(Ride.class))).thenReturn(bookedRide);
-            when(rideMapper.rideEntityToRideResponseDto(any())).thenReturn(rideResponseDto);
-
-            // Act
-            rideService.cancelBooking(ID_100, 2L);
-
-            // Assert
-            assertEquals(1, bookedRide.getAvailableSeats());
-            assertEquals(RideStatus.OPEN, bookedRide.computeRideStatus());
         }
 
         @Test
         @DisplayName("Cancel booking throws exception when booking not found")
         void cancelBooking_ThrowsWhenBookingNotFound() {
             // Arrange
-            bookedRide.setPassengers(new ArrayList<>());
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(bookedRide));
             when(userAccountRepository.existsById(2L)).thenReturn(true);
+            when(bookingRepository.findByRideIdAndPassengerId(ID_100, 2L))
+                    .thenReturn(Optional.empty());
 
             // Act & Assert
             assertThrows(BookingNotFoundException.class, () -> rideService.cancelBooking(ID_100, 2L));
@@ -529,9 +521,15 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger returns list of rides")
         void getRidesForPassenger_ReturnsList() {
             // Arrange
-            UserAccount passenger = aPassengerAccount().build();
-            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
-            when(rideRepository.findByPassengersContaining(passenger)).thenReturn(List.of(ride));
+            RideBooking booking = RideBooking.builder()
+                    .ride(ride)
+                    .passenger(aPassengerAccount().build())
+                    .boardStop(ride.getStops().get(0))
+                    .alightStop(ride.getStops().get(1))
+                    .bookedAt(Instant.now())
+                    .build();
+            when(userAccountRepository.existsById(2L)).thenReturn(true);
+            when(bookingRepository.findByPassengerId(2L)).thenReturn(List.of(booking));
             when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
 
             // Act
@@ -540,16 +538,15 @@ class RideServiceImplTest {
             // Assert
             assertNotNull(result);
             assertEquals(1, result.size());
-            verify(rideRepository).findByPassengersContaining(passenger);
+            verify(bookingRepository).findByPassengerId(2L);
         }
 
         @Test
         @DisplayName("Get rides for passenger returns empty list when no bookings")
         void getRidesForPassenger_ReturnsEmptyList() {
             // Arrange
-            UserAccount passenger = aPassengerAccount().build();
-            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
-            when(rideRepository.findByPassengersContaining(passenger)).thenReturn(Collections.emptyList());
+            when(userAccountRepository.existsById(2L)).thenReturn(true);
+            when(bookingRepository.findByPassengerId(2L)).thenReturn(Collections.emptyList());
 
             // Act
             List<RideResponseDto> result = rideService.getRidesForPassenger(2L);
@@ -563,7 +560,7 @@ class RideServiceImplTest {
         @DisplayName("Get rides for passenger throws exception when user not found")
         void getRidesForPassenger_ThrowsWhenUserNotFound() {
             // Arrange
-            when(userAccountRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+            when(userAccountRepository.existsById(NON_EXISTENT_ID)).thenReturn(false);
 
             // Act & Assert
             assertThrows(NoSuchUserException.class, () -> rideService.getRidesForPassenger(NON_EXISTENT_ID));

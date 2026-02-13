@@ -1,9 +1,7 @@
 package com.blablatwo.seat.external;
 
 import com.blablatwo.domain.ExternalImportSupport;
-import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.seat.Seat;
 import com.blablatwo.seat.SeatExternalMeta;
@@ -51,13 +49,16 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
         String langCode = dto.lang() != null ? dto.lang().getCode() : null;
-        Segment segment = importSupport.resolveSegment(dto.originCityName(), dto.destinationCityName(), langCode);
+        var cities = importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), langCode);
         UserAccount proxy = importSupport.resolveProxyUser();
 
         Seat seat = Seat.builder()
                 .passenger(proxy)
-                .segment(segment)
-                .timeSlot(new TimeSlot(dto.departureDate(), dto.departureTime(), dto.isApproximate()))
+                .origin(cities.origin())
+                .destination(cities.destination())
+                .departureDate(dto.departureDate())
+                .departureTime(dto.departureTime())
+                .isApproximate(dto.isApproximate())
                 .source(RideSource.FACEBOOK)
                 .count(dto.count())
                 .priceWillingToPay(dto.priceWillingToPay())

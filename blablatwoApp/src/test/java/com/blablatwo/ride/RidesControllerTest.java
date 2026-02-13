@@ -7,6 +7,7 @@ import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.RideFullException;
 import com.blablatwo.exceptions.RideNotBookableException;
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -145,12 +146,14 @@ class RidesControllerTest {
         RideCreationDto invalidRide = new RideCreationDto(
                 null,    // originPlaceId - null (invalid)
                 null,    // destinationPlaceId - null (invalid)
+                null,    // intermediateStopPlaceIds
                 null,    // departureTime - null (invalid)
-                false, // isApproximate
-                0,
+                null,    // intermediateStopDepartureTimes
+                false,   // isApproximate
+                0,       // availableSeats
                 BigDecimal.valueOf(-1),
-                null,
-                ""
+                null,    // vehicleId
+                ""       // description
         );
 
         // Act & Assert
@@ -233,12 +236,14 @@ class RidesControllerTest {
         RideCreationDto invalidRide = new RideCreationDto(
                 null,    // originPlaceId - null (invalid)
                 null,    // destinationPlaceId - null (invalid)
+                null,    // intermediateStopPlaceIds
                 null,    // departureTime - null (invalid)
-                false, // isApproximate
-                0,
+                null,    // intermediateStopDepartureTimes
+                false,   // isApproximate
+                0,       // availableSeats
                 BigDecimal.valueOf(-1),
-                null,
-                ""
+                null,    // vehicleId
+                ""       // description
         );
 
         // Act & Assert
@@ -357,14 +362,16 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - Book ride successfully")
         void bookRide_Success() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any())).thenReturn(rideResponseDto);
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class))).thenReturn(rideResponseDto);
             AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID_100));
         }
@@ -373,15 +380,17 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - Ride not found")
         void bookRide_RideNotFound() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any()))
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class)))
                     .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
             AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + NON_EXISTENT_ID + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
         }
 
@@ -389,15 +398,17 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - User not found")
         void bookRide_UserNotFound() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any()))
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class)))
                     .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
             AppPrincipal principal = new AppPrincipal(NON_EXISTENT_ID, "unknown@test.com", Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
         }
 
@@ -405,15 +416,17 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - Ride is full")
         void bookRide_RideFull() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any()))
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class)))
                     .thenThrow(new RideFullException(ID_100));
             AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict());
         }
 
@@ -421,15 +434,17 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - Already booked")
         void bookRide_AlreadyBooked() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any()))
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class)))
                     .thenThrow(new AlreadyBookedException(ID_100, PASSENGER_ID));
             AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict());
         }
 
@@ -437,15 +452,17 @@ class RidesControllerTest {
         @DisplayName("POST /rides/{id}/book - Ride not bookable")
         void bookRide_NotBookable() throws Exception {
             // Arrange
-            when(rideService.bookRide(any(), any()))
+            when(rideService.bookRide(any(), any(), any(BookRideRequest.class)))
                     .thenThrow(new RideNotBookableException(ID_100, "CANCELLED"));
             AppPrincipal principal = new AppPrincipal(PASSENGER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+            BookRideRequest request = aBookRideRequest().build();
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/" + ID_100 + "/book")
                             .with(csrf())
                             .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
-                            .contentType(MediaType.APPLICATION_JSON))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
         }
     }

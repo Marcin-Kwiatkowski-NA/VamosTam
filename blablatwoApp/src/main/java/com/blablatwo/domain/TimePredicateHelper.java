@@ -20,8 +20,8 @@ public final class TimePredicateHelper {
     public static <T> Specification<T> departsOnOrAfter(LocalDate date, LocalTime time) {
         return (root, query, cb) -> {
             if (date == null) return null;
-            Path<LocalDate> datePath = root.get("timeSlot").get("departureDate");
-            Path<LocalTime> timePath = root.get("timeSlot").get("departureTime");
+            Path<LocalDate> datePath = root.get("departureDate");
+            Path<LocalTime> timePath = root.get("departureTime");
             return cb.or(
                     cb.greaterThan(datePath, date),
                     cb.and(
@@ -41,8 +41,8 @@ public final class TimePredicateHelper {
     public static <T> Specification<T> departsOnOrBefore(LocalDate date, LocalTime time) {
         return (root, query, cb) -> {
             if (date == null) return null;
-            Path<LocalDate> datePath = root.get("timeSlot").get("departureDate");
-            Path<LocalTime> timePath = root.get("timeSlot").get("departureTime");
+            Path<LocalDate> datePath = root.get("departureDate");
+            Path<LocalTime> timePath = root.get("departureTime");
             return cb.or(
                     cb.lessThan(datePath, date),
                     cb.and(

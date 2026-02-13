@@ -3,14 +3,14 @@ package com.blablatwo.util;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityDto;
 import com.blablatwo.city.Lang;
-import com.blablatwo.domain.Segment;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.dto.ContactMethodDto;
 import com.blablatwo.dto.ContactType;
 import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
+import com.blablatwo.ride.RideStop;
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -26,7 +26,6 @@ import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleCreationDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -209,21 +208,50 @@ public final class TestFixtures {
     }
 
     public static Ride.RideBuilder<?, ?> aRide(City origin, City destination) {
-        return Ride.builder()
+        Ride.RideBuilder<?, ?> builder = Ride.builder()
                 .id(ID_100)
                 .driver(aDriverAccount().build())
-                .segment(new Segment(origin, destination))
-                .timeSlot(new TimeSlot(LOCAL_DATE, LOCAL_TIME, false))
-                .availableSeats(ONE)
+                .departureDate(LOCAL_DATE)
+                .departureTime(LOCAL_TIME)
+                .isApproximate(false)
+                .totalSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(aTesla().build())
                 .lastModified(INSTANT)
-                .passengers(Collections.emptyList())
                 .description(RIDE_DESCRIPTION);
+
+        // Build a temporary ride to set up stops with back-references
+        // Callers who need stops should call .build() and then set stops
+        return builder;
+    }
+
+    public static List<RideStop> buildStops(Ride ride, City origin, City destination) {
+        return List.of(
+                RideStop.builder().ride(ride).city(origin).stopOrder(0)
+                        .departureTime(LOCAL_DATE.atTime(LOCAL_TIME)).build(),
+                RideStop.builder().ride(ride).city(destination).stopOrder(1)
+                        .departureTime(null).build()
+        );
+    }
+
+    public static Ride buildRideWithStops(City origin, City destination) {
+        Ride ride = aRide(origin, destination).build();
+        ride.setStops(new java.util.ArrayList<>(buildStops(ride, origin, destination)));
+        return ride;
+    }
+
+    public static Ride buildRideWithStops() {
+        return buildRideWithStops(anOriginCity().build(), aDestinationCity().build());
     }
 
     public static Ride.RideBuilder<?, ?> aRide() {
         return aRide(anOriginCity().build(), aDestinationCity().build());
+    }
+
+    public static BookRideRequest.BookRideRequestBuilder aBookRideRequest() {
+        return BookRideRequest.builder()
+                .boardStopPlaceId(ID_ONE)
+                .alightStopPlaceId(2L);
     }
 
     public static RideResponseDto.RideResponseDtoBuilder aRideResponseDto() {
@@ -232,11 +260,13 @@ public final class TestFixtures {
                 .source(RideSource.INTERNAL)
                 .origin(originCityDto())
                 .destination(destinationCityDto())
+                .stops(List.of())
                 .departureTime(LOCAL_DATE_TIME)
                 .isApproximate(false)
                 .pricePerSeat(BIG_DECIMAL)
                 .availableSeats(ONE)
                 .seatsTaken(0)
+                .totalSeats(ONE)
                 .description(RIDE_DESCRIPTION)
                 .driver(aDriverCard().build())
                 .contactMethods(List.of(phoneContact()))
@@ -277,6 +307,11 @@ public final class TestFixtures {
                 .phoneNumber(TELEPHONE)
                 .authorName(CRISTIANO)
                 .sourceUrl("https://facebook.com/post/12345");
+    }
+
+    public static ExternalRideCreationDto.ExternalRideCreationDtoBuilder anExternalRideWithStops() {
+        return anExternalRideCreationDto()
+                .intermediateStopCityNames(List.of(CITY_NAME_KRAKOW));
     }
 
     // ── French External Ride Scenario ──

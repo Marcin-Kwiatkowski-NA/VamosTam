@@ -3,18 +3,19 @@ package com.blablatwo.ride;
 import com.blablatwo.city.City;
 import com.blablatwo.city.CityMapper;
 import com.blablatwo.city.CityResolutionService;
-import com.blablatwo.domain.Segment;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
-import com.blablatwo.domain.TimeSlot;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.CannotBookException;
 import com.blablatwo.exceptions.CannotCreateRideException;
 import com.blablatwo.exceptions.ExternalRideNotBookableException;
+import com.blablatwo.exceptions.InvalidBookingSegmentException;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.exceptions.RideFullException;
+import com.blablatwo.exceptions.RideHasBookingsException;
 import com.blablatwo.exceptions.RideNotBookableException;
+import com.blablatwo.exceptions.SegmentFullException;
+import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,7 @@ import java.util.Optional;
 public class RideServiceImpl implements RideService {
 
     private final RideRepository rideRepository;
+    private final RideBookingRepository bookingRepository;
     private final RideMapper rideMapper;
     private final CityMapper cityMapper;
     private final CityResolutionService cityResolutionService;
@@ -46,12 +49,16 @@ public class RideServiceImpl implements RideService {
     private final RideResponseEnricher rideResponseEnricher;
     private final CapabilityService capabilityService;
 
-    public RideServiceImpl(RideRepository rideRepository, RideMapper rideMapper,
-                           CityMapper cityMapper, CityResolutionService cityResolutionService,
+    public RideServiceImpl(RideRepository rideRepository,
+                           RideBookingRepository bookingRepository,
+                           RideMapper rideMapper,
+                           CityMapper cityMapper,
+                           CityResolutionService cityResolutionService,
                            UserAccountRepository userAccountRepository,
                            RideResponseEnricher rideResponseEnricher,
                            CapabilityService capabilityService) {
         this.rideRepository = rideRepository;
+        this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
         this.cityMapper = cityMapper;
         this.cityResolutionService = cityResolutionService;
@@ -69,38 +76,41 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto createForCurrentUser(RideCreationDto ride, Long userId) {
+    public RideResponseDto createForCurrentUser(RideCreationDto dto, Long userId) {
         if (!capabilityService.canCreateRide(userId)) {
             throw new CannotCreateRideException(userId);
         }
 
         UserAccount driver = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
-        City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
-        City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
 
-        var newRideEntity = rideMapper.rideCreationDtoToEntity(ride);
-        newRideEntity.setDriver(driver);
-        newRideEntity.setSegment(new Segment(origin, destination));
-        newRideEntity.setTimeSlot(TimeSlot.of(ride.departureTime(), ride.isApproximate()));
-        newRideEntity.setLastModified(Instant.now());
+        var newRide = rideMapper.rideCreationDtoToEntity(dto);
+        newRide.setDriver(driver);
+        newRide.setLastModified(Instant.now());
 
-        Ride savedRide = rideRepository.save(newRideEntity);
-        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
+        List<RideStop> stops = buildStops(newRide, dto);
+        newRide.setStops(stops);
+        setDenormalizedDepartureFields(newRide, dto.departureTime());
+        newRide.setApproximate(dto.isApproximate());
+
+        Ride saved = rideRepository.save(newRide);
+        return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
     }
 
     @Override
     @Transactional
-    public RideResponseDto update(RideCreationDto ride, Long id) {
+    public RideResponseDto update(RideCreationDto dto, Long id) {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
 
-        rideMapper.update(existingRide, ride);
+        if (existingRide.getBookings() != null && !existingRide.getBookings().isEmpty()) {
+            throw new RideHasBookingsException(id);
+        }
 
-        City origin = cityResolutionService.resolveCityByPlaceId(ride.originPlaceId(), "pl");
-        City destination = cityResolutionService.resolveCityByPlaceId(ride.destinationPlaceId(), "pl");
-        existingRide.setSegment(new Segment(origin, destination));
-        existingRide.setTimeSlot(TimeSlot.of(ride.departureTime(), ride.isApproximate()));
+        rideMapper.update(existingRide, dto);
+        updateStops(existingRide, dto);
+        setDenormalizedDepartureFields(existingRide, dto.departureTime());
+        existingRide.setApproximate(dto.isApproximate());
         existingRide.setLastModified(Instant.now());
 
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
@@ -123,9 +133,10 @@ public class RideServiceImpl implements RideService {
                 criteria.departureDate(), criteria.departureTimeFrom());
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
-                .and(RideSpecifications.originPlaceIdEquals(criteria.originPlaceId()))
-                .and(RideSpecifications.destinationPlaceIdEquals(criteria.destinationPlaceId()))
-                .and(RideSpecifications.hasMinAvailableSeats(criteria.minAvailableSeats()))
+                .and(RideSpecifications.hasStopWithOriginPlaceId(criteria.originPlaceId()))
+                .and(RideSpecifications.hasStopWithDestinationPlaceId(criteria.destinationPlaceId()))
+                .and(RideSpecifications.originBeforeDestination(criteria.originPlaceId(), criteria.destinationPlaceId()))
+                .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
                 .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
 
         if (criteria.departureDateTo() != null) {
@@ -134,21 +145,44 @@ public class RideServiceImpl implements RideService {
         }
 
         Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
-        List<Ride> rides = ridePage.getContent();
+
+        // Post-filter: per-segment availability for the searched sub-route
+        List<Ride> filtered = ridePage.getContent().stream()
+                .filter(ride -> hasAvailableSeatsForSearch(ride, criteria))
+                .toList();
 
         String lang = criteria.lang() != null ? criteria.lang() : "pl";
-        List<RideResponseDto> dtos = rides.stream()
+        List<RideResponseDto> dtos = filtered.stream()
                 .map(ride -> mapRideToResponseDto(ride, lang))
                 .toList();
-        List<RideResponseDto> enriched = rideResponseEnricher.enrich(rides, dtos);
+        List<RideResponseDto> enriched = rideResponseEnricher.enrich(filtered, dtos);
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+    }
+
+    private boolean hasAvailableSeatsForSearch(Ride ride, RideSearchCriteriaDto criteria) {
+        if (criteria.originPlaceId() == null || criteria.destinationPlaceId() == null) {
+            return true;
+        }
+        int boardOrder = findStopOrder(ride, criteria.originPlaceId());
+        int alightOrder = findStopOrder(ride, criteria.destinationPlaceId());
+        if (boardOrder < 0 || alightOrder < 0 || boardOrder >= alightOrder) return false;
+        int minSeats = criteria.minAvailableSeats() > 0 ? criteria.minAvailableSeats() : 1;
+        return ride.getAvailableSeatsForSegment(boardOrder, alightOrder) >= minSeats;
+    }
+
+    private int findStopOrder(Ride ride, Long placeId) {
+        return ride.getStops().stream()
+                .filter(s -> s.getCity().getPlaceId().equals(placeId))
+                .findFirst()
+                .map(RideStop::getStopOrder)
+                .orElse(-1);
     }
 
     private RideResponseDto mapRideToResponseDto(Ride ride, String lang) {
         RideResponseDto dto = rideMapper.rideEntityToRideResponseDto(ride);
         return dto.toBuilder()
-                .origin(cityMapper.cityEntityToCityDto(ride.getSegment().getOrigin(), lang))
-                .destination(cityMapper.cityEntityToCityDto(ride.getSegment().getDestination(), lang))
+                .origin(cityMapper.cityEntityToCityDto(ride.getOrigin(), lang))
+                .destination(cityMapper.cityEntityToCityDto(ride.getDestination(), lang))
                 .build();
     }
 
@@ -166,7 +200,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public RideResponseDto bookRide(Long rideId, Long passengerId) {
+    public RideResponseDto bookRide(Long rideId, Long passengerId, BookRideRequest request) {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
@@ -178,7 +212,7 @@ public class RideServiceImpl implements RideService {
             throw new CannotBookException(passengerId);
         }
 
-        if (rideRepository.existsPassenger(rideId, passengerId)) {
+        if (bookingRepository.existsByRideIdAndPassengerId(rideId, passengerId)) {
             throw new AlreadyBookedException(rideId, passengerId);
         }
 
@@ -189,20 +223,34 @@ public class RideServiceImpl implements RideService {
             throw new RideNotBookableException(rideId, ride.computeRideStatus().name());
         }
 
-        if (ride.getAvailableSeats() <= 0) {
-            throw new RideFullException(rideId);
+        RideStop boardStop = findStop(ride, request.boardStopPlaceId());
+        RideStop alightStop = findStop(ride, request.alightStopPlaceId());
+
+        if (boardStop.getStopOrder() >= alightStop.getStopOrder()) {
+            throw new InvalidBookingSegmentException(rideId,
+                    "Board stop must come before alight stop");
         }
 
-        if (ride.getPassengers() == null) {
-            ride.setPassengers(new ArrayList<>());
+        int available = ride.getAvailableSeatsForSegment(
+                boardStop.getStopOrder(), alightStop.getStopOrder());
+        if (available <= 0) {
+            throw new SegmentFullException(rideId,
+                    boardStop.getStopOrder(), alightStop.getStopOrder());
         }
-        ride.getPassengers().add(passenger);
-        ride.setAvailableSeats(ride.getAvailableSeats() - 1);
+
+        RideBooking booking = RideBooking.builder()
+                .ride(ride)
+                .passenger(passenger)
+                .boardStop(boardStop)
+                .alightStop(alightStop)
+                .bookedAt(Instant.now())
+                .build();
+
+        bookingRepository.save(booking);
         ride.setLastModified(Instant.now());
+        rideRepository.save(ride);
 
-
-        Ride savedRide = rideRepository.save(ride);
-        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
+        return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
     }
 
     @Override
@@ -219,29 +267,131 @@ public class RideServiceImpl implements RideService {
             throw new NoSuchUserException(passengerId);
         }
 
-        if (ride.getPassengers() == null ||
-                ride.getPassengers().stream().noneMatch(p -> p.getId().equals(passengerId))) {
-            throw new BookingNotFoundException(rideId, passengerId);
-        }
+        RideBooking booking = bookingRepository.findByRideIdAndPassengerId(rideId, passengerId)
+                .orElseThrow(() -> new BookingNotFoundException(rideId, passengerId));
 
-        ride.getPassengers().removeIf(p -> p.getId().equals(passengerId));
-        ride.setAvailableSeats(ride.getAvailableSeats() + 1);
+        bookingRepository.delete(booking);
         ride.setLastModified(Instant.now());
+        rideRepository.save(ride);
 
-        Ride savedRide = rideRepository.save(ride);
-        return rideResponseEnricher.enrich(savedRide, rideMapper.rideEntityToRideResponseDto(savedRide));
+        return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RideResponseDto> getRidesForPassenger(Long passengerId) {
-        UserAccount passenger = userAccountRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchUserException(passengerId));
+        if (!userAccountRepository.existsById(passengerId)) {
+            throw new NoSuchUserException(passengerId);
+        }
 
-        List<Ride> rides = rideRepository.findByPassengersContaining(passenger);
+        List<RideBooking> bookings = bookingRepository.findByPassengerId(passengerId);
+        List<Ride> rides = bookings.stream()
+                .map(RideBooking::getRide)
+                .distinct()
+                .toList();
         List<RideResponseDto> dtos = rides.stream()
                 .map(rideMapper::rideEntityToRideResponseDto)
                 .toList();
         return rideResponseEnricher.enrich(rides, dtos);
+    }
+
+    // --- Stop building helpers ---
+
+    private List<RideStop> buildStops(Ride ride, RideCreationDto dto) {
+        City origin = cityResolutionService.resolveCityByPlaceId(dto.originPlaceId(), "pl");
+        City destination = cityResolutionService.resolveCityByPlaceId(dto.destinationPlaceId(), "pl");
+
+        List<RideStop> stops = new ArrayList<>();
+        int order = 0;
+
+        stops.add(RideStop.builder()
+                .ride(ride).city(origin).stopOrder(order++)
+                .departureTime(dto.departureTime()).build());
+
+        if (dto.intermediateStopPlaceIds() != null) {
+            validateIntermediateStops(dto);
+            for (int i = 0; i < dto.intermediateStopPlaceIds().size(); i++) {
+                City city = cityResolutionService.resolveCityByPlaceId(
+                        dto.intermediateStopPlaceIds().get(i), "pl");
+                stops.add(RideStop.builder()
+                        .ride(ride).city(city).stopOrder(order++)
+                        .departureTime(dto.intermediateStopDepartureTimes().get(i)).build());
+            }
+        }
+
+        stops.add(RideStop.builder()
+                .ride(ride).city(destination).stopOrder(order)
+                .departureTime(null).build());
+
+        validateStopTimeOrdering(stops);
+        return stops;
+    }
+
+    private void updateStops(Ride existingRide, RideCreationDto dto) {
+        List<Long> existingPlaceIds = existingRide.getStops().stream()
+                .map(s -> s.getCity().getPlaceId())
+                .toList();
+
+        List<Long> newPlaceIds = buildNewPlaceIdSequence(dto);
+
+        if (existingPlaceIds.equals(newPlaceIds)) {
+            // Same route — only update departure times
+            existingRide.getStops().get(0).setDepartureTime(dto.departureTime());
+            if (dto.intermediateStopPlaceIds() != null) {
+                for (int i = 0; i < dto.intermediateStopPlaceIds().size(); i++) {
+                    existingRide.getStops().get(i + 1)
+                            .setDepartureTime(dto.intermediateStopDepartureTimes().get(i));
+                }
+            }
+            validateStopTimeOrdering(existingRide.getStops());
+        } else {
+            // Route changed — clear and rebuild
+            existingRide.getStops().clear();
+            existingRide.getStops().addAll(buildStops(existingRide, dto));
+        }
+    }
+
+    private List<Long> buildNewPlaceIdSequence(RideCreationDto dto) {
+        List<Long> ids = new ArrayList<>();
+        ids.add(dto.originPlaceId());
+        if (dto.intermediateStopPlaceIds() != null) {
+            ids.addAll(dto.intermediateStopPlaceIds());
+        }
+        ids.add(dto.destinationPlaceId());
+        return ids;
+    }
+
+    private void validateIntermediateStops(RideCreationDto dto) {
+        if (dto.intermediateStopDepartureTimes() == null
+                || dto.intermediateStopDepartureTimes().size() != dto.intermediateStopPlaceIds().size()) {
+            throw new IllegalArgumentException(
+                    "intermediateStopDepartureTimes must match intermediateStopPlaceIds in size");
+        }
+    }
+
+    private void validateStopTimeOrdering(List<RideStop> stops) {
+        LocalDateTime prev = null;
+        for (RideStop stop : stops) {
+            if (stop.getDepartureTime() == null) continue; // last stop
+            if (prev != null && !stop.getDepartureTime().isAfter(prev)) {
+                throw new IllegalArgumentException(
+                        "Stop departure times must be strictly increasing. Stop order "
+                                + stop.getStopOrder() + " violates ordering.");
+            }
+            prev = stop.getDepartureTime();
+        }
+    }
+
+    private void setDenormalizedDepartureFields(Ride ride, LocalDateTime departureTime) {
+        ride.setDepartureDate(departureTime.toLocalDate());
+        ride.setDepartureTime(departureTime.toLocalTime());
+    }
+
+    private RideStop findStop(Ride ride, Long placeId) {
+        return ride.getStops().stream()
+                .filter(s -> s.getCity().getPlaceId().equals(placeId))
+                .findFirst()
+                .orElseThrow(() -> new InvalidBookingSegmentException(
+                        ride.getId(), "Stop with placeId " + placeId + " not found on this ride"));
     }
 }
