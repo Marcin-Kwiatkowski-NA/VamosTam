@@ -1,5 +1,7 @@
 package com.blablatwo.seat.dto;
 
+import com.blablatwo.location.LocationRef;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -9,11 +11,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record SeatCreationDto(
-        @NotNull(message = "Origin place ID cannot be null")
-        Long originPlaceId,
+        @NotNull(message = "Origin is required")
+        @Valid LocationRef origin,
 
-        @NotNull(message = "Destination place ID cannot be null")
-        Long destinationPlaceId,
+        @NotNull(message = "Destination is required")
+        @Valid LocationRef destination,
 
         @NotNull(message = "Departure time cannot be null")
         @Future(message = "Departure time must be in the future")

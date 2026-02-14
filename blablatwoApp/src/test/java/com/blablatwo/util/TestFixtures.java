@@ -1,11 +1,11 @@
 package com.blablatwo.util;
 
-import com.blablatwo.city.City;
-import com.blablatwo.city.CityDto;
-import com.blablatwo.city.Lang;
 import com.blablatwo.dto.ContactMethodDto;
 import com.blablatwo.dto.ContactType;
 import com.blablatwo.dto.UserCardDto;
+import com.blablatwo.location.Location;
+import com.blablatwo.location.LocationDto;
+import com.blablatwo.location.LocationRef;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
@@ -25,85 +25,89 @@ import com.blablatwo.user.UserStats;
 import com.blablatwo.vehicle.Vehicle;
 import com.blablatwo.vehicle.VehicleCreationDto;
 import com.blablatwo.vehicle.VehicleResponseDto;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 
 import java.util.List;
 import java.util.Set;
 
 import static com.blablatwo.util.Constants.*;
 
-/**
- * Object Mother for test fixtures. Provides pre-configured builders and
- * factory methods for domain objects used across test classes.
- * <p>
- * Builder-based types return a pre-filled builder — callers override fields then call .build().
- * Small records (CityDto, ContactMethodDto) return completed instances.
- */
 public final class TestFixtures {
+
+    private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
 
     private TestFixtures() {}
 
-    // ──────────────── City ────────────────
+    // ──────────────── Location ────────────────
 
-    public static City.CityBuilder anOriginCity() {
-        return City.builder()
+    public static Location.LocationBuilder anOriginLocation() {
+        return Location.builder()
                 .id(ID_ONE)
-                .placeId(ID_ONE)
-                .namePl(CITY_NAME_ORIGIN)
-                .normNamePl(CITY_NAME_ORIGIN.toLowerCase())
+                .osmId(OSM_ID_ORIGIN)
+                .name(LOCATION_NAME_ORIGIN)
                 .countryCode("PL")
-                .population(100_000L);
+                .coordinates(GF.createPoint(new Coordinate(LON_ORIGIN, LAT_ORIGIN)));
     }
 
-    public static City.CityBuilder aDestinationCity() {
-        return City.builder()
+    public static Location.LocationBuilder aDestinationLocation() {
+        return Location.builder()
                 .id(2L)
-                .placeId(2L)
-                .namePl(CITY_NAME_DESTINATION)
-                .normNamePl(CITY_NAME_DESTINATION.toLowerCase())
+                .osmId(OSM_ID_DESTINATION)
+                .name(LOCATION_NAME_DESTINATION)
                 .countryCode("PL")
-                .population(200_000L);
+                .coordinates(GF.createPoint(new Coordinate(LON_DESTINATION, LAT_DESTINATION)));
     }
 
-    public static City.CityBuilder aKrakowCity() {
-        return City.builder()
-                .placeId(PLACE_ID_KRAKOW)
-                .namePl(CITY_NAME_KRAKOW)
-                .normNamePl("krakow")
+    public static Location.LocationBuilder aKrakowLocation() {
+        return Location.builder()
+                .osmId(OSM_ID_KRAKOW)
+                .name(LOCATION_NAME_KRAKOW)
                 .countryCode("PL")
-                .population(POPULATION_KRAKOW);
+                .coordinates(GF.createPoint(new Coordinate(LON_KRAKOW, LAT_KRAKOW)));
     }
 
-    public static City.CityBuilder aWarsawCity() {
-        return City.builder()
-                .placeId(PLACE_ID_WARSAW)
-                .namePl(CITY_NAME_WARSAW)
-                .normNamePl(CITY_NAME_WARSAW.toLowerCase())
+    public static Location.LocationBuilder aWarsawLocation() {
+        return Location.builder()
+                .osmId(OSM_ID_WARSAW)
+                .name(LOCATION_NAME_WARSAW)
                 .countryCode("PL")
-                .population(POPULATION_WARSAW);
+                .coordinates(GF.createPoint(new Coordinate(LON_WARSAW, LAT_WARSAW)));
     }
 
-    public static CityDto krakowCityDto() {
-        return new CityDto(PLACE_ID_KRAKOW, CITY_NAME_KRAKOW, "PL", POPULATION_KRAKOW);
+    public static LocationDto originLocationDto() {
+        return new LocationDto(OSM_ID_ORIGIN, LOCATION_NAME_ORIGIN, null, "PL", LAT_ORIGIN, LON_ORIGIN, null);
     }
 
-    public static CityDto warsawCityDto() {
-        return new CityDto(PLACE_ID_WARSAW, CITY_NAME_WARSAW, "PL", POPULATION_WARSAW);
+    public static LocationDto destinationLocationDto() {
+        return new LocationDto(OSM_ID_DESTINATION, LOCATION_NAME_DESTINATION, null, "PL", LAT_DESTINATION, LON_DESTINATION, null);
     }
 
-    public static CityDto originCityDto() {
-        return new CityDto(ID_ONE, CITY_NAME_ORIGIN, "PL", 100_000L);
+    public static LocationDto krakowLocationDto() {
+        return new LocationDto(OSM_ID_KRAKOW, LOCATION_NAME_KRAKOW, null, "PL", LAT_KRAKOW, LON_KRAKOW, null);
     }
 
-    public static CityDto destinationCityDto() {
-        return new CityDto(2L, CITY_NAME_DESTINATION, "PL", 200_000L);
+    public static LocationDto warsawLocationDto() {
+        return new LocationDto(OSM_ID_WARSAW, LOCATION_NAME_WARSAW, null, "PL", LAT_WARSAW, LON_WARSAW, null);
     }
 
-    public static CityDto parisCityDto() {
-        return new CityDto(1L, CITY_NAME_PARIS, "FR", 2_000_000L);
+    public static LocationDto parisLocationDto() {
+        return new LocationDto(OSM_ID_PARIS, LOCATION_NAME_PARIS, null, "FR", 48.8566, 2.3522, null);
     }
 
-    public static CityDto lyonCityDto() {
-        return new CityDto(2L, CITY_NAME_LYON, "FR", 500_000L);
+    public static LocationDto lyonLocationDto() {
+        return new LocationDto(OSM_ID_LYON, LOCATION_NAME_LYON, null, "FR", 45.7640, 4.8357, null);
+    }
+
+    public static LocationRef originLocationRef() {
+        return new LocationRef(OSM_ID_ORIGIN, LOCATION_NAME_ORIGIN, LAT_ORIGIN, LON_ORIGIN,
+                "PL", null, null, null, null, null, null, null, null);
+    }
+
+    public static LocationRef destinationLocationRef() {
+        return new LocationRef(OSM_ID_DESTINATION, LOCATION_NAME_DESTINATION, LAT_DESTINATION, LON_DESTINATION,
+                "PL", null, null, null, null, null, null, null, null);
     }
 
     // ──────────────── User ────────────────
@@ -197,8 +201,8 @@ public final class TestFixtures {
 
     public static RideCreationDto.RideCreationDtoBuilder aRideCreationDto() {
         return RideCreationDto.builder()
-                .originPlaceId(ID_ONE)
-                .destinationPlaceId(2L)
+                .origin(originLocationRef())
+                .destination(destinationLocationRef())
                 .departureTime(LOCAL_DATE_TIME)
                 .isApproximate(false)
                 .availableSeats(ONE)
@@ -207,8 +211,8 @@ public final class TestFixtures {
                 .description(RIDE_DESCRIPTION);
     }
 
-    public static Ride.RideBuilder<?, ?> aRide(City origin, City destination) {
-        Ride.RideBuilder<?, ?> builder = Ride.builder()
+    public static Ride.RideBuilder<?, ?> aRide(Location origin, Location destination) {
+        return Ride.builder()
                 .id(ID_100)
                 .driver(aDriverAccount().build())
                 .departureDate(LOCAL_DATE)
@@ -219,47 +223,43 @@ public final class TestFixtures {
                 .vehicle(aTesla().build())
                 .lastModified(INSTANT)
                 .description(RIDE_DESCRIPTION);
-
-        // Build a temporary ride to set up stops with back-references
-        // Callers who need stops should call .build() and then set stops
-        return builder;
     }
 
-    public static List<RideStop> buildStops(Ride ride, City origin, City destination) {
+    public static List<RideStop> buildStops(Ride ride, Location origin, Location destination) {
         return List.of(
-                RideStop.builder().ride(ride).city(origin).stopOrder(0)
+                RideStop.builder().ride(ride).location(origin).stopOrder(0)
                         .departureTime(LOCAL_DATE.atTime(LOCAL_TIME)).build(),
-                RideStop.builder().ride(ride).city(destination).stopOrder(1)
+                RideStop.builder().ride(ride).location(destination).stopOrder(1)
                         .departureTime(null).build()
         );
     }
 
-    public static Ride buildRideWithStops(City origin, City destination) {
+    public static Ride buildRideWithStops(Location origin, Location destination) {
         Ride ride = aRide(origin, destination).build();
         ride.setStops(new java.util.ArrayList<>(buildStops(ride, origin, destination)));
         return ride;
     }
 
     public static Ride buildRideWithStops() {
-        return buildRideWithStops(anOriginCity().build(), aDestinationCity().build());
+        return buildRideWithStops(anOriginLocation().build(), aDestinationLocation().build());
     }
 
     public static Ride.RideBuilder<?, ?> aRide() {
-        return aRide(anOriginCity().build(), aDestinationCity().build());
+        return aRide(anOriginLocation().build(), aDestinationLocation().build());
     }
 
     public static BookRideRequest.BookRideRequestBuilder aBookRideRequest() {
         return BookRideRequest.builder()
-                .boardStopPlaceId(ID_ONE)
-                .alightStopPlaceId(2L);
+                .boardStopOsmId(OSM_ID_ORIGIN)
+                .alightStopOsmId(OSM_ID_DESTINATION);
     }
 
     public static RideResponseDto.RideResponseDtoBuilder aRideResponseDto() {
         return RideResponseDto.builder()
                 .id(ID_100)
                 .source(RideSource.INTERNAL)
-                .origin(originCityDto())
-                .destination(destinationCityDto())
+                .origin(originLocationDto())
+                .destination(destinationLocationDto())
                 .stops(List.of())
                 .departureTime(LOCAL_DATE_TIME)
                 .isApproximate(false)
@@ -279,8 +279,8 @@ public final class TestFixtures {
     public static RideResponseDto.RideResponseDtoBuilder aFrenchRideResponse() {
         return aRideResponseDto()
                 .source(RideSource.FACEBOOK)
-                .origin(parisCityDto())
-                .destination(lyonCityDto())
+                .origin(parisLocationDto())
+                .destination(lyonLocationDto())
                 .pricePerSeat(PRICE_25)
                 .availableSeats(3)
                 .description(FRENCH_RIDE_DESCRIPTION)
@@ -293,9 +293,8 @@ public final class TestFixtures {
 
     public static ExternalRideCreationDto.ExternalRideCreationDtoBuilder anExternalRideCreationDto() {
         return ExternalRideCreationDto.builder()
-                .originCityName(CITY_NAME_ORIGIN)
-                .destinationCityName(CITY_NAME_DESTINATION)
-                .lang(Lang.PL)
+                .originLocationName(LOCATION_NAME_ORIGIN)
+                .destinationLocationName(LOCATION_NAME_DESTINATION)
                 .departureDate(LOCAL_DATE)
                 .departureTime(LOCAL_TIME)
                 .isApproximate(false)
@@ -311,16 +310,15 @@ public final class TestFixtures {
 
     public static ExternalRideCreationDto.ExternalRideCreationDtoBuilder anExternalRideWithStops() {
         return anExternalRideCreationDto()
-                .intermediateStopCityNames(List.of(CITY_NAME_KRAKOW));
+                .intermediateStopLocationNames(List.of(LOCATION_NAME_KRAKOW));
     }
 
     // ── French External Ride Scenario ──
 
     public static ExternalRideCreationDto.ExternalRideCreationDtoBuilder aFrenchRideCreation() {
         return anExternalRideCreationDto()
-                .originCityName(CITY_NAME_PARIS)
-                .destinationCityName(CITY_NAME_LYON)
-                .lang(Lang.EN)
+                .originLocationName(LOCATION_NAME_PARIS)
+                .destinationLocationName(LOCATION_NAME_LYON)
                 .availableSeats(3)
                 .pricePerSeat(PRICE_25)
                 .description(FRENCH_RIDE_DESCRIPTION)
@@ -331,9 +329,8 @@ public final class TestFixtures {
 
     public static ExternalSeatCreationDto.ExternalSeatCreationDtoBuilder anExternalSeatCreationDto() {
         return ExternalSeatCreationDto.builder()
-                .originCityName(CITY_NAME_ORIGIN)
-                .destinationCityName(CITY_NAME_DESTINATION)
-                .lang(Lang.PL)
+                .originLocationName(LOCATION_NAME_ORIGIN)
+                .destinationLocationName(LOCATION_NAME_DESTINATION)
                 .departureDate(LOCAL_DATE)
                 .departureTime(LOCAL_TIME)
                 .isApproximate(false)
@@ -353,8 +350,8 @@ public final class TestFixtures {
         return SeatResponseDto.builder()
                 .id(ID_100)
                 .source(RideSource.FACEBOOK)
-                .origin(originCityDto())
-                .destination(destinationCityDto())
+                .origin(originLocationDto())
+                .destination(destinationLocationDto())
                 .departureTime(LOCAL_DATE.atTime(LOCAL_TIME))
                 .isApproximate(false)
                 .count(ONE)

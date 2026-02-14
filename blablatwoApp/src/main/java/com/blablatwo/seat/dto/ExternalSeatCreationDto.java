@@ -1,6 +1,5 @@
 package com.blablatwo.seat.dto;
 
-import com.blablatwo.city.Lang;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,19 +10,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * DTO for external seat ingestion (scraper microservice).
- * City names are accepted and resolved to placeId by the backend.
- */
 @Builder(toBuilder = true)
 public record ExternalSeatCreationDto(
-        @NotBlank(message = "Origin city name is required")
-        String originCityName,
+        @NotBlank(message = "Origin location name is required")
+        String originLocationName,
 
-        @NotBlank(message = "Destination city name is required")
-        String destinationCityName,
-
-        Lang lang,
+        @NotBlank(message = "Destination location name is required")
+        String destinationLocationName,
 
         @NotNull(message = "Departure date is required")
         LocalDate departureDate,

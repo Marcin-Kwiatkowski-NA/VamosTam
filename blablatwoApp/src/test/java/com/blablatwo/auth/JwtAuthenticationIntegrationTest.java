@@ -110,9 +110,9 @@ class JwtAuthenticationIntegrationTest {
     }
 
     @Test
-    @DisplayName("/cities allows anonymous access")
-    void publicEndpoint_cities_allowsAnonymousAccess() throws Exception {
-        mockMvc.perform(get("/cities"))
+    @DisplayName("/rides/search allows anonymous access")
+    void publicEndpoint_ridesSearch_allowsAnonymousAccess() throws Exception {
+        mockMvc.perform(get("/rides/search"))
                 .andExpect(status().isOk());
     }
 

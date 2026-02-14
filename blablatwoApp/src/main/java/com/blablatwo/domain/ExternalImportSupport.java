@@ -1,10 +1,10 @@
 package com.blablatwo.domain;
 
-import com.blablatwo.city.City;
-import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.config.DataInitializer;
 import com.blablatwo.exceptions.DuplicateExternalEntityException;
 import com.blablatwo.exceptions.FacebookBotMissingException;
+import com.blablatwo.location.Location;
+import com.blablatwo.location.LocationResolutionService;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import org.springframework.stereotype.Component;
@@ -14,12 +14,12 @@ import java.util.function.Function;
 @Component
 public class ExternalImportSupport {
 
-    private final CityResolutionService cityResolutionService;
+    private final LocationResolutionService locationResolutionService;
     private final UserAccountRepository userAccountRepository;
 
-    public ExternalImportSupport(CityResolutionService cityResolutionService,
+    public ExternalImportSupport(LocationResolutionService locationResolutionService,
                                   UserAccountRepository userAccountRepository) {
-        this.cityResolutionService = cityResolutionService;
+        this.locationResolutionService = locationResolutionService;
         this.userAccountRepository = userAccountRepository;
     }
 
@@ -36,17 +36,17 @@ public class ExternalImportSupport {
         }
     }
 
-    public record ResolvedCities(City origin, City destination) {
+    public record ResolvedLocations(Location origin, Location destination) {
     }
 
-    public ResolvedCities resolveCities(String originCityName, String destinationCityName, String langCode) {
-        var origin = cityResolutionService.resolveCityByName(originCityName, langCode);
-        var destination = cityResolutionService.resolveCityByName(destinationCityName, langCode);
-        return new ResolvedCities(origin, destination);
+    public ResolvedLocations resolveLocations(String originName, String destinationName) {
+        var origin = locationResolutionService.resolveByName(originName);
+        var destination = locationResolutionService.resolveByName(destinationName);
+        return new ResolvedLocations(origin, destination);
     }
 
-    public City resolveCityByName(String cityName, String langCode) {
-        return cityResolutionService.resolveCityByName(cityName, langCode);
+    public Location resolveLocationByName(String locationName) {
+        return locationResolutionService.resolveByName(locationName);
     }
 
     public UserAccount resolveProxyUser() {

@@ -71,7 +71,7 @@ class ExternalSeatControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(ID_100))
                 .andExpect(jsonPath("$.source").value("FACEBOOK"))
-                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN))
+                .andExpect(jsonPath("$.origin.name").value(LOCATION_NAME_ORIGIN))
                 .andExpect(jsonPath("$.passenger.name").value(CRISTIANO))
                 .andExpect(jsonPath("$.seatStatus").value("SEARCHING"));
     }
@@ -81,7 +81,7 @@ class ExternalSeatControllerTest {
     @WithMockUser
     void createExternalSeat_ValidationError() throws Exception {
         ExternalSeatCreationDto invalidDto = new ExternalSeatCreationDto(
-                null, null, null, null, null,
+                null, null, null, null,
                 false, 0, null, null,
                 null, null, null, null, null
         );
@@ -127,7 +127,7 @@ class ExternalSeatControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ID_100))
-                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN));
+                .andExpect(jsonPath("$.origin.name").value(LOCATION_NAME_ORIGIN));
     }
 
     @Test

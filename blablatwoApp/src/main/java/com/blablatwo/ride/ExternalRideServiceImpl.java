@@ -1,8 +1,8 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
 import com.blablatwo.domain.ExternalImportSupport;
 import com.blablatwo.domain.Status;
+import com.blablatwo.location.Location;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.external.ExternalRideService;
 import com.blablatwo.user.UserAccount;
@@ -43,8 +43,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     public RideResponseDto createExternalRide(com.blablatwo.ride.dto.ExternalRideCreationDto dto) {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
-        String langCode = dto.lang() != null ? dto.lang().getCode() : null;
-        var cities = importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), langCode);
+        var locations = importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName());
         UserAccount proxy = importSupport.resolveProxyUser();
 
         Ride ride = Ride.builder()
@@ -62,27 +61,26 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
         Ride saved = rideRepository.save(ride);
 
-        // Build stops: origin + intermediate (if any) + destination
         var stops = new ArrayList<RideStop>();
         int order = 0;
 
         stops.add(RideStop.builder()
-                .ride(saved).city(cities.origin()).stopOrder(order++)
+                .ride(saved).location(locations.origin()).stopOrder(order++)
                 .departureTime(dto.departureDate().atTime(dto.departureTime()))
                 .build());
 
-        if (dto.intermediateStopCityNames() != null) {
-            for (String cityName : dto.intermediateStopCityNames()) {
-                City city = importSupport.resolveCityByName(cityName, langCode);
+        if (dto.intermediateStopLocationNames() != null) {
+            for (String locationName : dto.intermediateStopLocationNames()) {
+                Location location = importSupport.resolveLocationByName(locationName);
                 stops.add(RideStop.builder()
-                        .ride(saved).city(city).stopOrder(order++)
+                        .ride(saved).location(location).stopOrder(order++)
                         .departureTime(null)
                         .build());
             }
         }
 
         stops.add(RideStop.builder()
-                .ride(saved).city(cities.destination()).stopOrder(order)
+                .ride(saved).location(locations.destination()).stopOrder(order)
                 .departureTime(null)
                 .build());
 

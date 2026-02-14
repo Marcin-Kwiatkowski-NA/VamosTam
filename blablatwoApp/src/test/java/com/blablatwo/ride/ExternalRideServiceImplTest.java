@@ -1,7 +1,7 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
 import com.blablatwo.domain.ExternalImportSupport;
+import com.blablatwo.location.Location;
 import com.blablatwo.exceptions.DuplicateExternalEntityException;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -40,17 +40,17 @@ class ExternalRideServiceImplTest {
     @InjectMocks
     private ExternalRideServiceImpl externalRideService;
 
-    private City originCity;
-    private City destinationCity;
-    private City intermediateCity;
+    private Location originLocation;
+    private Location destinationLocation;
+    private Location intermediateLocation;
     private UserAccount proxyUser;
     private RideResponseDto responseDto;
 
     @BeforeEach
     void setUp() {
-        originCity = anOriginCity().build();
-        destinationCity = aDestinationCity().build();
-        intermediateCity = aKrakowCity().build();
+        originLocation = anOriginLocation().build();
+        destinationLocation = aDestinationLocation().build();
+        intermediateLocation = aKrakowLocation().build();
         proxyUser = aDriverAccount().build();
         responseDto = aRideResponseDto().build();
 
@@ -66,8 +66,8 @@ class ExternalRideServiceImplTest {
     void createExternalRide_withNoIntermediateStops_creates2Stops() {
         // Arrange
         ExternalRideCreationDto dto = anExternalRideCreationDto().build();
-        when(importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), "pl"))
-                .thenReturn(new ExternalImportSupport.ResolvedCities(originCity, destinationCity));
+        when(importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName()))
+                .thenReturn(new ExternalImportSupport.ResolvedLocations(originLocation, destinationLocation));
 
         // Act
         externalRideService.createExternalRide(dto);
@@ -79,10 +79,10 @@ class ExternalRideServiceImplTest {
         Ride savedRide = rideCaptor.getAllValues().get(1);
         assertEquals(2, savedRide.getStops().size());
         assertEquals(0, savedRide.getStops().get(0).getStopOrder());
-        assertEquals(originCity, savedRide.getStops().get(0).getCity());
+        assertEquals(originLocation, savedRide.getStops().get(0).getLocation());
         assertNotNull(savedRide.getStops().get(0).getDepartureTime());
         assertEquals(1, savedRide.getStops().get(1).getStopOrder());
-        assertEquals(destinationCity, savedRide.getStops().get(1).getCity());
+        assertEquals(destinationLocation, savedRide.getStops().get(1).getLocation());
         assertNull(savedRide.getStops().get(1).getDepartureTime());
     }
 
@@ -91,9 +91,9 @@ class ExternalRideServiceImplTest {
     void createExternalRide_withIntermediateStops_createsAllStops() {
         // Arrange
         ExternalRideCreationDto dto = anExternalRideWithStops().build();
-        when(importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), "pl"))
-                .thenReturn(new ExternalImportSupport.ResolvedCities(originCity, destinationCity));
-        when(importSupport.resolveCityByName("Kraków", "pl")).thenReturn(intermediateCity);
+        when(importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName()))
+                .thenReturn(new ExternalImportSupport.ResolvedLocations(originLocation, destinationLocation));
+        when(importSupport.resolveLocationByName("Kraków")).thenReturn(intermediateLocation);
 
         // Act
         externalRideService.createExternalRide(dto);
@@ -107,17 +107,17 @@ class ExternalRideServiceImplTest {
 
         // Origin
         assertEquals(0, savedRide.getStops().get(0).getStopOrder());
-        assertEquals(originCity, savedRide.getStops().get(0).getCity());
+        assertEquals(originLocation, savedRide.getStops().get(0).getLocation());
         assertNotNull(savedRide.getStops().get(0).getDepartureTime());
 
         // Intermediate — no departure time
         assertEquals(1, savedRide.getStops().get(1).getStopOrder());
-        assertEquals(intermediateCity, savedRide.getStops().get(1).getCity());
+        assertEquals(intermediateLocation, savedRide.getStops().get(1).getLocation());
         assertNull(savedRide.getStops().get(1).getDepartureTime());
 
         // Destination
         assertEquals(2, savedRide.getStops().get(2).getStopOrder());
-        assertEquals(destinationCity, savedRide.getStops().get(2).getCity());
+        assertEquals(destinationLocation, savedRide.getStops().get(2).getLocation());
         assertNull(savedRide.getStops().get(2).getDepartureTime());
     }
 

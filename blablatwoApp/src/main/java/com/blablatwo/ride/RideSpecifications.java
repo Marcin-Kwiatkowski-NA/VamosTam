@@ -20,13 +20,9 @@ public class RideSpecifications {
                 status == null ? null : cb.equal(root.get("status"), status);
     }
 
-    /**
-     * Find rides that have a stop with the given placeId that is NOT the last stop
-     * (passengers need at least one leg after boarding).
-     */
-    public static Specification<Ride> hasStopWithOriginPlaceId(Long placeId) {
+    public static Specification<Ride> hasStopWithOriginOsmId(Long osmId) {
         return (root, query, cb) -> {
-            if (placeId == null) return null;
+            if (osmId == null) return null;
             query.distinct(true);
             Join<Ride, RideStop> stopJoin = root.join("stops");
 
@@ -36,41 +32,34 @@ public class RideSpecifications {
                     .where(cb.equal(maxRoot.get("ride"), root));
 
             return cb.and(
-                    cb.equal(stopJoin.get("city").get("placeId"), placeId),
+                    cb.equal(stopJoin.get("location").get("osmId"), osmId),
                     cb.lessThan(stopJoin.get("stopOrder"), maxOrder)
             );
         };
     }
 
-    /**
-     * Find rides that have a stop with the given placeId that is NOT the first stop
-     * (passengers need at least one leg before alighting).
-     */
-    public static Specification<Ride> hasStopWithDestinationPlaceId(Long placeId) {
+    public static Specification<Ride> hasStopWithDestinationOsmId(Long osmId) {
         return (root, query, cb) -> {
-            if (placeId == null) return null;
+            if (osmId == null) return null;
             query.distinct(true);
             Join<Ride, RideStop> stopJoin = root.join("stops");
             return cb.and(
-                    cb.equal(stopJoin.get("city").get("placeId"), placeId),
+                    cb.equal(stopJoin.get("location").get("osmId"), osmId),
                     cb.greaterThan(stopJoin.get("stopOrder"), 0)
             );
         };
     }
 
-    /**
-     * Ensure the origin stop comes before the destination stop in the route.
-     */
-    public static Specification<Ride> originBeforeDestination(Long originPlaceId, Long destinationPlaceId) {
+    public static Specification<Ride> originBeforeDestination(Long originOsmId, Long destinationOsmId) {
         return (root, query, cb) -> {
-            if (originPlaceId == null || destinationPlaceId == null) return null;
+            if (originOsmId == null || destinationOsmId == null) return null;
 
             Subquery<Integer> originOrder = query.subquery(Integer.class);
             Root<RideStop> originRoot = originOrder.from(RideStop.class);
             originOrder.select(cb.min(originRoot.get("stopOrder")))
                     .where(
                             cb.equal(originRoot.get("ride"), root),
-                            cb.equal(originRoot.get("city").get("placeId"), originPlaceId)
+                            cb.equal(originRoot.get("location").get("osmId"), originOsmId)
                     );
 
             Subquery<Integer> destOrder = query.subquery(Integer.class);
@@ -78,7 +67,7 @@ public class RideSpecifications {
             destOrder.select(cb.max(destRoot.get("stopOrder")))
                     .where(
                             cb.equal(destRoot.get("ride"), root),
-                            cb.equal(destRoot.get("city").get("placeId"), destinationPlaceId)
+                            cb.equal(destRoot.get("location").get("osmId"), destinationOsmId)
                     );
 
             return cb.lessThan(originOrder, destOrder);

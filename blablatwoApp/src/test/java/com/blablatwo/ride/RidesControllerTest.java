@@ -100,7 +100,7 @@ class RidesControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ID_100))
-                .andExpect(jsonPath("$.origin.name").value(CITY_NAME_ORIGIN))
+                .andExpect(jsonPath("$.origin.name").value(LOCATION_NAME_ORIGIN))
                 .andExpect(jsonPath("$.driver.name").value(CRISTIANO))
                 .andExpect(jsonPath("$.seatsTaken").value(0))
                 .andExpect(jsonPath("$.contactMethods[0].type").value("PHONE"));
@@ -144,11 +144,10 @@ class RidesControllerTest {
     void testCreateRide_ValidationError() throws Exception {
         // Arrange - invalid DTO
         RideCreationDto invalidRide = new RideCreationDto(
-                null,    // originPlaceId - null (invalid)
-                null,    // destinationPlaceId - null (invalid)
-                null,    // intermediateStopPlaceIds
+                null,    // origin - null (invalid)
+                null,    // destination - null (invalid)
+                null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                null,    // intermediateStopDepartureTimes
                 false,   // isApproximate
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
@@ -234,11 +233,10 @@ class RidesControllerTest {
     void updateRide_ValidationError() throws Exception {
         // Arrange - invalid DTO
         RideCreationDto invalidRide = new RideCreationDto(
-                null,    // originPlaceId - null (invalid)
-                null,    // destinationPlaceId - null (invalid)
-                null,    // intermediateStopPlaceIds
+                null,    // origin - null (invalid)
+                null,    // destination - null (invalid)
+                null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                null,    // intermediateStopDepartureTimes
                 false,   // isApproximate
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
@@ -307,9 +305,8 @@ class RidesControllerTest {
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
-                            .param("originPlaceId", ID_ONE.toString())
-                            .param("destinationPlaceId", "2")
-                            .param("lang", "pl")
+                            .param("originOsmId", OSM_ID_ORIGIN.toString())
+                            .param("destinationOsmId", OSM_ID_DESTINATION.toString())
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
@@ -328,7 +325,7 @@ class RidesControllerTest {
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
-                            .param("originPlaceId", "999999")
+                            .param("originOsmId", "999999")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isEmpty());

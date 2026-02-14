@@ -58,9 +58,8 @@ public class SeatController {
 
     @GetMapping("/seats/search")
     public ResponseEntity<Page<SeatResponseDto>> searchSeats(
-            @RequestParam(required = false) Long originPlaceId,
-            @RequestParam(required = false) Long destinationPlaceId,
-            @RequestParam(required = false, defaultValue = "pl") String lang,
+            @RequestParam(required = false) Long originOsmId,
+            @RequestParam(required = false) Long destinationOsmId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
@@ -78,7 +77,7 @@ public class SeatController {
         }
 
         SeatSearchCriteriaDto criteria = new SeatSearchCriteriaDto(
-                originPlaceId, destinationPlaceId, lang,
+                originOsmId, destinationOsmId,
                 departureDate, departureDateTo, departureTimeFrom, availableSeatsInCar
         );
         Pageable pageable = PageRequest.of(page, size, sort);

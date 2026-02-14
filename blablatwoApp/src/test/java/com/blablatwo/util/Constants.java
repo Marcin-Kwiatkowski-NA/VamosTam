@@ -12,14 +12,22 @@ public class Constants {
     public static final Long ID_ONE = 1L;
     public static final Long NON_EXISTENT_ID = -2L;
 
-    public static final String CITY_NAME_DESTINATION = "Destination";
-    public static final String CITY_NAME_ORIGIN = "Origin";
-    public static final String CITY_NAME_KRAKOW = "Kraków";
-    public static final String CITY_NAME_WARSAW = "Warszawa";
-    public static final Long PLACE_ID_KRAKOW = 3094802L;
-    public static final Long PLACE_ID_WARSAW = 756135L;
-    public static final Long POPULATION_KRAKOW = 800_000L;
-    public static final Long POPULATION_WARSAW = 1_800_000L;
+    public static final String LOCATION_NAME_DESTINATION = "Destination";
+    public static final String LOCATION_NAME_ORIGIN = "Origin";
+    public static final String LOCATION_NAME_KRAKOW = "Kraków";
+    public static final String LOCATION_NAME_WARSAW = "Warszawa";
+    public static final Long OSM_ID_KRAKOW = 3094802L;
+    public static final Long OSM_ID_WARSAW = 756135L;
+    public static final Long OSM_ID_ORIGIN = 100001L;
+    public static final Long OSM_ID_DESTINATION = 100002L;
+    public static final double LAT_KRAKOW = 50.0647;
+    public static final double LON_KRAKOW = 19.9450;
+    public static final double LAT_WARSAW = 52.2297;
+    public static final double LON_WARSAW = 21.0122;
+    public static final double LAT_ORIGIN = 50.0;
+    public static final double LON_ORIGIN = 20.0;
+    public static final double LAT_DESTINATION = 52.0;
+    public static final double LON_DESTINATION = 21.0;
 
     public static final String RIDE_DESCRIPTION = "A scenic ride through the countryside.";
 
@@ -85,8 +93,10 @@ public class Constants {
     public static final String VEHICLE_LICENSE_PLATE_3 = "789-GHI";
 
     // ── French scenario ──
-    public static final String CITY_NAME_PARIS = "Paris";
-    public static final String CITY_NAME_LYON = "Lyon";
+    public static final String LOCATION_NAME_PARIS = "Paris";
+    public static final String LOCATION_NAME_LYON = "Lyon";
+    public static final Long OSM_ID_PARIS = 7444L;
+    public static final Long OSM_ID_LYON = 7450L;
     public static final String JEAN_DUPONT = "Jean Dupont";
     public static final String TELEPHONE_FR = "+33123456789";
     public static final String FRENCH_RIDE_DESCRIPTION = "Voyage en France";

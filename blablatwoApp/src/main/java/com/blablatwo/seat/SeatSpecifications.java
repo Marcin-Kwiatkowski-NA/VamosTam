@@ -17,16 +17,16 @@ public class SeatSpecifications {
                 status == null ? null : cb.equal(root.get("status"), status);
     }
 
-    public static Specification<Seat> originPlaceIdEquals(Long placeId) {
+    public static Specification<Seat> originOsmIdEquals(Long osmId) {
         return (root, query, cb) ->
-                placeId == null ? null :
-                        cb.equal(root.get("origin").get("placeId"), placeId);
+                osmId == null ? null :
+                        cb.equal(root.get("origin").get("osmId"), osmId);
     }
 
-    public static Specification<Seat> destinationPlaceIdEquals(Long placeId) {
+    public static Specification<Seat> destinationOsmIdEquals(Long osmId) {
         return (root, query, cb) ->
-                placeId == null ? null :
-                        cb.equal(root.get("destination").get("placeId"), placeId);
+                osmId == null ? null :
+                        cb.equal(root.get("destination").get("osmId"), osmId);
     }
 
     public static Specification<Seat> departsOnOrAfter(LocalDate date, LocalTime time) {

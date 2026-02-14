@@ -1,6 +1,6 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
+import com.blablatwo.location.Location;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -38,8 +38,8 @@ public class RideStop {
     private Ride ride;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id", nullable = false)
-    private City city;
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
 
     @Column(name = "stop_order", nullable = false)
     private int stopOrder;

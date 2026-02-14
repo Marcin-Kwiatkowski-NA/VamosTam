@@ -13,11 +13,11 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching
 public class CacheConfig {
 
-    public static final String GEOCODING_CACHE = "geocodingCache";
+    public static final String PHOTON_SEARCH_CACHE = "photonSearchCache";
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager(GEOCODING_CACHE);
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(PHOTON_SEARCH_CACHE);
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(3, TimeUnit.DAYS)
                 .maximumSize(10_000));

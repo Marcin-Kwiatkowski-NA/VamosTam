@@ -5,10 +5,10 @@ import lombok.Builder;
 
 @Builder
 public record BookRideRequest(
-        @NotNull(message = "Board stop place ID cannot be null")
-        Long boardStopPlaceId,
+        @NotNull(message = "Board stop OSM ID cannot be null")
+        Long boardStopOsmId,
 
-        @NotNull(message = "Alight stop place ID cannot be null")
-        Long alightStopPlaceId
+        @NotNull(message = "Alight stop OSM ID cannot be null")
+        Long alightStopOsmId
 ) {
 }

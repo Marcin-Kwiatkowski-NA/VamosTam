@@ -1,17 +1,17 @@
 package com.blablatwo.seat;
 
-import com.blablatwo.city.CityMapper;
+import com.blablatwo.location.LocationMapper;
 import com.blablatwo.seat.dto.SeatCreationDto;
 import com.blablatwo.seat.dto.SeatResponseDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Mapper(componentModel = "spring", uses = {CityMapper.class})
+@Mapper(componentModel = "spring", uses = {LocationMapper.class})
 public abstract class SeatMapper {
 
     @Autowired
-    protected CityMapper cityMapper;
+    protected LocationMapper locationMapper;
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "passenger", ignore = true)
@@ -26,8 +26,8 @@ public abstract class SeatMapper {
     @Mapping(target = "status", constant = "ACTIVE")
     public abstract Seat seatCreationDtoToEntity(SeatCreationDto dto);
 
-    @Mapping(target = "origin", expression = "java(cityMapper.cityEntityToCityDto(seat.getOrigin()))")
-    @Mapping(target = "destination", expression = "java(cityMapper.cityEntityToCityDto(seat.getDestination()))")
+    @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(seat.getOrigin()))")
+    @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(seat.getDestination()))")
     @Mapping(target = "departureTime", expression = "java(seat.getDepartureDateTime())")
     @Mapping(target = "isApproximate", source = "approximate")
     @Mapping(target = "passenger", ignore = true)

@@ -1,11 +1,10 @@
 package com.blablatwo.seat;
 
-import com.blablatwo.city.City;
-import com.blablatwo.city.CityMapper;
-import com.blablatwo.city.CityResolutionService;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.NoSuchSeatException;
+import com.blablatwo.location.Location;
+import com.blablatwo.location.LocationResolutionService;
 import com.blablatwo.seat.dto.SeatCreationDto;
 import com.blablatwo.seat.dto.SeatResponseDto;
 import com.blablatwo.seat.dto.SeatSearchCriteriaDto;
@@ -30,23 +29,20 @@ public class SeatServiceImpl implements SeatService {
 
     private final SeatRepository seatRepository;
     private final SeatMapper seatMapper;
-    private final CityMapper cityMapper;
-    private final CityResolutionService cityResolutionService;
+    private final LocationResolutionService locationResolutionService;
     private final UserAccountRepository userAccountRepository;
     private final SeatResponseEnricher seatResponseEnricher;
     private final CapabilityService capabilityService;
 
     public SeatServiceImpl(SeatRepository seatRepository,
                             SeatMapper seatMapper,
-                            CityMapper cityMapper,
-                            CityResolutionService cityResolutionService,
+                            LocationResolutionService locationResolutionService,
                             UserAccountRepository userAccountRepository,
                             SeatResponseEnricher seatResponseEnricher,
                             CapabilityService capabilityService) {
         this.seatRepository = seatRepository;
         this.seatMapper = seatMapper;
-        this.cityMapper = cityMapper;
-        this.cityResolutionService = cityResolutionService;
+        this.locationResolutionService = locationResolutionService;
         this.userAccountRepository = userAccountRepository;
         this.seatResponseEnricher = seatResponseEnricher;
         this.capabilityService = capabilityService;
@@ -61,8 +57,8 @@ public class SeatServiceImpl implements SeatService {
 
         UserAccount passenger = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
-        City origin = cityResolutionService.resolveCityByPlaceId(dto.originPlaceId(), "pl");
-        City destination = cityResolutionService.resolveCityByPlaceId(dto.destinationPlaceId(), "pl");
+        Location origin = locationResolutionService.resolve(dto.origin());
+        Location destination = locationResolutionService.resolve(dto.destination());
 
         Seat seat = seatMapper.seatCreationDtoToEntity(dto);
         seat.setPassenger(passenger);
@@ -91,8 +87,8 @@ public class SeatServiceImpl implements SeatService {
                 criteria.departureDate(), criteria.departureTimeFrom());
 
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
-                .and(SeatSpecifications.originPlaceIdEquals(criteria.originPlaceId()))
-                .and(SeatSpecifications.destinationPlaceIdEquals(criteria.destinationPlaceId()))
+                .and(SeatSpecifications.originOsmIdEquals(criteria.originOsmId()))
+                .and(SeatSpecifications.destinationOsmIdEquals(criteria.destinationOsmId()))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
                 .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
 
@@ -104,9 +100,8 @@ public class SeatServiceImpl implements SeatService {
         Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
         List<Seat> seats = seatPage.getContent();
 
-        String lang = criteria.lang() != null ? criteria.lang() : "pl";
         List<SeatResponseDto> dtos = seats.stream()
-                .map(seat -> mapSeatToResponseDto(seat, lang))
+                .map(seatMapper::seatEntityToResponseDto)
                 .toList();
         List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
@@ -134,13 +129,5 @@ public class SeatServiceImpl implements SeatService {
                 .map(seatMapper::seatEntityToResponseDto)
                 .toList();
         return seatResponseEnricher.enrich(seats, dtos);
-    }
-
-    private SeatResponseDto mapSeatToResponseDto(Seat seat, String lang) {
-        SeatResponseDto dto = seatMapper.seatEntityToResponseDto(seat);
-        return dto.toBuilder()
-                .origin(cityMapper.cityEntityToCityDto(seat.getOrigin(), lang))
-                .destination(cityMapper.cityEntityToCityDto(seat.getDestination(), lang))
-                .build();
     }
 }

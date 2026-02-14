@@ -55,6 +55,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Hibernate Spatial (PostGIS geometry support) -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-spatial</artifactId>
+        </dependency>
+
+        <!-- H2GIS (spatial support for H2 in tests) -->
+        <dependency>
+            <groupId>org.orbisgis</groupId>
+            <artifactId>h2gis</artifactId>
+            <version>2.2.3</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

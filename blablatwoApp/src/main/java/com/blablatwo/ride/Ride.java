@@ -1,7 +1,7 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
 import com.blablatwo.domain.AbstractTrip;
+import com.blablatwo.location.Location;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.vehicle.Vehicle;
 import jakarta.persistence.CascadeType;
@@ -57,25 +57,18 @@ public class Ride extends AbstractTrip {
     @OneToMany(mappedBy = "ride", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RideBooking> bookings;
 
-    public City getOrigin() {
-        return stops.get(0).getCity();
+    public Location getOrigin() {
+        return stops.get(0).getLocation();
     }
 
-    public City getDestination() {
-        return stops.get(stops.size() - 1).getCity();
+    public Location getDestination() {
+        return stops.get(stops.size() - 1).getLocation();
     }
 
     public LocalDateTime getDepartureDateTime() {
         return departureDate.atTime(departureTime);
     }
 
-    /**
-     * Available seats for a sub-segment [boardOrder, alightOrder).
-     * <p>
-     * For each leg in the range, counts how many bookings overlap that leg.
-     * A booking overlaps leg L if: booking.boardStop.order <= L < booking.alightStop.order.
-     * Returns totalSeats minus the maximum occupied count across all legs in range.
-     */
     public int getAvailableSeatsForSegment(int boardOrder, int alightOrder) {
         if (bookings == null || bookings.isEmpty()) return totalSeats;
         int maxOccupied = 0;

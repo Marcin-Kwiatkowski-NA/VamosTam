@@ -1,8 +1,8 @@
 package com.blablatwo.ride.dto;
 
-import com.blablatwo.city.CityDto;
 import com.blablatwo.dto.ContactMethodDto;
 import com.blablatwo.dto.UserCardDto;
+import com.blablatwo.location.LocationDto;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.vehicle.VehicleResponseDto;
@@ -16,8 +16,8 @@ import java.util.List;
 public record RideResponseDto(
         Long id,
         RideSource source,
-        CityDto origin,
-        CityDto destination,
+        LocationDto origin,
+        LocationDto destination,
         List<RideStopDto> stops,
         LocalDateTime departureTime,
         boolean isApproximate,

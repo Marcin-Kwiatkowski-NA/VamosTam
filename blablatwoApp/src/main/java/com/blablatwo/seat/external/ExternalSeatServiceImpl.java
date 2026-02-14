@@ -48,14 +48,13 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
     public SeatResponseDto createExternalSeat(ExternalSeatCreationDto dto) {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
 
-        String langCode = dto.lang() != null ? dto.lang().getCode() : null;
-        var cities = importSupport.resolveCities(dto.originCityName(), dto.destinationCityName(), langCode);
+        var locations = importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName());
         UserAccount proxy = importSupport.resolveProxyUser();
 
         Seat seat = Seat.builder()
                 .passenger(proxy)
-                .origin(cities.origin())
-                .destination(cities.destination())
+                .origin(locations.origin())
+                .destination(locations.destination())
                 .departureDate(dto.departureDate())
                 .departureTime(dto.departureTime())
                 .isApproximate(dto.isApproximate())

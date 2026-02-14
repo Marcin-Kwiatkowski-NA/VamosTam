@@ -1,12 +1,12 @@
 package com.blablatwo.ride.dto;
 
-import com.blablatwo.city.CityDto;
+import com.blablatwo.location.LocationDto;
 
 import java.time.LocalDateTime;
 
 public record RideStopDto(
         int stopOrder,
-        CityDto city,
+        LocationDto location,
         LocalDateTime departureTime
 ) {
 }

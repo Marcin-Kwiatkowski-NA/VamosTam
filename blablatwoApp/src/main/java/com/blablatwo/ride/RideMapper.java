@@ -1,6 +1,6 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.CityMapper;
+import com.blablatwo.location.LocationMapper;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.vehicle.VehicleMapper;
@@ -10,11 +10,11 @@ import org.mapstruct.MappingTarget;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = "spring",
-        uses = {CityMapper.class, VehicleMapper.class, RideStopMapper.class})
+        uses = {LocationMapper.class, VehicleMapper.class, RideStopMapper.class})
 public abstract class RideMapper {
 
     @Autowired
-    protected CityMapper cityMapper;
+    protected LocationMapper locationMapper;
 
     @Autowired
     protected RideStopMapper rideStopMapper;
@@ -30,6 +30,7 @@ public abstract class RideMapper {
     @Mapping(target = "departureDate", ignore = true)
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
+    @Mapping(target = "isApproximate", ignore = true)
     public abstract Ride rideCreationDtoToEntity(RideCreationDto rideCreationDto);
 
     @Mapping(target = "id", ignore = true)
@@ -43,12 +44,13 @@ public abstract class RideMapper {
     @Mapping(target = "departureDate", ignore = true)
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
+    @Mapping(target = "approximate", ignore = true)
     public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 
     @Mapping(target = "driver", ignore = true)
     @Mapping(target = "contactMethods", ignore = true)
-    @Mapping(target = "origin", expression = "java(cityMapper.cityEntityToCityDto(ride.getOrigin()))")
-    @Mapping(target = "destination", expression = "java(cityMapper.cityEntityToCityDto(ride.getDestination()))")
+    @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(ride.getOrigin()))")
+    @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(ride.getDestination()))")
     @Mapping(target = "stops", expression = "java(rideStopMapper.rideStopsToDtos(ride.getStops()))")
     @Mapping(target = "departureTime", expression = "java(ride.getDepartureDateTime())")
     @Mapping(target = "isApproximate", source = "approximate")

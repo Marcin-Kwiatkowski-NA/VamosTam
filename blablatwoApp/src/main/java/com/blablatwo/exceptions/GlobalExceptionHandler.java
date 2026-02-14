@@ -1,6 +1,7 @@
 package com.blablatwo.exceptions;
 
 import com.blablatwo.auth.exception.InvalidTokenException;
+import com.blablatwo.location.NoSuchLocationException;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
@@ -72,8 +73,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(NoSuchCityException.class)
-    public ProblemDetail handleNoSuchCityException(HttpServletRequest request, NoSuchCityException ex) {
+    @ExceptionHandler(NoSuchLocationException.class)
+    public ProblemDetail handleNoSuchLocationException(HttpServletRequest request, com.blablatwo.location.NoSuchLocationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 

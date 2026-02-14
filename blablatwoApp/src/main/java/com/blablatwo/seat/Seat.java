@@ -1,7 +1,7 @@
 package com.blablatwo.seat;
 
-import com.blablatwo.city.City;
 import com.blablatwo.domain.AbstractTrip;
+import com.blablatwo.location.Location;
 import com.blablatwo.user.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,12 +28,12 @@ import java.time.LocalTime;
 public class Seat extends AbstractTrip {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "origin_city_id", nullable = false)
-    private City origin;
+    @JoinColumn(name = "origin_location_id", nullable = false)
+    private Location origin;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "destination_city_id", nullable = false)
-    private City destination;
+    @JoinColumn(name = "destination_location_id", nullable = false)
+    private Location destination;
 
     @Column(name = "departure_date", nullable = false)
     private LocalDate departureDate;

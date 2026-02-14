@@ -1,8 +1,8 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.city.City;
-import com.blablatwo.city.CityRepository;
 import com.blablatwo.domain.Status;
+import com.blablatwo.location.Location;
+import com.blablatwo.location.LocationRepository;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfileRepository;
@@ -35,7 +35,7 @@ class RideRepositoryTest {
     @Autowired
     private RideRepository rideRepository;
     @Autowired
-    private CityRepository cityRepository;
+    private LocationRepository locationRepository;
     @Autowired
     private UserAccountRepository userAccountRepository;
     @Autowired
@@ -45,15 +45,15 @@ class RideRepositoryTest {
 
     private UserAccount driver;
     private Vehicle vehicle;
-    private City destination;
-    private City origin;
+    private Location destination;
+    private Location origin;
 
     @BeforeEach
     void setUp() {
-        origin = anOriginCity().id(null).build();
-        destination = aDestinationCity().id(null).build();
-        cityRepository.save(origin);
-        cityRepository.save(destination);
+        origin = anOriginLocation().id(null).build();
+        destination = aDestinationLocation().id(null).build();
+        locationRepository.save(origin);
+        locationRepository.save(destination);
 
         driver = anActiveUserAccount().build();
         userAccountRepository.save(driver);
@@ -64,7 +64,7 @@ class RideRepositoryTest {
         vehicleRepository.save(vehicle);
     }
 
-    private Ride createRideWithStops(City orig, City dest) {
+    private Ride createRideWithStops(Location orig, Location dest) {
         Ride ride = aRide(orig, dest)
                 .id(null)
                 .driver(driver)

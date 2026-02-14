@@ -1,8 +1,8 @@
 package com.blablatwo.seat.dto;
 
-import com.blablatwo.city.CityDto;
 import com.blablatwo.dto.ContactMethodDto;
 import com.blablatwo.dto.UserCardDto;
+import com.blablatwo.location.LocationDto;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.seat.SeatStatus;
 import lombok.Builder;
@@ -15,8 +15,8 @@ import java.util.List;
 public record SeatResponseDto(
         Long id,
         RideSource source,
-        CityDto origin,
-        CityDto destination,
+        LocationDto origin,
+        LocationDto destination,
         LocalDateTime departureTime,
         boolean isApproximate,
         int count,

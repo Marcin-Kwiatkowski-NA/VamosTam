@@ -1,5 +1,7 @@
 package com.blablatwo.ride.dto;
 
+import com.blablatwo.location.LocationRef;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
@@ -13,19 +15,17 @@ import java.util.List;
 
 @Builder(toBuilder = true)
 public record RideCreationDto(
-        @NotNull(message = "Origin place ID cannot be null")
-        Long originPlaceId,
+        @NotNull(message = "Origin is required")
+        @Valid LocationRef origin,
 
-        @NotNull(message = "Destination place ID cannot be null")
-        Long destinationPlaceId,
+        @NotNull(message = "Destination is required")
+        @Valid LocationRef destination,
 
-        List<@NotNull Long> intermediateStopPlaceIds,
+        List<@Valid @NotNull IntermediateStopDto> intermediateStops,
 
         @NotNull(message = "Departure time cannot be null")
         @Future(message = "Departure time must be in the future")
         LocalDateTime departureTime,
-
-        List<@NotNull @Future LocalDateTime> intermediateStopDepartureTimes,
 
         boolean isApproximate,
 

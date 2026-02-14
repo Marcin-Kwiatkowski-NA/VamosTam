@@ -95,9 +95,8 @@ public class RidesController {
 
     @GetMapping("/rides/search")
     public ResponseEntity<Page<RideResponseDto>> searchRides(
-            @RequestParam(required = false) Long originPlaceId,
-            @RequestParam(required = false) Long destinationPlaceId,
-            @RequestParam(required = false, defaultValue = "pl") String lang,
+            @RequestParam(required = false) Long originOsmId,
+            @RequestParam(required = false) Long destinationOsmId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
@@ -106,7 +105,7 @@ public class RidesController {
             @RequestParam(defaultValue = "10") int size) {
 
         RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                originPlaceId, destinationPlaceId, lang,
+                originOsmId, destinationOsmId,
                 departureDate, departureDateTo, departureTimeFrom, minSeats
         );
         Pageable pageable = PageRequest.of(page, size,
