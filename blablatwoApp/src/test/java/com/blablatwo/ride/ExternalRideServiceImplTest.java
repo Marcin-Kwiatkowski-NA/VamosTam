@@ -15,6 +15,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Optional;
+
 import static com.blablatwo.util.TestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -93,7 +96,7 @@ class ExternalRideServiceImplTest {
         ExternalRideCreationDto dto = anExternalRideWithStops().build();
         when(importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName()))
                 .thenReturn(new ExternalImportSupport.ResolvedLocations(originLocation, destinationLocation));
-        when(importSupport.resolveLocationByName("Kraków")).thenReturn(intermediateLocation);
+        when(importSupport.tryResolveLocationByName("Kraków")).thenReturn(Optional.of(intermediateLocation));
 
         // Act
         externalRideService.createExternalRide(dto);
@@ -119,6 +122,40 @@ class ExternalRideServiceImplTest {
         assertEquals(2, savedRide.getStops().get(2).getStopOrder());
         assertEquals(destinationLocation, savedRide.getStops().get(2).getLocation());
         assertNull(savedRide.getStops().get(2).getDepartureTime());
+    }
+
+    @Test
+    @DisplayName("Unresolvable intermediate stops are skipped, ride still created")
+    void createExternalRide_withUnresolvableIntermediateStop_skipsAndCreatesRide() {
+        // Arrange — two intermediates: Kraków resolves, "Nowhereville" does not
+        ExternalRideCreationDto dto = anExternalRideCreationDto()
+                .intermediateStopLocationNames(List.of("Kraków", "Nowhereville"))
+                .build();
+        when(importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName()))
+                .thenReturn(new ExternalImportSupport.ResolvedLocations(originLocation, destinationLocation));
+        when(importSupport.tryResolveLocationByName("Kraków")).thenReturn(Optional.of(intermediateLocation));
+        when(importSupport.tryResolveLocationByName("Nowhereville")).thenReturn(Optional.empty());
+
+        // Act
+        externalRideService.createExternalRide(dto);
+
+        // Assert — ride created with 3 stops (origin + Kraków + destination), Nowhereville skipped
+        ArgumentCaptor<Ride> rideCaptor = ArgumentCaptor.forClass(Ride.class);
+        verify(rideRepository, times(2)).save(rideCaptor.capture());
+
+        Ride savedRide = rideCaptor.getAllValues().get(1);
+        assertEquals(3, savedRide.getStops().size());
+
+        assertEquals(originLocation, savedRide.getStops().get(0).getLocation());
+        assertEquals(0, savedRide.getStops().get(0).getStopOrder());
+
+        assertEquals(intermediateLocation, savedRide.getStops().get(1).getLocation());
+        assertEquals(1, savedRide.getStops().get(1).getStopOrder());
+
+        assertEquals(destinationLocation, savedRide.getStops().get(2).getLocation());
+        assertEquals(2, savedRide.getStops().get(2).getStopOrder());
+
+        verify(metaRepository).save(any(RideExternalMeta.class));
     }
 
     @Test

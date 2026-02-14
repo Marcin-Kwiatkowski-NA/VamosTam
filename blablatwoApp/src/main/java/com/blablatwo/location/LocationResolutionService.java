@@ -46,13 +46,21 @@ public class LocationResolutionService {
 
     @Transactional
     public Location resolveByName(String name) {
+        return tryResolveByName(name)
+                .orElseThrow(() -> new NoSuchLocationException(
+                        name == null || name.isBlank() ? "Location name is required" : name));
+    }
+
+    @Transactional
+    public Optional<Location> tryResolveByName(String name) {
         if (name == null || name.isBlank()) {
-            throw new NoSuchLocationException("Location name is required");
+            return Optional.empty();
         }
 
         List<PhotonFeature> results = photonClient.search(name, 1);
         if (results.isEmpty()) {
-            throw new NoSuchLocationException(name);
+            LOGGER.warn("Could not resolve location by name: '{}'", name);
+            return Optional.empty();
         }
 
         PhotonFeature feature = results.getFirst();
@@ -61,11 +69,11 @@ public class LocationResolutionService {
         Optional<Location> existing = locationRepository.findByOsmId(osmId);
         if (existing.isPresent()) {
             LOGGER.debug("Found existing location by osmId from Photon: {}", osmId);
-            return existing.get();
+            return existing;
         }
 
         Location location = mapFeatureToLocation(feature);
-        return locationRepository.save(location);
+        return Optional.of(locationRepository.save(location));
     }
 
     private Location mapFeatureToLocation(PhotonFeature feature) {

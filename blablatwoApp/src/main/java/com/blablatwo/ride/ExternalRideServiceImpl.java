@@ -71,11 +71,13 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
         if (dto.intermediateStopLocationNames() != null) {
             for (String locationName : dto.intermediateStopLocationNames()) {
-                Location location = importSupport.resolveLocationByName(locationName);
-                stops.add(RideStop.builder()
-                        .ride(saved).location(location).stopOrder(order++)
-                        .departureTime(null)
-                        .build());
+                Optional<Location> location = importSupport.tryResolveLocationByName(locationName);
+                if (location.isPresent()) {
+                    stops.add(RideStop.builder()
+                            .ride(saved).location(location.get()).stopOrder(order++)
+                            .departureTime(null)
+                            .build());
+                }
             }
         }
 

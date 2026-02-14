@@ -9,6 +9,7 @@ import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 @Component
@@ -45,8 +46,8 @@ public class ExternalImportSupport {
         return new ResolvedLocations(origin, destination);
     }
 
-    public Location resolveLocationByName(String locationName) {
-        return locationResolutionService.resolveByName(locationName);
+    public Optional<Location> tryResolveLocationByName(String locationName) {
+        return locationResolutionService.tryResolveByName(locationName);
     }
 
     public UserAccount resolveProxyUser() {
