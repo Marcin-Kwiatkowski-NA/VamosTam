@@ -11,8 +11,6 @@ public record RideSearchCriteriaDto(
         Double destinationLat,
         Double destinationLon,
         Double radiusKm,
-        Long excludeOriginOsmId,
-        Long excludeDestinationOsmId,
         LocalDate departureDate,
         LocalDate departureDateTo,
         LocalTime departureTimeFrom,

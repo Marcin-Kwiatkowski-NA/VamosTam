@@ -65,8 +65,6 @@ public class SeatController {
             @RequestParam(required = false) Double destinationLat,
             @RequestParam(required = false) Double destinationLon,
             @RequestParam(required = false) Double radiusKm,
-            @RequestParam(required = false) Long excludeOriginOsmId,
-            @RequestParam(required = false) Long excludeDestinationOsmId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
@@ -86,7 +84,7 @@ public class SeatController {
         SeatSearchCriteriaDto criteria = new SeatSearchCriteriaDto(
                 originOsmId, destinationOsmId,
                 originLat, originLon, destinationLat, destinationLon,
-                radiusKm, excludeOriginOsmId, excludeDestinationOsmId,
+                radiusKm,
                 departureDate, departureDateTo, departureTimeFrom, availableSeatsInCar
         );
         Pageable pageable = PageRequest.of(page, size, sort);

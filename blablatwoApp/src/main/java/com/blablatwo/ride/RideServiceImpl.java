@@ -186,8 +186,6 @@ public class RideServiceImpl implements RideService {
                 .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
                 .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
-                .and(RideSpecifications.excludeStopWithOriginOsmId(criteria.excludeOriginOsmId()))
-                .and(RideSpecifications.excludeStopWithDestinationOsmId(criteria.excludeDestinationOsmId()))
                 .and(RideSpecifications.orderByNearestStopDistance(
                         criteria.originLat(), criteria.originLon(),
                         criteria.destinationLat(), criteria.destinationLon(),

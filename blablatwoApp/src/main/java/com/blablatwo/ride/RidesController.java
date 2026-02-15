@@ -102,8 +102,6 @@ public class RidesController {
             @RequestParam(required = false) Double destinationLat,
             @RequestParam(required = false) Double destinationLon,
             @RequestParam(required = false) Double radiusKm,
-            @RequestParam(required = false) Long excludeOriginOsmId,
-            @RequestParam(required = false) Long excludeDestinationOsmId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
@@ -114,7 +112,7 @@ public class RidesController {
         RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                 originOsmId, destinationOsmId,
                 originLat, originLon, destinationLat, destinationLon,
-                radiusKm, excludeOriginOsmId, excludeDestinationOsmId,
+                radiusKm,
                 departureDate, departureDateTo, departureTimeFrom, minSeats
         );
         Pageable pageable = PageRequest.of(page, size,

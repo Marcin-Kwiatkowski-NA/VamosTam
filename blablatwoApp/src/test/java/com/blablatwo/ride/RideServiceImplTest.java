@@ -183,7 +183,7 @@ class RideServiceImplTest {
         void searchRides_ReturnsPagedResults() {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
-                    null, null, null, null, null, null, null,
+                    null, null, null, null, null,
                     LocalDate.now(), null, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
@@ -202,7 +202,7 @@ class RideServiceImplTest {
         @Test
         @DisplayName("Search rides with null criteria returns results")
         void searchRides_WithNullCriteria_ReturnsResults() {
-            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null, null, null, null, null, null, null, 1);
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null, null, null, null, null, 1);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
@@ -221,7 +221,7 @@ class RideServiceImplTest {
             LocalTime searchTime = LocalTime.of(14, 0);
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
-                    null, null, null, null, null, null, null,
+                    null, null, null, null, null,
                     LocalDate.now().plusDays(1), null, searchTime, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
@@ -242,7 +242,7 @@ class RideServiceImplTest {
         void searchRides_FutureDateWithoutTime_UsesStartOfDay() {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
-                    null, null, null, null, null, null, null,
+                    null, null, null, null, null,
                     LocalDate.now().plusDays(5), null, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);

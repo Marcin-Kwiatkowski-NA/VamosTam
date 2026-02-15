@@ -132,8 +132,6 @@ public class SeatServiceImpl implements SeatService {
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
                 .and(SeatSpecifications.originWithinRadius(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(SeatSpecifications.destinationWithinRadius(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
-                .and(SeatSpecifications.excludeOriginOsmId(criteria.excludeOriginOsmId()))
-                .and(SeatSpecifications.excludeDestinationOsmId(criteria.excludeDestinationOsmId()))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
                 .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
                 .and(SeatSpecifications.orderByCombinedDistance(

@@ -77,15 +77,4 @@ public class SeatSpecifications {
         };
     }
 
-    public static Specification<Seat> excludeOriginOsmId(Long osmId) {
-        return (root, query, cb) ->
-                osmId == null ? null :
-                        cb.notEqual(root.get("origin").get("osmId"), osmId);
-    }
-
-    public static Specification<Seat> excludeDestinationOsmId(Long osmId) {
-        return (root, query, cb) ->
-                osmId == null ? null :
-                        cb.notEqual(root.get("destination").get("osmId"), osmId);
-    }
 }
