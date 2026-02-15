@@ -1,5 +1,6 @@
 package com.blablatwo.auth;
 
+import com.blablatwo.AbstractIntegrationTest;
 import com.blablatwo.auth.service.JwtTokenProvider;
 import com.blablatwo.user.AccountStatus;
 import com.blablatwo.user.Role;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-class JwtAuthenticationIntegrationTest {
+class JwtAuthenticationIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

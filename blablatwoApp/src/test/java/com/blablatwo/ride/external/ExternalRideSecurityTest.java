@@ -1,5 +1,6 @@
 package com.blablatwo.ride.external;
 
+import com.blablatwo.AbstractIntegrationTest;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ExternalRideSecurityTest {
+class ExternalRideSecurityTest extends AbstractIntegrationTest {
 
     private static final String BASE_URL = "/rides/external";
     private static final String VALID_API_KEY = "test-api-key-12345";

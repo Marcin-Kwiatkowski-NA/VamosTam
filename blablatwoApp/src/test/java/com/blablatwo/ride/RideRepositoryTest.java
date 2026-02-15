@@ -17,6 +17,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.blablatwo.AbstractIntegrationTest;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -27,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @ActiveProfiles("test")
-class RideRepositoryTest {
+class RideRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
