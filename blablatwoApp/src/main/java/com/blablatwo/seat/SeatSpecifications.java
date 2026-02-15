@@ -4,6 +4,7 @@ import com.blablatwo.domain.SpatialSpecifications;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.location.Location;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -58,6 +59,21 @@ public class SeatSpecifications {
             if (lat == null || lon == null) return null;
             Join<Seat, Location> destJoin = root.join("destination");
             return SpatialSpecifications.withinRadius(cb, destJoin.get("coordinates"), lon, lat, radiusMeters);
+        };
+    }
+
+    public static Specification<Seat> orderByCombinedDistance(
+            double originLat, double originLon,
+            double destLat, double destLon) {
+        return (root, query, cb) -> {
+            Join<Seat, Location> originJoin = root.join("origin");
+            Join<Seat, Location> destJoin = root.join("destination");
+            Expression<Double> originDist = SpatialSpecifications.stDistance(
+                    cb, originJoin.get("coordinates"), originLon, originLat);
+            Expression<Double> destDist = SpatialSpecifications.stDistance(
+                    cb, destJoin.get("coordinates"), destLon, destLat);
+            query.orderBy(cb.asc(cb.sum(originDist, destDist)));
+            return null;
         };
     }
 

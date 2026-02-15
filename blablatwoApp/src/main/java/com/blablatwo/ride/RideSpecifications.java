@@ -4,9 +4,11 @@ import com.blablatwo.domain.SpatialSpecifications;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.location.Location;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -131,6 +133,54 @@ public class RideSpecifications {
                     SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
                     cb.exists(hasEarlierStop)
             );
+        };
+    }
+
+    public static Specification<Ride> orderByNearestStopDistance(
+            double originLat, double originLon,
+            double destLat, double destLon,
+            double radiusMeters) {
+        return (root, query, cb) -> {
+            @SuppressWarnings("unchecked")
+            Expression<Point> originPoint = (Expression<Point>) (Expression<?>) cb.function("st_setsrid",
+                    Object.class,
+                    cb.function("st_makepoint", Object.class, cb.literal(originLon), cb.literal(originLat)),
+                    cb.literal(4326));
+
+            @SuppressWarnings("unchecked")
+            Expression<Point> destPoint = (Expression<Point>) (Expression<?>) cb.function("st_setsrid",
+                    Object.class,
+                    cb.function("st_makepoint", Object.class, cb.literal(destLon), cb.literal(destLat)),
+                    cb.literal(4326));
+
+            Subquery<Double> minOriginDist = query.subquery(Double.class);
+            Root<RideStop> s1 = minOriginDist.from(RideStop.class);
+            Join<RideStop, Location> l1 = s1.join("location");
+            minOriginDist.select(cb.min(
+                    cb.function("st_distance", Double.class, l1.get("coordinates"), originPoint, cb.literal(true))
+            )).where(
+                    cb.equal(s1.get("ride"), root),
+                    SpatialSpecifications.withinRadius(cb, l1.get("coordinates"), originLon, originLat, radiusMeters)
+            );
+
+            Subquery<Double> minDestDist = query.subquery(Double.class);
+            Root<RideStop> s2 = minDestDist.from(RideStop.class);
+            Join<RideStop, Location> l2 = s2.join("location");
+            minDestDist.select(cb.min(
+                    cb.function("st_distance", Double.class, l2.get("coordinates"), destPoint, cb.literal(true))
+            )).where(
+                    cb.equal(s2.get("ride"), root),
+                    SpatialSpecifications.withinRadius(cb, l2.get("coordinates"), destLon, destLat, radiusMeters)
+            );
+
+            query.orderBy(cb.asc(
+                    cb.sum(
+                            cb.coalesce(minOriginDist, 99999999.9),
+                            cb.coalesce(minDestDist, 99999999.9)
+                    )
+            ));
+
+            return null;
         };
     }
 

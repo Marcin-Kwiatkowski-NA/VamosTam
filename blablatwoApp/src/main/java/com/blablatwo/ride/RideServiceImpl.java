@@ -1,6 +1,5 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.domain.GeoUtils;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.AlreadyBookedException;
@@ -23,6 +22,10 @@ import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
 import com.blablatwo.user.exception.NoSuchUserException;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +48,7 @@ import java.util.Optional;
 public class RideServiceImpl implements RideService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
     private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
@@ -183,7 +187,11 @@ public class RideServiceImpl implements RideService {
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
                 .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
                 .and(RideSpecifications.excludeStopWithOriginOsmId(criteria.excludeOriginOsmId()))
-                .and(RideSpecifications.excludeStopWithDestinationOsmId(criteria.excludeDestinationOsmId()));
+                .and(RideSpecifications.excludeStopWithDestinationOsmId(criteria.excludeDestinationOsmId()))
+                .and(RideSpecifications.orderByNearestStopDistance(
+                        criteria.originLat(), criteria.originLon(),
+                        criteria.destinationLat(), criteria.destinationLon(),
+                        radiusMeters));
 
         if (criteria.departureDateTo() != null) {
             spec = spec.and(RideSpecifications.departsOnOrBefore(
@@ -194,7 +202,6 @@ public class RideServiceImpl implements RideService {
 
         List<Ride> filtered = ridePage.getContent().stream()
                 .filter(ride -> hasAvailableSeatsForNearbySearch(ride, criteria))
-                .sorted(nearbyRideComparator(criteria))
                 .toList();
 
         LOGGER.info("Proximity ride search: radiusKm={}, found={}, filtered={}",
@@ -226,34 +233,18 @@ public class RideServiceImpl implements RideService {
         return ride.getAvailableSeatsForSegment(boardOrder, alightOrder) >= minSeats;
     }
 
-    private Comparator<Ride> nearbyRideComparator(RideSearchCriteriaDto criteria) {
-        return Comparator.comparingDouble(ride -> {
-            RideStop nearestOrigin = findNearestStop(ride, criteria.originLat(), criteria.originLon(), true);
-            RideStop nearestDest = findNearestStop(ride, criteria.destinationLat(), criteria.destinationLon(), false);
-            double originDist = (nearestOrigin != null)
-                    ? GeoUtils.haversineKm(criteria.originLat(), criteria.originLon(),
-                    nearestOrigin.getLocation().getLatitude(), nearestOrigin.getLocation().getLongitude())
-                    : Double.MAX_VALUE;
-            double destDist = (nearestDest != null)
-                    ? GeoUtils.haversineKm(criteria.destinationLat(), criteria.destinationLon(),
-                    nearestDest.getLocation().getLatitude(), nearestDest.getLocation().getLongitude())
-                    : Double.MAX_VALUE;
-            return originDist + destDist;
-        });
-    }
-
     private int findNearestStopOrder(Ride ride, double lat, double lon, boolean excludeLast) {
         RideStop stop = findNearestStop(ride, lat, lon, excludeLast);
         return stop != null ? stop.getStopOrder() : -1;
     }
 
     private RideStop findNearestStop(Ride ride, double lat, double lon, boolean excludeLast) {
+        Point searchPoint = GEOMETRY_FACTORY.createPoint(new Coordinate(lon, lat));
         int maxOrder = ride.getStops().stream().mapToInt(RideStop::getStopOrder).max().orElse(0);
         return ride.getStops().stream()
                 .filter(s -> excludeLast ? s.getStopOrder() < maxOrder : s.getStopOrder() > 0)
                 .min(Comparator.comparingDouble(s ->
-                        GeoUtils.haversineKm(lat, lon,
-                                s.getLocation().getLatitude(), s.getLocation().getLongitude())))
+                        s.getLocation().getCoordinates().distance(searchPoint)))
                 .orElse(null);
     }
 

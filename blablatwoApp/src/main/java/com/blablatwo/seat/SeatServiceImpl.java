@@ -1,6 +1,5 @@
 package com.blablatwo.seat;
 
-import com.blablatwo.domain.GeoUtils;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.NoSuchSeatException;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -137,7 +135,10 @@ public class SeatServiceImpl implements SeatService {
                 .and(SeatSpecifications.excludeOriginOsmId(criteria.excludeOriginOsmId()))
                 .and(SeatSpecifications.excludeDestinationOsmId(criteria.excludeDestinationOsmId()))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
+                .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
+                .and(SeatSpecifications.orderByCombinedDistance(
+                        criteria.originLat(), criteria.originLon(),
+                        criteria.destinationLat(), criteria.destinationLon()));
 
         if (criteria.departureDateTo() != null) {
             spec = spec.and(SeatSpecifications.departsOnOrBefore(
@@ -145,31 +146,16 @@ public class SeatServiceImpl implements SeatService {
         }
 
         Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
-
-        List<Seat> sorted = seatPage.getContent().stream()
-                .sorted(nearbySeatComparator(criteria))
-                .toList();
+        List<Seat> seats = seatPage.getContent();
 
         LOGGER.info("Proximity seat search: radiusKm={}, found={}",
                 radiusKm, seatPage.getTotalElements());
 
-        List<SeatResponseDto> dtos = sorted.stream()
+        List<SeatResponseDto> dtos = seats.stream()
                 .map(seatMapper::seatEntityToResponseDto)
                 .toList();
-        List<SeatResponseDto> enriched = seatResponseEnricher.enrich(sorted, dtos);
+        List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
-    }
-
-    private Comparator<Seat> nearbySeatComparator(SeatSearchCriteriaDto criteria) {
-        return Comparator.comparingDouble(seat -> {
-            double originDist = GeoUtils.haversineKm(
-                    criteria.originLat(), criteria.originLon(),
-                    seat.getOrigin().getLatitude(), seat.getOrigin().getLongitude());
-            double destDist = GeoUtils.haversineKm(
-                    criteria.destinationLat(), criteria.destinationLon(),
-                    seat.getDestination().getLatitude(), seat.getDestination().getLongitude());
-            return originDist + destDist;
-        });
     }
 
     @Override
