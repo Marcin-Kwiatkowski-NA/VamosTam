@@ -44,7 +44,7 @@ public class Location {
     private String city;
     private String postCode;
 
-    @Column(nullable = false, columnDefinition = "geometry(Point, 4326)")
+    @Column(nullable = false, columnDefinition = "geography(Point, 4326)")
     private Point coordinates;
 
     private String type;

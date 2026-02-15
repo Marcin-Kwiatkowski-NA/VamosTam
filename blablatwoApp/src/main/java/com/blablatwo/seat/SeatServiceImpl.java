@@ -1,5 +1,6 @@
 package com.blablatwo.seat;
 
+import com.blablatwo.domain.GeoUtils;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.NoSuchSeatException;
@@ -12,6 +13,9 @@ import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
 import com.blablatwo.user.exception.NoSuchUserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -21,11 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class SeatServiceImpl implements SeatService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeatServiceImpl.class);
 
     private final SeatRepository seatRepository;
     private final SeatMapper seatMapper;
@@ -33,6 +40,9 @@ public class SeatServiceImpl implements SeatService {
     private final UserAccountRepository userAccountRepository;
     private final SeatResponseEnricher seatResponseEnricher;
     private final CapabilityService capabilityService;
+
+    @Value("${search.proximity.default-radius-km:50}")
+    private double defaultRadiusKm;
 
     public SeatServiceImpl(SeatRepository seatRepository,
                             SeatMapper seatMapper,
@@ -83,6 +93,13 @@ public class SeatServiceImpl implements SeatService {
     @Override
     @Transactional(readOnly = true)
     public Page<SeatResponseDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable) {
+        if (criteria.isProximityMode()) {
+            return searchSeatsNearby(criteria, pageable);
+        }
+        return searchSeatsExact(criteria, pageable);
+    }
+
+    private Page<SeatResponseDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
         var departureFrom = TimePredicateHelper.calculateDepartureFrom(
                 criteria.departureDate(), criteria.departureTimeFrom());
 
@@ -105,6 +122,54 @@ public class SeatServiceImpl implements SeatService {
                 .toList();
         List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
+    }
+
+    private Page<SeatResponseDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
+        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
+                criteria.departureDate(), criteria.departureTimeFrom());
+
+        double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
+        double radiusMeters = radiusKm * 1000;
+
+        Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
+                .and(SeatSpecifications.originWithinRadius(criteria.originLat(), criteria.originLon(), radiusMeters))
+                .and(SeatSpecifications.destinationWithinRadius(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
+                .and(SeatSpecifications.excludeOriginOsmId(criteria.excludeOriginOsmId()))
+                .and(SeatSpecifications.excludeDestinationOsmId(criteria.excludeDestinationOsmId()))
+                .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
+                .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
+
+        if (criteria.departureDateTo() != null) {
+            spec = spec.and(SeatSpecifications.departsOnOrBefore(
+                    criteria.departureDateTo(), LocalTime.MAX));
+        }
+
+        Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
+
+        List<Seat> sorted = seatPage.getContent().stream()
+                .sorted(nearbySeatComparator(criteria))
+                .toList();
+
+        LOGGER.info("Proximity seat search: radiusKm={}, found={}",
+                radiusKm, seatPage.getTotalElements());
+
+        List<SeatResponseDto> dtos = sorted.stream()
+                .map(seatMapper::seatEntityToResponseDto)
+                .toList();
+        List<SeatResponseDto> enriched = seatResponseEnricher.enrich(sorted, dtos);
+        return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
+    }
+
+    private Comparator<Seat> nearbySeatComparator(SeatSearchCriteriaDto criteria) {
+        return Comparator.comparingDouble(seat -> {
+            double originDist = GeoUtils.haversineKm(
+                    criteria.originLat(), criteria.originLon(),
+                    seat.getOrigin().getLatitude(), seat.getOrigin().getLongitude());
+            double destDist = GeoUtils.haversineKm(
+                    criteria.destinationLat(), criteria.destinationLon(),
+                    seat.getDestination().getLatitude(), seat.getDestination().getLongitude());
+            return originDist + destDist;
+        });
     }
 
     @Override

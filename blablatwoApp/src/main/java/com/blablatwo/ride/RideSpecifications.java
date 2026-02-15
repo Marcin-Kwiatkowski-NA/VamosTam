@@ -1,7 +1,9 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.domain.SpatialSpecifications;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
+import com.blablatwo.location.Location;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -86,5 +88,89 @@ public class RideSpecifications {
 
     public static Specification<Ride> departsOnOrBefore(LocalDate date, LocalTime time) {
         return TimePredicateHelper.departsOnOrBefore(date, time);
+    }
+
+    public static Specification<Ride> hasStopNearOrigin(Double lat, Double lon, double radiusMeters) {
+        return (root, query, cb) -> {
+            if (lat == null || lon == null) return null;
+            query.distinct(true);
+            Join<Ride, RideStop> stopJoin = root.join("stops");
+            Join<RideStop, Location> locJoin = stopJoin.join("location");
+
+            Subquery<Long> hasLaterStop = query.subquery(Long.class);
+            Root<RideStop> laterRoot = hasLaterStop.from(RideStop.class);
+            hasLaterStop.select(cb.literal(1L))
+                    .where(
+                            cb.equal(laterRoot.get("ride"), root),
+                            cb.greaterThan(laterRoot.get("stopOrder"), stopJoin.get("stopOrder"))
+                    );
+
+            return cb.and(
+                    SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
+                    cb.exists(hasLaterStop)
+            );
+        };
+    }
+
+    public static Specification<Ride> hasStopNearDestination(Double lat, Double lon, double radiusMeters) {
+        return (root, query, cb) -> {
+            if (lat == null || lon == null) return null;
+            query.distinct(true);
+            Join<Ride, RideStop> stopJoin = root.join("stops");
+            Join<RideStop, Location> locJoin = stopJoin.join("location");
+
+            Subquery<Long> hasEarlierStop = query.subquery(Long.class);
+            Root<RideStop> earlierRoot = hasEarlierStop.from(RideStop.class);
+            hasEarlierStop.select(cb.literal(1L))
+                    .where(
+                            cb.equal(earlierRoot.get("ride"), root),
+                            cb.lessThan(earlierRoot.get("stopOrder"), stopJoin.get("stopOrder"))
+                    );
+
+            return cb.and(
+                    SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
+                    cb.exists(hasEarlierStop)
+            );
+        };
+    }
+
+    public static Specification<Ride> excludeStopWithOriginOsmId(Long osmId) {
+        return (root, query, cb) -> {
+            if (osmId == null) return null;
+
+            Subquery<Long> hasOriginStop = query.subquery(Long.class);
+            Root<RideStop> stopRoot = hasOriginStop.from(RideStop.class);
+
+            Subquery<Integer> maxOrder = query.subquery(Integer.class);
+            Root<RideStop> maxRoot = maxOrder.from(RideStop.class);
+            maxOrder.select(cb.max(maxRoot.get("stopOrder")))
+                    .where(cb.equal(maxRoot.get("ride"), root));
+
+            hasOriginStop.select(cb.literal(1L))
+                    .where(
+                            cb.equal(stopRoot.get("ride"), root),
+                            cb.equal(stopRoot.get("location").get("osmId"), osmId),
+                            cb.lessThan(stopRoot.get("stopOrder"), maxOrder)
+                    );
+
+            return cb.not(cb.exists(hasOriginStop));
+        };
+    }
+
+    public static Specification<Ride> excludeStopWithDestinationOsmId(Long osmId) {
+        return (root, query, cb) -> {
+            if (osmId == null) return null;
+
+            Subquery<Long> hasDestStop = query.subquery(Long.class);
+            Root<RideStop> stopRoot = hasDestStop.from(RideStop.class);
+            hasDestStop.select(cb.literal(1L))
+                    .where(
+                            cb.equal(stopRoot.get("ride"), root),
+                            cb.equal(stopRoot.get("location").get("osmId"), osmId),
+                            cb.greaterThan(stopRoot.get("stopOrder"), 0)
+                    );
+
+            return cb.not(cb.exists(hasDestStop));
+        };
     }
 }

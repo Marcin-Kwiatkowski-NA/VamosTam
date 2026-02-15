@@ -1,5 +1,6 @@
 package com.blablatwo.ride;
 
+import com.blablatwo.domain.GeoUtils;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.AlreadyBookedException;
@@ -22,6 +23,9 @@ import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
 import com.blablatwo.user.exception.NoSuchUserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -33,11 +37,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class RideServiceImpl implements RideService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
 
     private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
@@ -46,6 +53,9 @@ public class RideServiceImpl implements RideService {
     private final UserAccountRepository userAccountRepository;
     private final RideResponseEnricher rideResponseEnricher;
     private final CapabilityService capabilityService;
+
+    @Value("${search.proximity.default-radius-km:50}")
+    private double defaultRadiusKm;
 
     public RideServiceImpl(RideRepository rideRepository,
                            RideBookingRepository bookingRepository,
@@ -125,6 +135,13 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional(readOnly = true)
     public Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable) {
+        if (criteria.isProximityMode()) {
+            return searchRidesNearby(criteria, pageable);
+        }
+        return searchRidesExact(criteria, pageable);
+    }
+
+    private Page<RideResponseDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
         var departureFrom = TimePredicateHelper.calculateDepartureFrom(
                 criteria.departureDate(), criteria.departureTimeFrom());
 
@@ -143,7 +160,7 @@ public class RideServiceImpl implements RideService {
         Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
 
         List<Ride> filtered = ridePage.getContent().stream()
-                .filter(ride -> hasAvailableSeatsForSearch(ride, criteria))
+                .filter(ride -> hasAvailableSeatsForExactSearch(ride, criteria))
                 .toList();
 
         List<RideResponseDto> dtos = filtered.stream()
@@ -153,18 +170,94 @@ public class RideServiceImpl implements RideService {
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
-    private boolean hasAvailableSeatsForSearch(Ride ride, RideSearchCriteriaDto criteria) {
+    private Page<RideResponseDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
+        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
+                criteria.departureDate(), criteria.departureTimeFrom());
+
+        double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
+        double radiusMeters = radiusKm * 1000;
+
+        Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
+                .and(RideSpecifications.hasStopNearOrigin(criteria.originLat(), criteria.originLon(), radiusMeters))
+                .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
+                .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
+                .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
+                .and(RideSpecifications.excludeStopWithOriginOsmId(criteria.excludeOriginOsmId()))
+                .and(RideSpecifications.excludeStopWithDestinationOsmId(criteria.excludeDestinationOsmId()));
+
+        if (criteria.departureDateTo() != null) {
+            spec = spec.and(RideSpecifications.departsOnOrBefore(
+                    criteria.departureDateTo(), LocalTime.MAX));
+        }
+
+        Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
+
+        List<Ride> filtered = ridePage.getContent().stream()
+                .filter(ride -> hasAvailableSeatsForNearbySearch(ride, criteria))
+                .sorted(nearbyRideComparator(criteria))
+                .toList();
+
+        LOGGER.info("Proximity ride search: radiusKm={}, found={}, filtered={}",
+                radiusKm, ridePage.getTotalElements(), filtered.size());
+
+        List<RideResponseDto> dtos = filtered.stream()
+                .map(rideMapper::rideEntityToRideResponseDto)
+                .toList();
+        List<RideResponseDto> enriched = rideResponseEnricher.enrich(filtered, dtos);
+        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+    }
+
+    private boolean hasAvailableSeatsForExactSearch(Ride ride, RideSearchCriteriaDto criteria) {
         if (criteria.originOsmId() == null || criteria.destinationOsmId() == null) {
             return true;
         }
-        int boardOrder = findStopOrder(ride, criteria.originOsmId());
-        int alightOrder = findStopOrder(ride, criteria.destinationOsmId());
+        int boardOrder = findStopOrderByOsmId(ride, criteria.originOsmId());
+        int alightOrder = findStopOrderByOsmId(ride, criteria.destinationOsmId());
         if (boardOrder < 0 || alightOrder < 0 || boardOrder >= alightOrder) return false;
         int minSeats = criteria.minAvailableSeats() > 0 ? criteria.minAvailableSeats() : 1;
         return ride.getAvailableSeatsForSegment(boardOrder, alightOrder) >= minSeats;
     }
 
-    private int findStopOrder(Ride ride, Long osmId) {
+    private boolean hasAvailableSeatsForNearbySearch(Ride ride, RideSearchCriteriaDto criteria) {
+        int boardOrder = findNearestStopOrder(ride, criteria.originLat(), criteria.originLon(), true);
+        int alightOrder = findNearestStopOrder(ride, criteria.destinationLat(), criteria.destinationLon(), false);
+        if (boardOrder < 0 || alightOrder < 0 || boardOrder >= alightOrder) return false;
+        int minSeats = criteria.minAvailableSeats() > 0 ? criteria.minAvailableSeats() : 1;
+        return ride.getAvailableSeatsForSegment(boardOrder, alightOrder) >= minSeats;
+    }
+
+    private Comparator<Ride> nearbyRideComparator(RideSearchCriteriaDto criteria) {
+        return Comparator.comparingDouble(ride -> {
+            RideStop nearestOrigin = findNearestStop(ride, criteria.originLat(), criteria.originLon(), true);
+            RideStop nearestDest = findNearestStop(ride, criteria.destinationLat(), criteria.destinationLon(), false);
+            double originDist = (nearestOrigin != null)
+                    ? GeoUtils.haversineKm(criteria.originLat(), criteria.originLon(),
+                    nearestOrigin.getLocation().getLatitude(), nearestOrigin.getLocation().getLongitude())
+                    : Double.MAX_VALUE;
+            double destDist = (nearestDest != null)
+                    ? GeoUtils.haversineKm(criteria.destinationLat(), criteria.destinationLon(),
+                    nearestDest.getLocation().getLatitude(), nearestDest.getLocation().getLongitude())
+                    : Double.MAX_VALUE;
+            return originDist + destDist;
+        });
+    }
+
+    private int findNearestStopOrder(Ride ride, double lat, double lon, boolean excludeLast) {
+        RideStop stop = findNearestStop(ride, lat, lon, excludeLast);
+        return stop != null ? stop.getStopOrder() : -1;
+    }
+
+    private RideStop findNearestStop(Ride ride, double lat, double lon, boolean excludeLast) {
+        int maxOrder = ride.getStops().stream().mapToInt(RideStop::getStopOrder).max().orElse(0);
+        return ride.getStops().stream()
+                .filter(s -> excludeLast ? s.getStopOrder() < maxOrder : s.getStopOrder() > 0)
+                .min(Comparator.comparingDouble(s ->
+                        GeoUtils.haversineKm(lat, lon,
+                                s.getLocation().getLatitude(), s.getLocation().getLongitude())))
+                .orElse(null);
+    }
+
+    private int findStopOrderByOsmId(Ride ride, Long osmId) {
         return ride.getStops().stream()
                 .filter(s -> s.getLocation().getOsmId().equals(osmId))
                 .findFirst()
