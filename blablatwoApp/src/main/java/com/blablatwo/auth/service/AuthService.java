@@ -4,7 +4,10 @@ import com.blablatwo.auth.dto.AuthResponse;
 import com.blablatwo.auth.dto.LoginRequest;
 import com.blablatwo.auth.dto.RefreshTokenRequest;
 import com.blablatwo.auth.dto.RegisterRequest;
+import com.blablatwo.auth.event.OnRegistrationCompleteEvent;
+import com.blablatwo.auth.exception.EmailAlreadyVerifiedException;
 import com.blablatwo.auth.exception.InvalidTokenException;
+import com.blablatwo.auth.verification.EmailVerificationService;
 import com.blablatwo.user.SecurityUser;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
@@ -15,6 +18,7 @@ import com.blablatwo.user.UserProfileRepository;
 import com.blablatwo.user.dto.UserProfileDto;
 import com.blablatwo.user.exception.NoSuchUserException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,19 +38,25 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserProfileMapper userProfileMapper;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final ApplicationEventPublisher eventPublisher;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthService(UserAccountRepository userAccountRepository,
                        UserProfileRepository userProfileRepository,
                        UserAccountService userAccountService,
                        JwtTokenProvider jwtTokenProvider,
                        UserProfileMapper userProfileMapper,
-                       GoogleTokenVerifier googleTokenVerifier) {
+                       GoogleTokenVerifier googleTokenVerifier,
+                       ApplicationEventPublisher eventPublisher,
+                       EmailVerificationService emailVerificationService) {
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
         this.userAccountService = userAccountService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userProfileMapper = userProfileMapper;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.eventPublisher = eventPublisher;
+        this.emailVerificationService = emailVerificationService;
     }
 
     public AuthResponse login(LoginRequest request, AuthenticationManager authenticationManager) {
@@ -75,7 +85,22 @@ public class AuthService {
                 displayName
         );
 
+        eventPublisher.publishEvent(new OnRegistrationCompleteEvent(account));
+
         return buildAuthResponse(account);
+    }
+
+    public void verifyEmail(String token) {
+        emailVerificationService.verifyEmail(token);
+    }
+
+    public void resendVerificationEmail(Long userId) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchUserException(userId));
+        if (account.getEmailVerifiedAt() != null) {
+            throw new EmailAlreadyVerifiedException();
+        }
+        emailVerificationService.sendVerificationEmail(account);
     }
 
     public AuthResponse authenticateWithGoogle(String idToken) throws GeneralSecurityException, IOException {

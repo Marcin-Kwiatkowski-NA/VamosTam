@@ -1,6 +1,9 @@
 package com.blablatwo.exceptions;
 
+import com.blablatwo.auth.exception.EmailAlreadyVerifiedException;
 import com.blablatwo.auth.exception.InvalidTokenException;
+import com.blablatwo.auth.exception.VerificationCooldownException;
+import com.blablatwo.email.EmailSendException;
 import com.blablatwo.location.NoSuchLocationException;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
@@ -71,6 +74,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DuplicateEmailException.class)
     public ProblemDetail handleDuplicateEmailException(HttpServletRequest request, DuplicateEmailException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailAlreadyVerifiedException.class)
+    public ProblemDetail handleEmailAlreadyVerified(HttpServletRequest request, EmailAlreadyVerifiedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(VerificationCooldownException.class)
+    public ProblemDetail handleVerificationCooldown(HttpServletRequest request, VerificationCooldownException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailSendException.class)
+    public ProblemDetail handleEmailSendException(HttpServletRequest request, EmailSendException ex) {
+        LOGGER.error("Email send failure", ex);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Unable to send email. Please try again later.");
     }
 
     @ExceptionHandler(NoSuchLocationException.class)

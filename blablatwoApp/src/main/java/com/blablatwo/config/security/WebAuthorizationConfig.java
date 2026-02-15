@@ -89,6 +89,7 @@ public class WebAuthorizationConfig {
                 .requestMatchers("/auth/register").permitAll()
                 .requestMatchers("/auth/google").permitAll()
                 .requestMatchers("/auth/refresh").permitAll()
+                .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/seats/search").permitAll()
