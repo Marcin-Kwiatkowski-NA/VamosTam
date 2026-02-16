@@ -23,7 +23,7 @@ public class RegistrationListener {
     @EventListener
     public void handleRegistration(OnRegistrationCompleteEvent event) {
         try {
-            emailVerificationService.sendVerificationEmail(event.user());
+            emailVerificationService.sendVerificationEmail(event.user(), event.locale());
         } catch (EmailSendException e) {
             LOGGER.error("Failed to send verification email to {}: {}",
                     event.user().getEmail(), e.getMessage());

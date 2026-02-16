@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,7 +40,7 @@ class EmailVerificationServiceTest {
     void setUp() {
         service = new EmailVerificationService(
                 tokenRepository, userAccountRepository, brevoClient,
-                24, 60, "https://localhost:8443", 1L
+                24, 60, "https://localhost:8443", 2L, 1L
         );
     }
 
@@ -51,7 +52,7 @@ class EmailVerificationServiceTest {
             UserAccount user = UserAccount.builder().id(1L).email("test@example.com").build();
             when(tokenRepository.findLatestCreatedAtForUser(1L)).thenReturn(Optional.empty());
 
-            service.sendVerificationEmail(user);
+            service.sendVerificationEmail(user, Locale.ENGLISH);
 
             verify(tokenRepository).invalidateAllForUser(1L);
 
@@ -69,14 +70,14 @@ class EmailVerificationServiceTest {
             UserAccount user = UserAccount.builder().id(1L).email("test@example.com").build();
             when(tokenRepository.findLatestCreatedAtForUser(1L)).thenReturn(Optional.empty());
 
-            service.sendVerificationEmail(user);
+            service.sendVerificationEmail(user, Locale.ENGLISH);
 
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Map<String, String>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
             verify(brevoClient).sendTemplateEmail(
                     eq("test@example.com"),
                     eq("test"),
-                    eq(1L),
+                    eq(2L),
                     paramsCaptor.capture()
             );
 
@@ -87,12 +88,27 @@ class EmailVerificationServiceTest {
         }
 
         @Test
+        void usesPolishTemplateWhenLocaleIsPolish() {
+            UserAccount user = UserAccount.builder().id(1L).email("test@example.com").build();
+            when(tokenRepository.findLatestCreatedAtForUser(1L)).thenReturn(Optional.empty());
+
+            service.sendVerificationEmail(user, Locale.forLanguageTag("pl"));
+
+            verify(brevoClient).sendTemplateEmail(
+                    eq("test@example.com"),
+                    eq("test"),
+                    eq(1L),
+                    any()
+            );
+        }
+
+        @Test
         void throwsCooldownExceptionWhenTokenCreatedRecently() {
             UserAccount user = UserAccount.builder().id(1L).email("test@example.com").build();
             when(tokenRepository.findLatestCreatedAtForUser(1L))
                     .thenReturn(Optional.of(Instant.now().minusSeconds(30)));
 
-            assertThatThrownBy(() -> service.sendVerificationEmail(user))
+            assertThatThrownBy(() -> service.sendVerificationEmail(user, Locale.ENGLISH))
                     .isInstanceOf(VerificationCooldownException.class);
 
             verify(tokenRepository, never()).save(any());
@@ -105,7 +121,7 @@ class EmailVerificationServiceTest {
             when(tokenRepository.findLatestCreatedAtForUser(1L))
                     .thenReturn(Optional.of(Instant.now().minusSeconds(61)));
 
-            service.sendVerificationEmail(user);
+            service.sendVerificationEmail(user, Locale.ENGLISH);
 
             verify(tokenRepository).save(any());
             verify(brevoClient).sendTemplateEmail(any(), any(), anyLong(), any());

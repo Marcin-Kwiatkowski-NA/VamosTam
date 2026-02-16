@@ -2,4 +2,6 @@ package com.blablatwo.auth.event;
 
 import com.blablatwo.user.UserAccount;
 
-public record OnRegistrationCompleteEvent(UserAccount user) {}
+import java.util.Locale;
+
+public record OnRegistrationCompleteEvent(UserAccount user, Locale locale) {}

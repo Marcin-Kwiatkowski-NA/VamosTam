@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -23,6 +24,7 @@ public class EmailVerificationService {
     private final int cooldownSeconds;
     private final String baseUrl;
     private final long verificationTemplateId;
+    private final long verificationTemplateIdPl;
 
     public EmailVerificationService(EmailVerificationTokenRepository tokenRepository,
                                     UserAccountRepository userAccountRepository,
@@ -30,7 +32,8 @@ public class EmailVerificationService {
                                     @Value("${app.email-verification.token-expiry-hours}") int tokenExpiryHours,
                                     @Value("${app.email-verification.cooldown-seconds}") int cooldownSeconds,
                                     @Value("${app.email-verification.base-url}") String baseUrl,
-                                    @Value("${brevo.verification-template-id}") long verificationTemplateId) {
+                                    @Value("${brevo.verification-template-id}") long verificationTemplateId,
+                                    @Value("${brevo.verification-template-id-pl}") long verificationTemplateIdPl) {
         this.tokenRepository = tokenRepository;
         this.userAccountRepository = userAccountRepository;
         this.brevoClient = brevoClient;
@@ -38,10 +41,11 @@ public class EmailVerificationService {
         this.cooldownSeconds = cooldownSeconds;
         this.baseUrl = baseUrl;
         this.verificationTemplateId = verificationTemplateId;
+        this.verificationTemplateIdPl = verificationTemplateIdPl;
     }
 
     @Transactional
-    public void sendVerificationEmail(UserAccount user) {
+    public void sendVerificationEmail(UserAccount user, Locale locale) {
         checkCooldown(user.getId());
 
         tokenRepository.invalidateAllForUser(user.getId());
@@ -59,10 +63,12 @@ public class EmailVerificationService {
         String verificationLink = baseUrl + "/auth/verify-email?token=" + plainToken;
         String userName = user.getEmail().split("@")[0];
 
+        long templateId = "pl".equals(locale.getLanguage()) ? verificationTemplateIdPl : verificationTemplateId;
+
         brevoClient.sendTemplateEmail(
                 user.getEmail(),
                 userName,
-                verificationTemplateId,
+                templateId,
                 Map.of(
                         "VERIFICATION_URL", verificationLink,
                         "USER_NAME", userName

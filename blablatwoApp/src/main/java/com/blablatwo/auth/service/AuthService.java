@@ -27,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Locale;
+
+import org.springframework.context.i18n.LocaleContextHolder;
 
 @Service
 @Transactional
@@ -85,7 +88,7 @@ public class AuthService {
                 displayName
         );
 
-        eventPublisher.publishEvent(new OnRegistrationCompleteEvent(account));
+        eventPublisher.publishEvent(new OnRegistrationCompleteEvent(account, LocaleContextHolder.getLocale()));
 
         return buildAuthResponse(account);
     }
@@ -100,7 +103,7 @@ public class AuthService {
         if (account.getEmailVerifiedAt() != null) {
             throw new EmailAlreadyVerifiedException();
         }
-        emailVerificationService.sendVerificationEmail(account);
+        emailVerificationService.sendVerificationEmail(account, LocaleContextHolder.getLocale());
     }
 
     public AuthResponse authenticateWithGoogle(String idToken) throws GeneralSecurityException, IOException {
