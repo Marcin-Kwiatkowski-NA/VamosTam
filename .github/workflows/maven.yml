@@ -28,4 +28,6 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
+      env:
+        BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
       run: mvn -B package --file pom.xml
