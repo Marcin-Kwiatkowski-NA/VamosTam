@@ -19,7 +19,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.net.URI;
 import java.security.GeneralSecurityException;
 
 @RestController
@@ -71,18 +70,66 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<Void> verifyEmail(@RequestParam String token) {
+    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
+        boolean success;
         try {
             authService.verifyEmail(token);
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .location(URI.create(frontendSuccessUrl))
-                    .build();
+            success = true;
         } catch (InvalidTokenException e) {
             LOGGER.warn("Email verification failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .location(URI.create(frontendErrorUrl))
-                    .build();
+            success = false;
         }
+
+        String deepLink = success ? frontendSuccessUrl : frontendErrorUrl;
+        String html = buildVerifyResultPage(success, deepLink);
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/html; charset=UTF-8")
+                .body(html);
+    }
+
+    private String buildVerifyResultPage(boolean success, String deepLink) {
+        String icon = success ? "\u2705" : "\u274C";
+        String title = success ? "Email Verified!" : "Verification Failed";
+        String message = success
+                ? "Your email has been verified successfully. You can close this page or open the app."
+                : "The verification link is invalid or has expired. Please request a new one in the app.";
+        String color = success ? "#2e7d32" : "#c62828";
+
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>%s</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                               display: flex; justify-content: center; align-items: center;
+                               min-height: 100vh; margin: 0; background: #f5f5f5; }
+                        .card { background: white; border-radius: 16px; padding: 48px; text-align: center;
+                                max-width: 400px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+                        .icon { font-size: 64px; margin-bottom: 16px; }
+                        h1 { color: %s; margin: 0 0 12px; font-size: 24px; }
+                        p { color: #666; line-height: 1.5; margin: 0 0 24px; }
+                        .btn { display: inline-block; background: #00897b; color: white; text-decoration: none;
+                               padding: 12px 32px; border-radius: 28px; font-size: 16px; font-weight: 500; }
+                    </style>
+                    <script>
+                        // Try to open the app via deep link
+                        setTimeout(function() { window.location.href = "%s"; }, 1500);
+                    </script>
+                </head>
+                <body>
+                    <div class="card">
+                        <div class="icon">%s</div>
+                        <h1>%s</h1>
+                        <p>%s</p>
+                        <a class="btn" href="%s">Open App</a>
+                    </div>
+                </body>
+                </html>
+                """.formatted(title, color, deepLink, icon, title, message, deepLink);
     }
 
     @PostMapping("/resend-verification")
