@@ -15,4 +15,6 @@ public interface SeatExternalMetaRepository extends JpaRepository<SeatExternalMe
     boolean existsByExternalId(String externalId);
 
     List<SeatExternalMeta> findAllByIdIn(Collection<Long> seatIds);
+
+    void deleteAllByIdIn(Collection<Long> seatIds);
 }

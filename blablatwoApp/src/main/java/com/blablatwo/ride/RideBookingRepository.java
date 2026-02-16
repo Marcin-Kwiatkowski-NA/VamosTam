@@ -14,4 +14,6 @@ public interface RideBookingRepository extends JpaRepository<RideBooking, Long> 
     boolean existsByRideIdAndPassengerId(Long rideId, Long passengerId);
 
     List<RideBooking> findByPassengerId(Long passengerId);
+
+    void deleteByPassengerId(Long passengerId);
 }

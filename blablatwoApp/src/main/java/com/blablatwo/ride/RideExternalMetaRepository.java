@@ -15,4 +15,6 @@ public interface RideExternalMetaRepository extends JpaRepository<RideExternalMe
     boolean existsByExternalId(String externalId);
 
     List<RideExternalMeta> findAllByIdIn(Collection<Long> rideIds);
+
+    void deleteAllByIdIn(Collection<Long> rideIds);
 }

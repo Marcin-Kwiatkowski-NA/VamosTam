@@ -23,4 +23,6 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     Optional<Instant> findLatestCreatedAtForUser(@Param("userId") Long userId);
 
     void deleteByExpiresAtBefore(Instant cutoff);
+
+    void deleteByUserId(Long userId);
 }

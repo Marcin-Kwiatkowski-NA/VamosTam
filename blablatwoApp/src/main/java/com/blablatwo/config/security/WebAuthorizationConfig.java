@@ -110,7 +110,7 @@ public class WebAuthorizationConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://vamos.130.61.31.172.sslip.io"));
+        configuration.setAllowedOriginPatterns(List.of("http://vamos.130.61.31.172.sslip.io", "http://localhost:*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

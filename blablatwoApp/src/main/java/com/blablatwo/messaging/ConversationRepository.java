@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -50,4 +52,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
         @Param("userId") Long userId,
         @Param("since") Instant since,
         Pageable pageable);
+
+    @Query("SELECT c FROM Conversation c WHERE c.participantA.id = :userId OR c.participantB.id = :userId")
+    List<Conversation> findAllByParticipantId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Conversation c WHERE c.participantA.id = :userId OR c.participantB.id = :userId")
+    void deleteAllByParticipantId(@Param("userId") Long userId);
 }

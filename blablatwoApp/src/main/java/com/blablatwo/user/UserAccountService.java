@@ -1,8 +1,17 @@
 package com.blablatwo.user;
 
 import com.blablatwo.auth.AuthProvider;
+import com.blablatwo.auth.verification.EmailVerificationTokenRepository;
+import com.blablatwo.messaging.ConversationRepository;
+import com.blablatwo.messaging.MessageRepository;
+import com.blablatwo.ride.RideBookingRepository;
+import com.blablatwo.ride.RideExternalMetaRepository;
+import com.blablatwo.ride.RideRepository;
+import com.blablatwo.seat.SeatExternalMetaRepository;
+import com.blablatwo.seat.SeatRepository;
 import com.blablatwo.user.exception.DuplicateEmailException;
 import com.blablatwo.user.exception.NoSuchUserException;
+import com.blablatwo.vehicle.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +29,15 @@ public class UserAccountService {
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
+    private final RideBookingRepository rideBookingRepository;
+    private final RideExternalMetaRepository rideExternalMetaRepository;
+    private final SeatExternalMetaRepository seatExternalMetaRepository;
+    private final RideRepository rideRepository;
+    private final SeatRepository seatRepository;
+    private final VehicleRepository vehicleRepository;
 
     @Transactional(readOnly = true)
     public Optional<UserAccount> findById(Long id) {
@@ -138,6 +156,55 @@ public class UserAccountService {
         userProfileRepository.save(profile);
 
         return savedAccount;
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchUserException(userId));
+
+        // 1. Email verification tokens
+        emailVerificationTokenRepository.deleteByUserId(userId);
+
+        // 2. Messages in user's conversations, then conversations
+        var conversations = conversationRepository.findAllByParticipantId(userId);
+        if (!conversations.isEmpty()) {
+            var conversationIds = conversations.stream().map(c -> c.getId()).toList();
+            messageRepository.deleteByConversationIdIn(conversationIds);
+            conversationRepository.deleteAllByParticipantId(userId);
+        }
+
+        // 3. Bookings where user is passenger on OTHER people's rides
+        rideBookingRepository.deleteByPassengerId(userId);
+
+        // 4. External meta for user's rides (shared PK = ride ID)
+        var userRides = rideRepository.findByDriverId(userId);
+        if (!userRides.isEmpty()) {
+            var rideIds = userRides.stream().map(r -> r.getId()).toList();
+            rideExternalMetaRepository.deleteAllByIdIn(rideIds);
+        }
+
+        // 5. External meta for user's seats (shared PK = seat ID)
+        var userSeats = seatRepository.findByPassengerId(userId);
+        if (!userSeats.isEmpty()) {
+            var seatIds = userSeats.stream().map(s -> s.getId()).toList();
+            seatExternalMetaRepository.deleteAllByIdIn(seatIds);
+        }
+
+        // 6. Rides (cascades to ride_stop, ride_booking via CascadeType.ALL)
+        rideRepository.deleteAll(userRides);
+
+        // 7. Seats
+        seatRepository.deleteAll(userSeats);
+
+        // 8. Vehicles
+        vehicleRepository.deleteByOwnerId(userId);
+
+        // 9. User profile
+        userProfileRepository.deleteById(userId);
+
+        // 10. User account (cascades element collections: providers, roles)
+        userAccountRepository.delete(account);
     }
 
     @Transactional(readOnly = true)
