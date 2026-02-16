@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 public record LocationRef(
         @NotNull Long osmId,
         @NotBlank String name,
+        @NotNull LocationLang lang,
         @NotNull Double latitude,
         @NotNull Double longitude,
         String countryCode,

@@ -32,7 +32,10 @@ public class Location {
     private Long osmId;
 
     @Column(nullable = false)
-    private String name;
+    private String namePl;
+
+    @Column(nullable = false)
+    private String nameEn;
 
     private String country;
 
@@ -51,6 +54,10 @@ public class Location {
     private String osmKey;
     private String osmValue;
 
+    public String getName(LocationLang lang) {
+        return lang == LocationLang.pl ? namePl : nameEn;
+    }
+
     public Double getLatitude() {
         return coordinates != null ? coordinates.getY() : null;
     }
@@ -61,6 +68,6 @@ public class Location {
 
     @Override
     public String toString() {
-        return "Location{id=%d, osmId=%d, name='%s'}".formatted(id, osmId, name);
+        return "Location{id=%d, osmId=%d, namePl='%s', nameEn='%s'}".formatted(id, osmId, namePl, nameEn);
     }
 }

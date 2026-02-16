@@ -5,6 +5,7 @@ import com.blablatwo.dto.ContactType;
 import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationDto;
+import com.blablatwo.location.LocationLang;
 import com.blablatwo.location.LocationRef;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideSource;
@@ -46,7 +47,8 @@ public final class TestFixtures {
         return Location.builder()
                 .id(ID_ONE)
                 .osmId(OSM_ID_ORIGIN)
-                .name(LOCATION_NAME_ORIGIN)
+                .namePl(LOCATION_NAME_ORIGIN)
+                .nameEn(LOCATION_NAME_ORIGIN)
                 .countryCode("PL")
                 .coordinates(GF.createPoint(new Coordinate(LON_ORIGIN, LAT_ORIGIN)));
     }
@@ -55,7 +57,8 @@ public final class TestFixtures {
         return Location.builder()
                 .id(2L)
                 .osmId(OSM_ID_DESTINATION)
-                .name(LOCATION_NAME_DESTINATION)
+                .namePl(LOCATION_NAME_DESTINATION)
+                .nameEn(LOCATION_NAME_DESTINATION)
                 .countryCode("PL")
                 .coordinates(GF.createPoint(new Coordinate(LON_DESTINATION, LAT_DESTINATION)));
     }
@@ -63,7 +66,8 @@ public final class TestFixtures {
     public static Location.LocationBuilder aKrakowLocation() {
         return Location.builder()
                 .osmId(OSM_ID_KRAKOW)
-                .name(LOCATION_NAME_KRAKOW)
+                .namePl(LOCATION_NAME_KRAKOW)
+                .nameEn(LOCATION_NAME_KRAKOW)
                 .countryCode("PL")
                 .coordinates(GF.createPoint(new Coordinate(LON_KRAKOW, LAT_KRAKOW)));
     }
@@ -71,7 +75,8 @@ public final class TestFixtures {
     public static Location.LocationBuilder aWarsawLocation() {
         return Location.builder()
                 .osmId(OSM_ID_WARSAW)
-                .name(LOCATION_NAME_WARSAW)
+                .namePl(LOCATION_NAME_WARSAW)
+                .nameEn(LOCATION_NAME_WARSAW)
                 .countryCode("PL")
                 .coordinates(GF.createPoint(new Coordinate(LON_WARSAW, LAT_WARSAW)));
     }
@@ -101,12 +106,12 @@ public final class TestFixtures {
     }
 
     public static LocationRef originLocationRef() {
-        return new LocationRef(OSM_ID_ORIGIN, LOCATION_NAME_ORIGIN, LAT_ORIGIN, LON_ORIGIN,
+        return new LocationRef(OSM_ID_ORIGIN, LOCATION_NAME_ORIGIN, LocationLang.pl, LAT_ORIGIN, LON_ORIGIN,
                 "PL", null, null, null, null, null, null, null, null);
     }
 
     public static LocationRef destinationLocationRef() {
-        return new LocationRef(OSM_ID_DESTINATION, LOCATION_NAME_DESTINATION, LAT_DESTINATION, LON_DESTINATION,
+        return new LocationRef(OSM_ID_DESTINATION, LOCATION_NAME_DESTINATION, LocationLang.pl, LAT_DESTINATION, LON_DESTINATION,
                 "PL", null, null, null, null, null, null, null, null);
     }
 

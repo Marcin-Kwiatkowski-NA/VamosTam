@@ -7,32 +7,36 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 @Mapper(componentModel = "spring")
-public interface LocationMapper {
+public abstract class LocationMapper {
 
-    GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+    static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
+    @Mapping(target = "name", source = ".", qualifiedByName = "resolveName")
     @Mapping(target = "latitude", source = "location", qualifiedByName = "toLatitude")
     @Mapping(target = "longitude", source = "location", qualifiedByName = "toLongitude")
-    LocationDto locationToDto(Location location);
+    public abstract LocationDto locationToDto(Location location);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "coordinates", source = "ref", qualifiedByName = "toPoint")
-    Location locationRefToEntity(LocationRef ref);
+    @Named("resolveName")
+    protected String resolveName(Location location) {
+        String lang = LocaleContextHolder.getLocale().getLanguage();
+        return "pl".equals(lang) ? location.getNamePl() : location.getNameEn();
+    }
 
     @Named("toLatitude")
-    default Double toLatitude(Location location) {
+    protected Double toLatitude(Location location) {
         return location.getLatitude();
     }
 
     @Named("toLongitude")
-    default Double toLongitude(Location location) {
+    protected Double toLongitude(Location location) {
         return location.getLongitude();
     }
 
     @Named("toPoint")
-    default Point toPoint(LocationRef ref) {
+    protected Point toPoint(LocationRef ref) {
         return GEOMETRY_FACTORY.createPoint(new Coordinate(ref.longitude(), ref.latitude()));
     }
 }
