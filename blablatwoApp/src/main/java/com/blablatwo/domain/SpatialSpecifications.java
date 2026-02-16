@@ -24,7 +24,7 @@ public final class SpatialSpecifications {
             CriteriaBuilder cb, Expression<Point> coordinates,
             double lon, double lat) {
         return cb.function("st_distance", Double.class,
-                coordinates, makePoint(cb, lon, lat), cb.literal(true));
+                coordinates, makePoint(cb, lon, lat));
     }
 
     @SuppressWarnings("unchecked")

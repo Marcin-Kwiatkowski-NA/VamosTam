@@ -157,7 +157,7 @@ public class RideSpecifications {
             Root<RideStop> s1 = minOriginDist.from(RideStop.class);
             Join<RideStop, Location> l1 = s1.join("location");
             minOriginDist.select(cb.min(
-                    cb.function("st_distance", Double.class, l1.get("coordinates"), originPoint, cb.literal(true))
+                    cb.function("st_distance", Double.class, l1.get("coordinates"), originPoint)
             )).where(
                     cb.equal(s1.get("ride"), root),
                     SpatialSpecifications.withinRadius(cb, l1.get("coordinates"), originLon, originLat, radiusMeters)
@@ -167,7 +167,7 @@ public class RideSpecifications {
             Root<RideStop> s2 = minDestDist.from(RideStop.class);
             Join<RideStop, Location> l2 = s2.join("location");
             minDestDist.select(cb.min(
-                    cb.function("st_distance", Double.class, l2.get("coordinates"), destPoint, cb.literal(true))
+                    cb.function("st_distance", Double.class, l2.get("coordinates"), destPoint)
             )).where(
                     cb.equal(s2.get("ride"), root),
                     SpatialSpecifications.withinRadius(cb, l2.get("coordinates"), destLon, destLat, radiusMeters)
