@@ -28,4 +28,6 @@ public interface RideService {
     RideResponseDto cancelBooking(Long rideId, Long passengerId);
 
     List<RideResponseDto> getRidesForPassenger(Long passengerId);
+
+    List<RideResponseDto> getRidesForDriver(Long driverId);
 }

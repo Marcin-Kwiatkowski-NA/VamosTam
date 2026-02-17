@@ -363,6 +363,20 @@ public class RideServiceImpl implements RideService {
         return rideResponseEnricher.enrich(rides, dtos);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RideResponseDto> getRidesForDriver(Long driverId) {
+        if (!userAccountRepository.existsById(driverId)) {
+            throw new NoSuchUserException(driverId);
+        }
+
+        List<Ride> rides = rideRepository.findByDriverId(driverId);
+        List<RideResponseDto> dtos = rides.stream()
+                .map(rideMapper::rideEntityToRideResponseDto)
+                .toList();
+        return rideResponseEnricher.enrich(rides, dtos);
+    }
+
     private List<RideStop> buildStops(Ride ride, RideCreationDto dto) {
         Location origin = locationResolutionService.resolve(dto.origin());
         Location destination = locationResolutionService.resolve(dto.destination());

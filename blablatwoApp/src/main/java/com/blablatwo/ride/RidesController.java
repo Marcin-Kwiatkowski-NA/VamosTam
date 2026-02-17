@@ -141,7 +141,7 @@ public class RidesController {
 
     @GetMapping("/me/rides")
     public ResponseEntity<List<RideResponseDto>> getMyRides(@AuthenticationPrincipal AppPrincipal principal) {
-        return ResponseEntity.ok(rideService.getRidesForPassenger(principal.userId()));
+        return ResponseEntity.ok(rideService.getRidesForDriver(principal.userId()));
     }
 
     private Sort resolveSort(String sortBy, String sortDir) {
