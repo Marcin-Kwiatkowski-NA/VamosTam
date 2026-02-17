@@ -529,7 +529,7 @@ class RidesControllerTest {
         @DisplayName("GET /me/rides - Returns user's rides")
         void getMyRides_Success() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(any())).thenReturn(List.of(rideResponseDto));
+            when(rideService.getRidesForDriver(any())).thenReturn(List.of(rideResponseDto));
             AppPrincipal principal = new AppPrincipal(USER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
@@ -546,7 +546,7 @@ class RidesControllerTest {
         @DisplayName("GET /me/rides - Returns empty list when no bookings")
         void getMyRides_Empty() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(any())).thenReturn(Collections.emptyList());
+            when(rideService.getRidesForDriver(any())).thenReturn(Collections.emptyList());
             AppPrincipal principal = new AppPrincipal(USER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert
@@ -561,7 +561,7 @@ class RidesControllerTest {
         @DisplayName("GET /me/rides - User not found")
         void getMyRides_UserNotFound() throws Exception {
             // Arrange
-            when(rideService.getRidesForPassenger(any()))
+            when(rideService.getRidesForDriver(any()))
                     .thenThrow(new NoSuchUserException(NON_EXISTENT_ID));
             AppPrincipal principal = new AppPrincipal(NON_EXISTENT_ID, "unknown@test.com", Set.of(Role.USER));
 
