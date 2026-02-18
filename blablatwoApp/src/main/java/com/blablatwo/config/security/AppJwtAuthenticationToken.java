@@ -20,6 +20,11 @@ public class AppJwtAuthenticationToken extends AbstractOAuth2TokenAuthentication
     }
 
     @Override
+    public String getName() {
+        return principal.userId().toString();
+    }
+
+    @Override
     public AppPrincipal getPrincipal() {
         return principal;
     }

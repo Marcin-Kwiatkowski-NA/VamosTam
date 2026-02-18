@@ -3,7 +3,6 @@ package com.blablatwo.messaging;
 import com.blablatwo.messaging.dto.ConversationOpenRequest;
 import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
-import com.blablatwo.messaging.dto.PeerUserDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
 import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
@@ -11,8 +10,6 @@ import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
-import com.blablatwo.user.UserProfile;
-import com.blablatwo.user.UserProfileRepository;
 import com.blablatwo.user.exception.NoSuchUserException;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
@@ -37,20 +34,20 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserAccountRepository userAccountRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final ConversationDtoBuilder dtoBuilder;
     private final MessageMapper messageMapper;
     private final ApplicationEventPublisher eventPublisher;
 
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
                                    UserAccountRepository userAccountRepository,
-                                   UserProfileRepository userProfileRepository,
+                                   ConversationDtoBuilder dtoBuilder,
                                    MessageMapper messageMapper,
                                    ApplicationEventPublisher eventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userAccountRepository = userAccountRepository;
-        this.userProfileRepository = userProfileRepository;
+        this.dtoBuilder = dtoBuilder;
         this.messageMapper = messageMapper;
         this.eventPublisher = eventPublisher;
     }
@@ -70,7 +67,7 @@ public class ConversationServiceImpl implements ConversationService {
                 .findByTopicKeyAndParticipants(request.topicKey(), participantAId, participantBId);
 
         if (existing.isPresent()) {
-            return new OpenResult(toResponseDto(existing.get(), currentUserId), false);
+            return new OpenResult(dtoBuilder.toResponseDto(existing.get(), currentUserId), false);
         }
 
         UserAccount participantA = userAccountRepository.findById(participantAId)
@@ -86,13 +83,13 @@ public class ConversationServiceImpl implements ConversationService {
                     .build();
 
             Conversation saved = conversationRepository.save(conversation);
-            return new OpenResult(toResponseDto(saved, currentUserId), true);
+            return new OpenResult(dtoBuilder.toResponseDto(saved, currentUserId), true);
         } catch (DataIntegrityViolationException e) {
             // Race condition: another request created the conversation
             var created = conversationRepository
                     .findByTopicKeyAndParticipants(request.topicKey(), participantAId, participantBId)
                     .orElseThrow(() -> e);
-            return new OpenResult(toResponseDto(created, currentUserId), false);
+            return new OpenResult(dtoBuilder.toResponseDto(created, currentUserId), false);
         }
     }
 
@@ -108,7 +105,7 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         return conversations.stream()
-                .map(c -> toResponseDto(c, userId))
+                .map(c -> dtoBuilder.toResponseDto(c, userId))
                 .toList();
     }
 
@@ -242,47 +239,6 @@ public class ConversationServiceImpl implements ConversationService {
             conversation.setParticipantBUnreadCount(0);
         }
         // JPA flushes dirty entities on commit - no explicit save needed
-    }
-
-    private ConversationResponseDto toResponseDto(Conversation conversation, Long viewerId) {
-        boolean isParticipantA = conversation.getParticipantA().getId().equals(viewerId);
-
-        UserAccount peer = isParticipantA
-                ? conversation.getParticipantB()
-                : conversation.getParticipantA();
-
-        PeerUserDto peerUser = buildPeerUserDto(peer);
-
-        int unreadCount = isParticipantA
-                ? conversation.getParticipantAUnreadCount()
-                : conversation.getParticipantBUnreadCount();
-
-        return new ConversationResponseDto(
-                conversation.getId(),
-                conversation.getTopicKey(),
-                peerUser,
-                conversation.getLastMessageBody(),
-                conversation.getLastMessageCreatedAt(),
-                unreadCount
-        );
-    }
-
-    private PeerUserDto buildPeerUserDto(UserAccount user) {
-        UserProfile profile = userProfileRepository.findById(user.getId()).orElse(null);
-
-        String displayName;
-        String avatarUrl = null;
-
-        if (profile != null) {
-            displayName = (profile.getDisplayName() != null && !profile.getDisplayName().isBlank())
-                    ? profile.getDisplayName()
-                    : user.getEmail().split("@")[0];
-            avatarUrl = profile.getAvatarUrl();
-        } else {
-            displayName = user.getEmail().split("@")[0];
-        }
-
-        return new PeerUserDto(user.getId(), displayName, avatarUrl);
     }
 
     private MessageDto toMessageDto(Message message, Long viewerId) {

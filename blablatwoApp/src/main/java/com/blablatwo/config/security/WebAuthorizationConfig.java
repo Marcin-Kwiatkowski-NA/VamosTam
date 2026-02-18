@@ -85,6 +85,7 @@ public class WebAuthorizationConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/ws").permitAll()
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/auth/register").permitAll()
                 .requestMatchers("/auth/google").permitAll()
