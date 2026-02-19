@@ -18,8 +18,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,19 +39,23 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationDtoBuilder dtoBuilder;
     private final MessageMapper messageMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate requiresNewTx;
 
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
                                    UserAccountRepository userAccountRepository,
                                    ConversationDtoBuilder dtoBuilder,
                                    MessageMapper messageMapper,
-                                   ApplicationEventPublisher eventPublisher) {
+                                   ApplicationEventPublisher eventPublisher,
+                                   PlatformTransactionManager txManager) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userAccountRepository = userAccountRepository;
         this.dtoBuilder = dtoBuilder;
         this.messageMapper = messageMapper;
         this.eventPublisher = eventPublisher;
+        this.requiresNewTx = new TransactionTemplate(txManager);
+        this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Override
@@ -159,54 +165,59 @@ public class ConversationServiceImpl implements ConversationService {
         );
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected MessageDto performSendMessage(UUID conversationId, SendMessageRequest request, Long senderId) {
-        // Re-fetch inside transaction to get latest version
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new ConversationNotFoundException(conversationId));
+    private MessageDto performSendMessage(UUID conversationId, SendMessageRequest request, Long senderId) {
+        // Programmatic REQUIRES_NEW — annotation-based @Transactional is
+        // bypassed on self-invocation (sendMessage → performSendMessage),
+        // so we use TransactionTemplate to guarantee a real transaction.
+        // This ensures the @TransactionalEventListener(AFTER_COMMIT) in
+        // MessageBroadcastListener fires and the STOMP broadcast happens.
+        return requiresNewTx.execute(status -> {
+            Conversation conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
-        Message message = Message.builder()
-                .conversation(conversation)
-                .sender(userAccountRepository.getReferenceById(senderId))
-                .body(request.body())
-                .build();
+            Message message = Message.builder()
+                    .conversation(conversation)
+                    .sender(userAccountRepository.getReferenceById(senderId))
+                    .body(request.body())
+                    .build();
 
-        Message savedMessage = messageRepository.save(message);
+            Message savedMessage = messageRepository.save(message);
 
-        // Update conversation denormalized fields
-        conversation.setLastMessageId(savedMessage.getId());
-        conversation.setLastMessageBody(savedMessage.getBody());
-        conversation.setLastMessageCreatedAt(savedMessage.getCreatedAt());
-        conversation.setLastMessageSenderId(senderId);
+            // Update conversation denormalized fields
+            conversation.setLastMessageId(savedMessage.getId());
+            conversation.setLastMessageBody(savedMessage.getBody());
+            conversation.setLastMessageCreatedAt(savedMessage.getCreatedAt());
+            conversation.setLastMessageSenderId(senderId);
 
-        // Update unread counts
-        boolean isParticipantA = conversation.getParticipantA().getId().equals(senderId);
-        if (isParticipantA) {
-            conversation.setParticipantBUnreadCount(conversation.getParticipantBUnreadCount() + 1);
-            conversation.setParticipantAUnreadCount(0);
-        } else {
-            conversation.setParticipantAUnreadCount(conversation.getParticipantAUnreadCount() + 1);
-            conversation.setParticipantBUnreadCount(0);
-        }
+            // Update unread counts
+            boolean isParticipantA = conversation.getParticipantA().getId().equals(senderId);
+            if (isParticipantA) {
+                conversation.setParticipantBUnreadCount(conversation.getParticipantBUnreadCount() + 1);
+                conversation.setParticipantAUnreadCount(0);
+            } else {
+                conversation.setParticipantAUnreadCount(conversation.getParticipantAUnreadCount() + 1);
+                conversation.setParticipantBUnreadCount(0);
+            }
 
-        conversationRepository.save(conversation);
+            conversationRepository.save(conversation);
 
-        // Publish event (listener fires after commit)
-        eventPublisher.publishEvent(new MessageCreatedEvent(
-                savedMessage.getId(),
-                conversationId,
-                senderId,
-                savedMessage.getCreatedAt()
-        ));
+            // Publish event (listener fires after commit)
+            eventPublisher.publishEvent(new MessageCreatedEvent(
+                    savedMessage.getId(),
+                    conversationId,
+                    senderId,
+                    savedMessage.getCreatedAt()
+            ));
 
-        return new MessageDto(
-                savedMessage.getId(),
-                conversationId,
-                senderId,
-                true,
-                savedMessage.getBody(),
-                savedMessage.getCreatedAt()
-        );
+            return new MessageDto(
+                    savedMessage.getId(),
+                    conversationId,
+                    senderId,
+                    true,
+                    savedMessage.getBody(),
+                    savedMessage.getCreatedAt()
+            );
+        });
     }
 
     private <T> T executeWithRetry(Supplier<T> action) {
