@@ -1,15 +1,22 @@
 package com.blablatwo.config;
 
 import com.blablatwo.config.security.JwtStompInterceptor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.messaging.converter.DefaultContentTypeResolver;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -17,9 +24,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtStompInterceptor jwtStompInterceptor;
+    private final ObjectMapper objectMapper;
 
-    public WebSocketConfig(JwtStompInterceptor jwtStompInterceptor) {
+    public WebSocketConfig(JwtStompInterceptor jwtStompInterceptor, ObjectMapper objectMapper) {
         this.jwtStompInterceptor = jwtStompInterceptor;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -44,6 +53,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "https://ac.vamigo.app",
                         "http://localhost:*"
                 );
+    }
+
+    /**
+     * Use the Spring Boot auto-configured ObjectMapper for STOMP message conversion.
+     * Without this override, the STOMP broker creates a default ObjectMapper that
+     * serializes java.time.Instant as a numeric timestamp instead of an ISO-8601
+     * string, causing JSON parsing failures on the Flutter client.
+     */
+    @Override
+    public boolean configureMessageConverters(List<MessageConverter> messageConverters) {
+        DefaultContentTypeResolver resolver = new DefaultContentTypeResolver();
+        resolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
+        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter(objectMapper);
+        converter.setContentTypeResolver(resolver);
+        messageConverters.add(converter);
+        return false;
     }
 
     @Override
