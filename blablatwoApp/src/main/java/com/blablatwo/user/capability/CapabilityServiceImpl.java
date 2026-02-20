@@ -19,11 +19,7 @@ public class CapabilityServiceImpl implements CapabilityService {
     @Override
     @Transactional(readOnly = true)
     public boolean canBook(Long userId) {
-        UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchUserException(userId));
-
-        return account.getStatus() == AccountStatus.ACTIVE
-                && account.getPhoneVerifiedAt() != null;
+        return isActive(userId);
     }
 
     @Override

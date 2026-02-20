@@ -46,18 +46,6 @@ class CapabilityServiceTest {
         }
 
         @Test
-        void returnsFalse_whenActiveButPhoneNotVerified() {
-            UserAccount account = UserAccount.builder()
-                    .id(ID_ONE)
-                    .status(AccountStatus.ACTIVE)
-                    .phoneVerifiedAt(null)
-                    .build();
-            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
-
-            assertThat(capabilityService.canBook(ID_ONE)).isFalse();
-        }
-
-        @Test
         void returnsFalse_whenDisabledWithPhoneVerified() {
             UserAccount account = UserAccount.builder()
                     .id(ID_ONE)
