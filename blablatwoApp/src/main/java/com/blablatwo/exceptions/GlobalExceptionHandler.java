@@ -41,9 +41,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({RideFullException.class, AlreadyBookedException.class, SegmentFullException.class,
-            RideHasBookingsException.class})
+            RideHasBookingsException.class, InvalidBookingTransitionException.class, InsufficientSeatsException.class})
     public ProblemDetail handleBookingConflictException(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(NotRideDriverException.class)
+    public ProblemDetail handleNotRideDriverException(HttpServletRequest request, NotRideDriverException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(InvalidBookingSegmentException.class)

@@ -1,6 +1,5 @@
 package com.blablatwo.ride;
 
-import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -19,15 +18,11 @@ public interface RideService {
 
     void delete(Long id);
 
+    void cancelRide(Long id, Long driverId);
+
     Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable);
 
     Page<RideResponseDto> getAllRides(Pageable pageable);
-
-    RideResponseDto bookRide(Long rideId, Long passengerId, BookRideRequest request);
-
-    RideResponseDto cancelBooking(Long rideId, Long passengerId);
-
-    List<RideResponseDto> getRidesForPassenger(Long passengerId);
 
     List<RideResponseDto> getRidesForDriver(Long driverId);
 }

@@ -2,7 +2,6 @@ package com.blablatwo.ride;
 
 import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.exceptions.NoSuchRideException;
-import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
@@ -66,8 +65,6 @@ public class RidesController {
     @PutMapping("/rides/{id}")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
                                                       @PathVariable Long id) {
-
-
         var updatedRide = rideService.update(rideDTO, id);
         return ResponseEntity.ok()
                 .location(getUriFromId(id))
@@ -77,6 +74,13 @@ public class RidesController {
     @DeleteMapping("/rides/{id}")
     public ResponseEntity<Void> deleteRide(@PathVariable Long id) {
         rideService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/rides/{id}/cancel")
+    public ResponseEntity<Void> cancelRide(@PathVariable Long id,
+                                            @AuthenticationPrincipal AppPrincipal principal) {
+        rideService.cancelRide(id, principal.userId());
         return ResponseEntity.noContent().build();
     }
 
@@ -120,23 +124,6 @@ public class RidesController {
                         .and(Sort.by("departureTime").ascending()));
 
         return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
-    }
-
-    @PostMapping("/rides/{rideId}/book")
-    public ResponseEntity<RideResponseDto> bookRide(
-            @PathVariable Long rideId,
-            @Valid @RequestBody BookRideRequest request,
-            @AuthenticationPrincipal AppPrincipal principal) {
-        RideResponseDto bookedRide = rideService.bookRide(rideId, principal.userId(), request);
-        return ResponseEntity.ok(bookedRide);
-    }
-
-    @DeleteMapping("/rides/{rideId}/book")
-    public ResponseEntity<RideResponseDto> cancelBooking(
-            @PathVariable Long rideId,
-            @AuthenticationPrincipal AppPrincipal principal) {
-        RideResponseDto updatedRide = rideService.cancelBooking(rideId, principal.userId());
-        return ResponseEntity.ok(updatedRide);
     }
 
     @GetMapping("/me/rides")

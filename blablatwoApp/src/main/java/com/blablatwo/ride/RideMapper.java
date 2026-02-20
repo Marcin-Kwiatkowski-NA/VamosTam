@@ -49,6 +49,7 @@ public abstract class RideMapper {
 
     @Mapping(target = "driver", ignore = true)
     @Mapping(target = "contactMethods", ignore = true)
+    @Mapping(target = "bookings", ignore = true)
     @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(ride.getOrigin()))")
     @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(ride.getDestination()))")
     @Mapping(target = "stops", expression = "java(rideStopMapper.rideStopsToDtos(ride.getStops()))")

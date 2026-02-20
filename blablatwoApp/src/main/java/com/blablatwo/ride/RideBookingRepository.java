@@ -3,17 +3,25 @@ package com.blablatwo.ride;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface RideBookingRepository extends JpaRepository<RideBooking, Long> {
 
-    Optional<RideBooking> findByRideIdAndPassengerId(Long rideId, Long passengerId);
+    boolean existsByRideIdAndPassengerIdAndStatusIn(Long rideId, Long passengerId,
+                                                     Collection<BookingStatus> statuses);
 
-    boolean existsByRideIdAndPassengerId(Long rideId, Long passengerId);
+    List<RideBooking> findByRideId(Long rideId);
+
+    List<RideBooking> findByRideIdAndStatusIn(Long rideId, Collection<BookingStatus> statuses);
 
     List<RideBooking> findByPassengerId(Long passengerId);
+
+    List<RideBooking> findByPassengerIdAndStatusIn(Long passengerId, Collection<BookingStatus> statuses);
+
+    List<RideBooking> findByStatusAndBookedAtBefore(BookingStatus status, Instant cutoff);
 
     void deleteByPassengerId(Long passengerId);
 }

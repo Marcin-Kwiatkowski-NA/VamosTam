@@ -25,10 +25,12 @@ public record RideResponseDto(
         int availableSeats,
         int seatsTaken,
         int totalSeats,
+        boolean autoApprove,
         String description,
         UserCardDto driver,
         List<ContactMethodDto> contactMethods,
         VehicleResponseDto vehicle,
-        RideStatus rideStatus
+        RideStatus rideStatus,
+        List<BookingResponseDto> bookings
 ) {
 }

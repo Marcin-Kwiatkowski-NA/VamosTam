@@ -1,0 +1,21 @@
+package com.blablatwo.ride.dto;
+
+import com.blablatwo.dto.UserCardDto;
+import com.blablatwo.ride.BookingStatus;
+import lombok.Builder;
+
+import java.time.Instant;
+
+@Builder(toBuilder = true)
+public record BookingResponseDto(
+        Long id,
+        Long rideId,
+        BookingStatus status,
+        int seatCount,
+        RideStopDto boardStop,
+        RideStopDto alightStop,
+        UserCardDto passenger,
+        Instant bookedAt,
+        Instant resolvedAt
+) {
+}

@@ -7,11 +7,16 @@ import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationDto;
 import com.blablatwo.location.LocationLang;
 import com.blablatwo.location.LocationRef;
+import com.blablatwo.notification.DeviceToken;
+import com.blablatwo.notification.Platform;
+import com.blablatwo.ride.BookingStatus;
 import com.blablatwo.ride.Ride;
+import com.blablatwo.ride.RideBooking;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.ride.RideStatus;
 import com.blablatwo.ride.RideStop;
 import com.blablatwo.ride.dto.BookRideRequest;
+import com.blablatwo.ride.dto.BookingResponseDto;
 import com.blablatwo.ride.dto.ExternalRideCreationDto;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
@@ -30,6 +35,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -227,6 +234,7 @@ public final class TestFixtures {
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(aTesla().build())
                 .lastModified(INSTANT)
+                .autoApprove(true)
                 .description(RIDE_DESCRIPTION);
     }
 
@@ -240,8 +248,8 @@ public final class TestFixtures {
     }
 
     public static Ride buildRideWithStops(Location origin, Location destination) {
-        Ride ride = aRide(origin, destination).build();
-        ride.setStops(new java.util.ArrayList<>(buildStops(ride, origin, destination)));
+        Ride ride = aRide(origin, destination).bookings(new ArrayList<>()).build();
+        ride.setStops(new ArrayList<>(buildStops(ride, origin, destination)));
         return ride;
     }
 
@@ -256,7 +264,41 @@ public final class TestFixtures {
     public static BookRideRequest.BookRideRequestBuilder aBookRideRequest() {
         return BookRideRequest.builder()
                 .boardStopOsmId(OSM_ID_ORIGIN)
-                .alightStopOsmId(OSM_ID_DESTINATION);
+                .alightStopOsmId(OSM_ID_DESTINATION)
+                .seatCount(1);
+    }
+
+    // ──────────────── Booking ────────────────
+
+    public static RideBooking.RideBookingBuilder aBooking(Ride ride, UserAccount passenger) {
+        return RideBooking.builder()
+                .id(1L)
+                .ride(ride)
+                .passenger(passenger)
+                .boardStop(ride.getStops().get(0))
+                .alightStop(ride.getStops().get(ride.getStops().size() - 1))
+                .status(BookingStatus.CONFIRMED)
+                .seatCount(1)
+                .bookedAt(INSTANT)
+                .resolvedAt(INSTANT);
+    }
+
+    public static DeviceToken.DeviceTokenBuilder aDeviceToken(UserAccount user) {
+        return DeviceToken.builder()
+                .id(1L)
+                .user(user)
+                .token("test-device-token")
+                .platform(Platform.ANDROID)
+                .createdAt(INSTANT);
+    }
+
+    public static BookingResponseDto.BookingResponseDtoBuilder aBookingResponseDto() {
+        return BookingResponseDto.builder()
+                .id(1L)
+                .rideId(ID_100)
+                .status(BookingStatus.CONFIRMED)
+                .seatCount(1)
+                .bookedAt(INSTANT);
     }
 
     public static RideResponseDto.RideResponseDtoBuilder aRideResponseDto() {

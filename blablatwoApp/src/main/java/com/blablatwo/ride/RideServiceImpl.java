@@ -2,22 +2,16 @@ package com.blablatwo.ride;
 
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
-import com.blablatwo.exceptions.AlreadyBookedException;
-import com.blablatwo.exceptions.BookingNotFoundException;
-import com.blablatwo.exceptions.CannotBookException;
 import com.blablatwo.exceptions.CannotCreateRideException;
-import com.blablatwo.exceptions.ExternalRideNotBookableException;
-import com.blablatwo.exceptions.InvalidBookingSegmentException;
 import com.blablatwo.exceptions.NoSuchRideException;
+import com.blablatwo.exceptions.NotRideDriverException;
 import com.blablatwo.exceptions.RideHasBookingsException;
-import com.blablatwo.exceptions.RideNotBookableException;
-import com.blablatwo.exceptions.SegmentFullException;
 import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationResolutionService;
-import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
+import com.blablatwo.ride.event.BookingCancelledEvent;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
@@ -29,6 +23,7 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +44,8 @@ public class RideServiceImpl implements RideService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final List<BookingStatus> ACTIVE_STATUSES =
+            List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED);
 
     private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
@@ -57,6 +54,7 @@ public class RideServiceImpl implements RideService {
     private final UserAccountRepository userAccountRepository;
     private final RideResponseEnricher rideResponseEnricher;
     private final CapabilityService capabilityService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${search.proximity.default-radius-km:50}")
     private double defaultRadiusKm;
@@ -67,7 +65,8 @@ public class RideServiceImpl implements RideService {
                            LocationResolutionService locationResolutionService,
                            UserAccountRepository userAccountRepository,
                            RideResponseEnricher rideResponseEnricher,
-                           CapabilityService capabilityService) {
+                           CapabilityService capabilityService,
+                           ApplicationEventPublisher eventPublisher) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -75,6 +74,7 @@ public class RideServiceImpl implements RideService {
         this.userAccountRepository = userAccountRepository;
         this.rideResponseEnricher = rideResponseEnricher;
         this.capabilityService = capabilityService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -113,7 +113,7 @@ public class RideServiceImpl implements RideService {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
 
-        if (existingRide.getBookings() != null && !existingRide.getBookings().isEmpty()) {
+        if (!existingRide.getActiveBookings().isEmpty()) {
             throw new RideHasBookingsException(id);
         }
 
@@ -133,6 +133,28 @@ public class RideServiceImpl implements RideService {
             rideRepository.deleteById(id);
         } else {
             throw new NoSuchRideException(id);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void cancelRide(Long id, Long driverId) {
+        Ride ride = rideRepository.findById(id)
+                .orElseThrow(() -> new NoSuchRideException(id));
+
+        if (!ride.getDriver().getId().equals(driverId)) {
+            throw new NotRideDriverException(id, driverId);
+        }
+
+        ride.setStatus(Status.CANCELLED);
+        ride.setLastModified(Instant.now());
+
+        List<RideBooking> activeBookings = bookingRepository.findByRideIdAndStatusIn(id, ACTIVE_STATUSES);
+        for (RideBooking booking : activeBookings) {
+            booking.setStatus(BookingStatus.CANCELLED_BY_DRIVER);
+            booking.setResolvedAt(Instant.now());
+            eventPublisher.publishEvent(new BookingCancelledEvent(
+                    booking.getId(), id, booking.getPassenger().getId(), driverId, driverId));
         }
     }
 
@@ -267,103 +289,6 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    @Transactional
-    public RideResponseDto bookRide(Long rideId, Long passengerId, BookRideRequest request) {
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new NoSuchRideException(rideId));
-
-        if (ride.getSource() != RideSource.INTERNAL) {
-            throw new ExternalRideNotBookableException(rideId);
-        }
-
-        if (!capabilityService.canBook(passengerId)) {
-            throw new CannotBookException(passengerId);
-        }
-
-        if (bookingRepository.existsByRideIdAndPassengerId(rideId, passengerId)) {
-            throw new AlreadyBookedException(rideId, passengerId);
-        }
-
-        UserAccount passenger = userAccountRepository.findById(passengerId)
-                .orElseThrow(() -> new NoSuchUserException(passengerId));
-
-        if (ride.computeRideStatus() != RideStatus.OPEN) {
-            throw new RideNotBookableException(rideId, ride.computeRideStatus().name());
-        }
-
-        RideStop boardStop = findStop(ride, request.boardStopOsmId());
-        RideStop alightStop = findStop(ride, request.alightStopOsmId());
-
-        if (boardStop.getStopOrder() >= alightStop.getStopOrder()) {
-            throw new InvalidBookingSegmentException(rideId,
-                    "Board stop must come before alight stop");
-        }
-
-        int available = ride.getAvailableSeatsForSegment(
-                boardStop.getStopOrder(), alightStop.getStopOrder());
-        if (available <= 0) {
-            throw new SegmentFullException(rideId,
-                    boardStop.getStopOrder(), alightStop.getStopOrder());
-        }
-
-        RideBooking booking = RideBooking.builder()
-                .ride(ride)
-                .passenger(passenger)
-                .boardStop(boardStop)
-                .alightStop(alightStop)
-                .bookedAt(Instant.now())
-                .build();
-
-        bookingRepository.save(booking);
-        ride.setLastModified(Instant.now());
-        rideRepository.save(ride);
-
-        return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
-    }
-
-    @Override
-    @Transactional
-    public RideResponseDto cancelBooking(Long rideId, Long passengerId) {
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new NoSuchRideException(rideId));
-
-        if (ride.getSource() != RideSource.INTERNAL) {
-            throw new ExternalRideNotBookableException(rideId);
-        }
-
-        if (!userAccountRepository.existsById(passengerId)) {
-            throw new NoSuchUserException(passengerId);
-        }
-
-        RideBooking booking = bookingRepository.findByRideIdAndPassengerId(rideId, passengerId)
-                .orElseThrow(() -> new BookingNotFoundException(rideId, passengerId));
-
-        bookingRepository.delete(booking);
-        ride.setLastModified(Instant.now());
-        rideRepository.save(ride);
-
-        return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RideResponseDto> getRidesForPassenger(Long passengerId) {
-        if (!userAccountRepository.existsById(passengerId)) {
-            throw new NoSuchUserException(passengerId);
-        }
-
-        List<RideBooking> bookings = bookingRepository.findByPassengerId(passengerId);
-        List<Ride> rides = bookings.stream()
-                .map(RideBooking::getRide)
-                .distinct()
-                .toList();
-        List<RideResponseDto> dtos = rides.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
-                .toList();
-        return rideResponseEnricher.enrich(rides, dtos);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<RideResponseDto> getRidesForDriver(Long driverId) {
         if (!userAccountRepository.existsById(driverId)) {
@@ -453,13 +378,5 @@ public class RideServiceImpl implements RideService {
     private void setDenormalizedDepartureFields(Ride ride, LocalDateTime departureTime) {
         ride.setDepartureDate(departureTime.toLocalDate());
         ride.setDepartureTime(departureTime.toLocalTime());
-    }
-
-    private RideStop findStop(Ride ride, Long osmId) {
-        return ride.getStops().stream()
-                .filter(s -> s.getLocation().getOsmId().equals(osmId))
-                .findFirst()
-                .orElseThrow(() -> new InvalidBookingSegmentException(
-                        ride.getId(), "Stop with osmId " + osmId + " not found on this ride"));
     }
 }
