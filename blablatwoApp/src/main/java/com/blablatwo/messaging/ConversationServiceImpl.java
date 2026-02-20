@@ -4,7 +4,6 @@ import com.blablatwo.messaging.dto.ConversationOpenRequest;
 import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
-import com.blablatwo.messaging.event.MessageCreatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
@@ -13,15 +12,11 @@ import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.exception.NoSuchUserException;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -38,24 +33,20 @@ public class ConversationServiceImpl implements ConversationService {
     private final UserAccountRepository userAccountRepository;
     private final ConversationDtoBuilder dtoBuilder;
     private final MessageMapper messageMapper;
-    private final ApplicationEventPublisher eventPublisher;
-    private final TransactionTemplate requiresNewTx;
+    private final MessageWriter messageWriter;
 
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
                                    UserAccountRepository userAccountRepository,
                                    ConversationDtoBuilder dtoBuilder,
                                    MessageMapper messageMapper,
-                                   ApplicationEventPublisher eventPublisher,
-                                   PlatformTransactionManager txManager) {
+                                   MessageWriter messageWriter) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userAccountRepository = userAccountRepository;
         this.dtoBuilder = dtoBuilder;
         this.messageMapper = messageMapper;
-        this.eventPublisher = eventPublisher;
-        this.requiresNewTx = new TransactionTemplate(txManager);
-        this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.messageWriter = messageWriter;
     }
 
     @Override
@@ -159,65 +150,11 @@ public class ConversationServiceImpl implements ConversationService {
 
         validateParticipant(conversation, senderId);
 
-        // Execute the write operation with manual retry
+        // Delegate to a separate bean — calls go through the Spring proxy,
+        // so @Transactional(REQUIRES_NEW) works correctly on each retry.
         return executeWithRetry(() ->
-                performSendMessage(conversationId, request, senderId)
+                messageWriter.writeMessage(conversationId, request, senderId)
         );
-    }
-
-    private MessageDto performSendMessage(UUID conversationId, SendMessageRequest request, Long senderId) {
-        // Programmatic REQUIRES_NEW — annotation-based @Transactional is
-        // bypassed on self-invocation (sendMessage → performSendMessage),
-        // so we use TransactionTemplate to guarantee a real transaction.
-        // This ensures the @TransactionalEventListener(AFTER_COMMIT) in
-        // MessageBroadcastListener fires and the STOMP broadcast happens.
-        return requiresNewTx.execute(status -> {
-            Conversation conversation = conversationRepository.findById(conversationId)
-                    .orElseThrow(() -> new ConversationNotFoundException(conversationId));
-
-            Message message = Message.builder()
-                    .conversation(conversation)
-                    .sender(userAccountRepository.getReferenceById(senderId))
-                    .body(request.body())
-                    .build();
-
-            Message savedMessage = messageRepository.save(message);
-
-            // Update conversation denormalized fields
-            conversation.setLastMessageId(savedMessage.getId());
-            conversation.setLastMessageBody(savedMessage.getBody());
-            conversation.setLastMessageCreatedAt(savedMessage.getCreatedAt());
-            conversation.setLastMessageSenderId(senderId);
-
-            // Update unread counts
-            boolean isParticipantA = conversation.getParticipantA().getId().equals(senderId);
-            if (isParticipantA) {
-                conversation.setParticipantBUnreadCount(conversation.getParticipantBUnreadCount() + 1);
-                conversation.setParticipantAUnreadCount(0);
-            } else {
-                conversation.setParticipantAUnreadCount(conversation.getParticipantAUnreadCount() + 1);
-                conversation.setParticipantBUnreadCount(0);
-            }
-
-            conversationRepository.save(conversation);
-
-            // Publish event (listener fires after commit)
-            eventPublisher.publishEvent(new MessageCreatedEvent(
-                    savedMessage.getId(),
-                    conversationId,
-                    senderId,
-                    savedMessage.getCreatedAt()
-            ));
-
-            return new MessageDto(
-                    savedMessage.getId(),
-                    conversationId,
-                    senderId,
-                    true,
-                    savedMessage.getBody(),
-                    savedMessage.getCreatedAt()
-            );
-        });
     }
 
     private <T> T executeWithRetry(Supplier<T> action) {
