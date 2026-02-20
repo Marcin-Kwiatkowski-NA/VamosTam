@@ -85,7 +85,8 @@ public class MessageWriter {
                 senderId,
                 true,
                 savedMessage.getBody(),
-                savedMessage.getCreatedAt()
+                savedMessage.getCreatedAt(),
+                MessageStatus.SENT
         );
     }
 }

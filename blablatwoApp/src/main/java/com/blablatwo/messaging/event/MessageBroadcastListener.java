@@ -4,6 +4,7 @@ import com.blablatwo.messaging.Conversation;
 import com.blablatwo.messaging.ConversationDtoBuilder;
 import com.blablatwo.messaging.ConversationRepository;
 import com.blablatwo.messaging.MessageRepository;
+import com.blablatwo.messaging.MessageStatus;
 import com.blablatwo.messaging.dto.MessageDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,8 @@ public class MessageBroadcastListener {
                     event.senderId(),
                     false, // isMine is viewer-relative; clients resolve this by comparing senderId
                     message.getBody(),
-                    message.getCreatedAt()
+                    message.getCreatedAt(),
+                    MessageStatus.SENT
             );
 
             messagingTemplate.convertAndSend(

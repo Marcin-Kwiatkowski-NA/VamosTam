@@ -2,6 +2,8 @@ package com.blablatwo.messaging;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -21,4 +23,26 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             UUID conversationId, Instant since, Pageable pageable);
 
     void deleteByConversationIdIn(Collection<UUID> conversationIds);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            UPDATE Message m
+            SET m.deliveredAt = :now
+            WHERE m.conversation.id = :convId
+              AND m.sender.id = :senderId
+              AND m.deliveredAt IS NULL
+              AND m.createdAt <= :upTo
+            """)
+    int markDelivered(UUID convId, Long senderId, Instant upTo, Instant now);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            UPDATE Message m
+            SET m.readAt = :now, m.deliveredAt = COALESCE(m.deliveredAt, :now)
+            WHERE m.conversation.id = :convId
+              AND m.sender.id = :senderId
+              AND m.readAt IS NULL
+              AND m.createdAt <= :upTo
+            """)
+    int markRead(UUID convId, Long senderId, Instant upTo, Instant now);
 }

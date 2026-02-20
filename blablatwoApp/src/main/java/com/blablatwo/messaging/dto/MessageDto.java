@@ -1,5 +1,7 @@
 package com.blablatwo.messaging.dto;
 
+import com.blablatwo.messaging.MessageStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -9,5 +11,6 @@ public record MessageDto(
     Long senderId,
     boolean isMine,
     String body,
-    Instant createdAt
+    Instant createdAt,
+    MessageStatus status
 ) {}

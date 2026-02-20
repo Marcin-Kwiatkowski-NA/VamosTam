@@ -16,7 +16,8 @@ import java.util.UUID;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_msg_conv_created", columnList = "conversation_id, created_at")
+    @Index(name = "idx_msg_conv_created", columnList = "conversation_id, created_at"),
+    @Index(name = "idx_msg_status_update", columnList = "conversation_id, sender_id, created_at")
 })
 @Getter
 @Setter
@@ -45,8 +46,18 @@ public class Message {
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
+    @Column(name = "read_at")
+    private Instant readAt;
+
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
+    }
+
+    public MessageStatus getDerivedStatus() {
+        return MessageStatus.fromTimestamps(deliveredAt, readAt);
     }
 }

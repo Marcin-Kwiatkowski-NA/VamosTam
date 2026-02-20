@@ -4,14 +4,17 @@ import com.blablatwo.messaging.dto.ConversationOpenRequest;
 import com.blablatwo.messaging.dto.ConversationResponseDto;
 import com.blablatwo.messaging.dto.MessageDto;
 import com.blablatwo.messaging.dto.SendMessageRequest;
+import com.blablatwo.messaging.event.MessageStatusUpdatedEvent;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.exception.NoSuchUserException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,19 +37,22 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationDtoBuilder dtoBuilder;
     private final MessageMapper messageMapper;
     private final MessageWriter messageWriter;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ConversationServiceImpl(ConversationRepository conversationRepository,
                                    MessageRepository messageRepository,
                                    UserAccountRepository userAccountRepository,
                                    ConversationDtoBuilder dtoBuilder,
                                    MessageMapper messageMapper,
-                                   MessageWriter messageWriter) {
+                                   MessageWriter messageWriter,
+                                   ApplicationEventPublisher eventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userAccountRepository = userAccountRepository;
         this.dtoBuilder = dtoBuilder;
         this.messageMapper = messageMapper;
         this.messageWriter = messageWriter;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -189,6 +195,56 @@ public class ConversationServiceImpl implements ConversationService {
         // JPA flushes dirty entities on commit - no explicit save needed
     }
 
+    @Override
+    @Transactional
+    public void markDelivered(UUID conversationId, UUID lastMessageId, Long userId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ConversationNotFoundException(conversationId));
+
+        validateParticipant(conversation, userId);
+
+        Long otherUserId = findOtherParticipantId(conversation, userId);
+
+        Message refMessage = messageRepository.findById(lastMessageId)
+                .orElseThrow(() -> new EntityNotFoundException("Message not found: " + lastMessageId));
+
+        Instant now = Instant.now();
+        int updated = messageRepository.markDelivered(conversationId, otherUserId, refMessage.getCreatedAt(), now);
+
+        if (updated > 0) {
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(conversationId, MessageStatus.DELIVERED, otherUserId));
+        }
+    }
+
+    @Override
+    @Transactional
+    public void markRead(UUID conversationId, UUID lastMessageId, Long userId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ConversationNotFoundException(conversationId));
+
+        validateParticipant(conversation, userId);
+
+        Long otherUserId = findOtherParticipantId(conversation, userId);
+
+        Message refMessage = messageRepository.findById(lastMessageId)
+                .orElseThrow(() -> new EntityNotFoundException("Message not found: " + lastMessageId));
+
+        Instant now = Instant.now();
+        int updated = messageRepository.markRead(conversationId, otherUserId, refMessage.getCreatedAt(), now);
+
+        if (updated > 0) {
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(conversationId, MessageStatus.READ, otherUserId));
+        }
+
+        resetUnreadCount(conversation, userId);
+    }
+
+    private Long findOtherParticipantId(Conversation conversation, Long userId) {
+        return conversation.getParticipantA().getId().equals(userId)
+                ? conversation.getParticipantB().getId()
+                : conversation.getParticipantA().getId();
+    }
+
     private MessageDto toMessageDto(Message message, Long viewerId) {
         MessageDto baseDto = messageMapper.toDto(message);
         return new MessageDto(
@@ -197,7 +253,8 @@ public class ConversationServiceImpl implements ConversationService {
                 baseDto.senderId(),
                 message.getSender().getId().equals(viewerId),
                 baseDto.body(),
-                baseDto.createdAt()
+                baseDto.createdAt(),
+                baseDto.status()
         );
     }
 }

@@ -2,6 +2,8 @@ package com.blablatwo.messaging;
 
 import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.config.security.AppJwtAuthenticationToken;
+import com.blablatwo.messaging.dto.AckDeliveredRequest;
+import com.blablatwo.messaging.dto.MarkReadRequest;
 import com.blablatwo.messaging.dto.SendMessageRequest;
 import com.blablatwo.messaging.dto.StompErrorDto;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
@@ -37,6 +39,26 @@ public class StompMessagingController {
 
         AppPrincipal appPrincipal = ((AppJwtAuthenticationToken) principal).getPrincipal();
         conversationService.sendMessage(conversationId, request, appPrincipal.userId());
+    }
+
+    @MessageMapping("/conversation/{conversationId}/ack-delivered")
+    public void ackDelivered(
+            @DestinationVariable UUID conversationId,
+            @Payload AckDeliveredRequest request,
+            Principal principal) {
+
+        AppPrincipal appPrincipal = ((AppJwtAuthenticationToken) principal).getPrincipal();
+        conversationService.markDelivered(conversationId, request.lastMessageId(), appPrincipal.userId());
+    }
+
+    @MessageMapping("/conversation/{conversationId}/mark-read")
+    public void markRead(
+            @DestinationVariable UUID conversationId,
+            @Payload MarkReadRequest request,
+            Principal principal) {
+
+        AppPrincipal appPrincipal = ((AppJwtAuthenticationToken) principal).getPrincipal();
+        conversationService.markRead(conversationId, request.lastMessageId(), appPrincipal.userId());
     }
 
     @MessageExceptionHandler(ConversationNotFoundException.class)

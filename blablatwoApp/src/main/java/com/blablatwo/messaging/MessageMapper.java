@@ -12,6 +12,7 @@ public interface MessageMapper {
     @Mapping(target = "conversationId", source = "conversation.id")
     @Mapping(target = "senderId", source = "sender.id")
     @Mapping(target = "isMine", ignore = true)
+    @Mapping(target = "status", expression = "java(message.getDerivedStatus())")
     MessageDto toDto(Message message);
 
     List<MessageDto> toDtoList(List<Message> messages);

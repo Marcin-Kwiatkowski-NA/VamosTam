@@ -21,4 +21,8 @@ public interface ConversationService {
     List<MessageDto> getMessages(UUID conversationId, Long userId, Instant before, Instant since, int limit);
 
     MessageDto sendMessage(UUID conversationId, SendMessageRequest request, Long senderId);
+
+    void markDelivered(UUID conversationId, UUID lastMessageId, Long userId);
+
+    void markRead(UUID conversationId, UUID lastMessageId, Long userId);
 }
