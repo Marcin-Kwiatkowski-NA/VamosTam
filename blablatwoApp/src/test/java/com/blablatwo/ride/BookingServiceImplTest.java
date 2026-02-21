@@ -2,6 +2,7 @@ package com.blablatwo.ride;
 
 import com.blablatwo.domain.Status;
 import com.blablatwo.exceptions.AlreadyBookedException;
+import com.blablatwo.exceptions.CannotBookOwnRideException;
 import com.blablatwo.exceptions.ExternalRideNotBookableException;
 import com.blablatwo.exceptions.InsufficientSeatsException;
 import com.blablatwo.exceptions.InvalidBookingTransitionException;
@@ -172,6 +173,15 @@ class BookingServiceImplTest {
 
             assertThrows(NoSuchRideException.class,
                     () -> bookingService.createBooking(999L, 2L, aBookRideRequest().build()));
+        }
+
+        @Test
+        @DisplayName("throws CannotBookOwnRideException when driver books own ride")
+        void throwsWhenDriverBooksOwnRide() {
+            when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
+
+            assertThrows(CannotBookOwnRideException.class,
+                    () -> bookingService.createBooking(ID_100, ID_ONE, aBookRideRequest().build()));
         }
 
         @Test

@@ -4,6 +4,7 @@ import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.BookingStatus;
 import lombok.Builder;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Builder(toBuilder = true)
@@ -16,6 +17,7 @@ public record BookingResponseDto(
         RideStopDto alightStop,
         UserCardDto passenger,
         Instant bookedAt,
-        Instant resolvedAt
+        Instant resolvedAt,
+        BigDecimal proposedPrice
 ) {
 }

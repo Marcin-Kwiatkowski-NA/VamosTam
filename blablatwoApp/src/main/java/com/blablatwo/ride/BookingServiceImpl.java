@@ -3,6 +3,7 @@ package com.blablatwo.ride;
 import com.blablatwo.exceptions.AlreadyBookedException;
 import com.blablatwo.exceptions.BookingNotFoundException;
 import com.blablatwo.exceptions.CannotBookException;
+import com.blablatwo.exceptions.CannotBookOwnRideException;
 import com.blablatwo.exceptions.ExternalRideNotBookableException;
 import com.blablatwo.exceptions.InsufficientSeatsException;
 import com.blablatwo.exceptions.InvalidBookingSegmentException;
@@ -67,6 +68,10 @@ public class BookingServiceImpl implements BookingService {
             throw new ExternalRideNotBookableException(rideId);
         }
 
+        if (ride.getDriver().getId().equals(passengerId)) {
+            throw new CannotBookOwnRideException(rideId);
+        }
+
         if (!capabilityService.canBook(passengerId)) {
             throw new CannotBookException(passengerId);
         }
@@ -107,6 +112,7 @@ public class BookingServiceImpl implements BookingService {
                 .alightStop(alightStop)
                 .status(initialStatus)
                 .seatCount(request.seatCount())
+                .proposedPrice(request.proposedPrice())
                 .bookedAt(Instant.now())
                 .resolvedAt(initialStatus == BookingStatus.CONFIRMED ? Instant.now() : null)
                 .build();

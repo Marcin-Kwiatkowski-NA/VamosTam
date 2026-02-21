@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -66,6 +67,9 @@ public class RideBooking {
 
     @Column(name = "resolved_at")
     private Instant resolvedAt;
+
+    @Column(name = "proposed_price", precision = 10, scale = 2)
+    private BigDecimal proposedPrice;
 
     public boolean isActive() {
         return status.isActive();
