@@ -2,7 +2,9 @@ package com.blablatwo.ride;
 
 import com.blablatwo.domain.PersonDisplayNameResolver;
 import com.blablatwo.dto.UserCardDto;
+import com.blablatwo.location.LocationMapper;
 import com.blablatwo.ride.dto.BookingResponseDto;
+import com.blablatwo.ride.dto.RideSummaryDto;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfile;
@@ -31,17 +33,20 @@ public class BookingResponseEnricher {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final PersonDisplayNameResolver displayNameResolver;
+    private final LocationMapper locationMapper;
 
     public BookingResponseEnricher(UserProfileRepository userProfileRepository,
                                     UserAccountRepository userAccountRepository,
                                     VehicleRepository vehicleRepository,
                                     VehicleMapper vehicleMapper,
-                                    PersonDisplayNameResolver displayNameResolver) {
+                                    PersonDisplayNameResolver displayNameResolver,
+                                    LocationMapper locationMapper) {
         this.userProfileRepository = userProfileRepository;
         this.userAccountRepository = userAccountRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.displayNameResolver = displayNameResolver;
+        this.locationMapper = locationMapper;
     }
 
     public BookingResponseDto enrich(RideBooking booking, BookingResponseDto dto) {
@@ -80,6 +85,52 @@ public class BookingResponseEnricher {
                     accountsById.get(pid),
                     vehiclesByOwnerId.getOrDefault(pid, List.of()));
             result.add(dtos.get(i).toBuilder().passenger(userCard).build());
+        }
+        return result;
+    }
+
+    public List<BookingResponseDto> enrichForPassenger(List<RideBooking> bookings, List<BookingResponseDto> dtos) {
+        Set<Long> driverIds = bookings.stream()
+                .map(b -> b.getRide().getDriver().getId())
+                .collect(Collectors.toSet());
+
+        if (driverIds.isEmpty()) return dtos;
+
+        Map<Long, UserProfile> profilesById = StreamSupport.stream(
+                        userProfileRepository.findAllById(driverIds).spliterator(), false)
+                .collect(Collectors.toMap(UserProfile::getId, Function.identity()));
+
+        Map<Long, UserAccount> accountsById = userAccountRepository.findAllById(driverIds).stream()
+                .collect(Collectors.toMap(UserAccount::getId, Function.identity()));
+
+        Map<Long, List<VehicleResponseDto>> vehiclesByOwnerId =
+                vehicleRepository.findByOwnerIdIn(driverIds).stream()
+                        .collect(Collectors.groupingBy(
+                                v -> v.getOwner().getId(),
+                                Collectors.mapping(vehicleMapper::vehicleEntityToVehicleResponseDto,
+                                        Collectors.toList())));
+
+        List<BookingResponseDto> result = new ArrayList<>(bookings.size());
+        for (int i = 0; i < bookings.size(); i++) {
+            Ride ride = bookings.get(i).getRide();
+            Long driverId = ride.getDriver().getId();
+            UserCardDto driverCard = buildUserCard(
+                    driverId,
+                    profilesById.get(driverId),
+                    accountsById.get(driverId),
+                    vehiclesByOwnerId.getOrDefault(driverId, List.of()));
+
+            RideSummaryDto rideSummary = RideSummaryDto.builder()
+                    .id(ride.getId())
+                    .origin(locationMapper.locationToDto(ride.getOrigin()))
+                    .destination(locationMapper.locationToDto(ride.getDestination()))
+                    .departureTime(ride.getDepartureDateTime())
+                    .pricePerSeat(ride.getPricePerSeat())
+                    .totalSeats(ride.getTotalSeats())
+                    .driver(driverCard)
+                    .build();
+
+            result.add(dtos.get(i).toBuilder().ride(rideSummary).build());
         }
         return result;
     }

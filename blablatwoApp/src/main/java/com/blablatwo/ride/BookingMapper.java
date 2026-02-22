@@ -13,6 +13,7 @@ public abstract class BookingMapper {
     @Mapping(target = "boardStop", source = "boardStop")
     @Mapping(target = "alightStop", source = "alightStop")
     @Mapping(target = "passenger", ignore = true)
+    @Mapping(target = "ride", ignore = true)
     public abstract BookingResponseDto toResponseDto(RideBooking booking);
 
     public abstract List<BookingResponseDto> toResponseDtos(List<RideBooking> bookings);

@@ -16,6 +16,7 @@ public record BookingResponseDto(
         RideStopDto boardStop,
         RideStopDto alightStop,
         UserCardDto passenger,
+        RideSummaryDto ride,
         Instant bookedAt,
         Instant resolvedAt,
         BigDecimal proposedPrice

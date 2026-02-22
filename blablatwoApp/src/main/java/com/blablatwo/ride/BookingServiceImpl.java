@@ -251,7 +251,8 @@ public class BookingServiceImpl implements BookingService {
         List<RideBooking> bookings = bookingRepository.findByPassengerIdAndStatusIn(
                 passengerId, ACTIVE_STATUSES);
         List<BookingResponseDto> dtos = bookingMapper.toResponseDtos(bookings);
-        return bookingResponseEnricher.enrich(bookings, dtos);
+        dtos = bookingResponseEnricher.enrich(bookings, dtos);
+        return bookingResponseEnricher.enrichForPassenger(bookings, dtos);
     }
 
     private RideBooking findBookingForRide(Long rideId, Long bookingId) {
