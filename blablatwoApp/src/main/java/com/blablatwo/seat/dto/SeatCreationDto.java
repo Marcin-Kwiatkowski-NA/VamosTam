@@ -21,7 +21,7 @@ public record SeatCreationDto(
         @Future(message = "Departure time must be in the future")
         LocalDateTime departureTime,
 
-        boolean isApproximate,
+        boolean isTimeApproximate,
 
         @Min(value = 1, message = "Count must be at least 1")
         int count,

@@ -41,8 +41,8 @@ public class Ride extends AbstractTrip {
     @ManyToOne
     private Vehicle vehicle;
 
-    @Column(name = "is_approximate", nullable = false)
-    private boolean isApproximate;
+    @Column(name = "is_time_approximate", nullable = false)
+    private boolean isTimeApproximate;
 
     @Column(name = "departure_date")
     private LocalDate departureDate;

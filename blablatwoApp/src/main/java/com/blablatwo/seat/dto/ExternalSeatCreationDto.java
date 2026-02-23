@@ -24,7 +24,7 @@ public record ExternalSeatCreationDto(
         @NotNull(message = "Departure time is required")
         LocalTime departureTime,
 
-        boolean isApproximate,
+        boolean isTimeApproximate,
 
         @Min(value = 1, message = "Count must be at least 1")
         int count,

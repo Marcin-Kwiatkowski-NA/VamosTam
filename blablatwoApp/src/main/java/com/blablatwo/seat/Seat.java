@@ -41,8 +41,8 @@ public class Seat extends AbstractTrip {
     @Column(name = "departure_time", nullable = false)
     private LocalTime departureTime;
 
-    @Column(name = "is_approximate", nullable = false)
-    private boolean isApproximate;
+    @Column(name = "is_time_approximate", nullable = false)
+    private boolean isTimeApproximate;
 
     @ManyToOne(optional = false)
     private UserAccount passenger;

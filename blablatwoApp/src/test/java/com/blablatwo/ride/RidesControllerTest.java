@@ -148,7 +148,7 @@ class RidesControllerTest {
                 null,    // destination - null (invalid)
                 null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                false,   // isApproximate
+                false,   // isTimeApproximate
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId
@@ -238,7 +238,7 @@ class RidesControllerTest {
                 null,    // destination - null (invalid)
                 null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                false,   // isApproximate
+                false,   // isTimeApproximate
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId

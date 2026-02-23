@@ -18,7 +18,7 @@ public record SeatResponseDto(
         LocationDto origin,
         LocationDto destination,
         LocalDateTime departureTime,
-        boolean isApproximate,
+        boolean isTimeApproximate,
         int count,
         BigDecimal priceWillingToPay,
         String description,

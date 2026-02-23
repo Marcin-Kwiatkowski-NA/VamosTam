@@ -47,7 +47,7 @@ public class RideServiceImpl implements RideService {
     private static final List<BookingStatus> ACTIVE_STATUSES =
             List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED);
 
-    private final RideRepository rideRepository;
+private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
     private final RideMapper rideMapper;
     private final LocationResolutionService locationResolutionService;
@@ -101,7 +101,7 @@ public class RideServiceImpl implements RideService {
         List<RideStop> stops = buildStops(newRide, dto);
         newRide.setStops(stops);
         setDenormalizedDepartureFields(newRide, dto.departureTime());
-        newRide.setApproximate(dto.isApproximate());
+        newRide.setTimeApproximate(dto.isTimeApproximate());
 
         Ride saved = rideRepository.save(newRide);
         return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
@@ -120,7 +120,7 @@ public class RideServiceImpl implements RideService {
         rideMapper.update(existingRide, dto);
         updateStops(existingRide, dto);
         setDenormalizedDepartureFields(existingRide, dto.departureTime());
-        existingRide.setApproximate(dto.isApproximate());
+        existingRide.setTimeApproximate(dto.isTimeApproximate());
         existingRide.setLastModified(Instant.now());
 
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));

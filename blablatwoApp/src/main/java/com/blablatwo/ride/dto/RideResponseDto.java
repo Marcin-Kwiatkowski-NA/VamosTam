@@ -20,7 +20,7 @@ public record RideResponseDto(
         LocationDto destination,
         List<RideStopDto> stops,
         LocalDateTime departureTime,
-        boolean isApproximate,
+        boolean isTimeApproximate,
         BigDecimal pricePerSeat,
         int availableSeats,
         int seatsTaken,

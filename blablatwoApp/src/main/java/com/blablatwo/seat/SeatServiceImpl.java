@@ -74,7 +74,7 @@ public class SeatServiceImpl implements SeatService {
         seat.setDestination(destination);
         seat.setDepartureDate(dto.departureTime().toLocalDate());
         seat.setDepartureTime(dto.departureTime().toLocalTime());
-        seat.setApproximate(dto.isApproximate());
+        seat.setTimeApproximate(dto.isTimeApproximate());
         seat.setLastModified(Instant.now());
 
         Seat saved = seatRepository.save(seat);

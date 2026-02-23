@@ -27,7 +27,7 @@ public record RideCreationDto(
         @Future(message = "Departure time must be in the future")
         LocalDateTime departureTime,
 
-        boolean isApproximate,
+        boolean isTimeApproximate,
 
         @NotNull(message = "Available seats cannot be null")
         @Min(value = 1, message = "Available seats must be at least 1")

@@ -57,7 +57,7 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
                 .destination(locations.destination())
                 .departureDate(dto.departureDate())
                 .departureTime(dto.departureTime())
-                .isApproximate(dto.isApproximate())
+                .isTimeApproximate(dto.isTimeApproximate())
                 .source(RideSource.FACEBOOK)
                 .count(dto.count())
                 .priceWillingToPay(dto.priceWillingToPay())

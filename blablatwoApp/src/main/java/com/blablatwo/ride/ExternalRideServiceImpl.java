@@ -50,7 +50,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .driver(proxy)
                 .departureDate(dto.departureDate())
                 .departureTime(dto.departureTime())
-                .isApproximate(dto.isApproximate())
+                .isTimeApproximate(dto.isTimeApproximate())
                 .source(RideSource.FACEBOOK)
                 .totalSeats(dto.availableSeats())
                 .pricePerSeat(dto.pricePerSeat())
