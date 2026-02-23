@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -36,6 +37,7 @@ public class MessageBroadcastListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(readOnly = true)
     public void onMessageCreated(MessageCreatedEvent event) {
         try {
             var message = messageRepository.findById(event.messageId()).orElse(null);
@@ -62,7 +64,10 @@ public class MessageBroadcastListener {
             );
 
             // 2. Send inbox updates to each participant
-            var conversation = conversationRepository.findById(event.conversationId()).orElse(null);
+            // Use findByIdWithParticipants to eagerly load lazy associations —
+            // this @Async method runs outside the original request session.
+            var conversation = conversationRepository.findByIdWithParticipants(event.conversationId())
+                    .orElse(null);
             if (conversation == null) return;
 
             sendInboxUpdate(conversation, conversation.getParticipantA().getId());
