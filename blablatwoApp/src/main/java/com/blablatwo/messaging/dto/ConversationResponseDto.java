@@ -9,5 +9,6 @@ public record ConversationResponseDto(
     PeerUserDto peerUser,
     String lastMessage,
     Instant lastMessageAt,
-    int unreadCount
+    int unreadCount,
+    RideContextDto rideContext
 ) {}

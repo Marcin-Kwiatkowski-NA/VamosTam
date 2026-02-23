@@ -56,6 +56,14 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     @Query("SELECT c FROM Conversation c WHERE c.participantA.id = :userId OR c.participantB.id = :userId")
     List<Conversation> findAllByParticipantId(@Param("userId") Long userId);
 
+    @Query("""
+        SELECT c FROM Conversation c
+        JOIN FETCH c.participantA
+        JOIN FETCH c.participantB
+        WHERE c.topicKey = :topicKey
+        """)
+    List<Conversation> findByTopicKey(@Param("topicKey") String topicKey);
+
     @Modifying
     @Query("DELETE FROM Conversation c WHERE c.participantA.id = :userId OR c.participantB.id = :userId")
     void deleteAllByParticipantId(@Param("userId") Long userId);

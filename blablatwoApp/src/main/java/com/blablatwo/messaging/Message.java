@@ -38,6 +38,11 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     private UserAccount sender;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false)
+    @Builder.Default
+    private MessageType messageType = MessageType.USER;
+
     @NotBlank
     @Size(max = 2000)
     @Column(nullable = false, length = 2000)

@@ -1,8 +1,8 @@
 package com.blablatwo.ride.event;
 
 import com.blablatwo.domain.PersonDisplayNameResolver;
+import com.blablatwo.messaging.SystemMessageService;
 import com.blablatwo.notification.PushNotificationService;
-import com.blablatwo.ride.BookingStatus;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideBooking;
 import com.blablatwo.ride.RideBookingRepository;
@@ -30,17 +30,20 @@ public class BookingBroadcastListener {
     private final RideBookingRepository bookingRepository;
     private final UserProfileRepository userProfileRepository;
     private final PersonDisplayNameResolver displayNameResolver;
+    private final SystemMessageService systemMessageService;
 
     public BookingBroadcastListener(SimpMessagingTemplate messagingTemplate,
                                      PushNotificationService pushNotificationService,
                                      RideBookingRepository bookingRepository,
                                      UserProfileRepository userProfileRepository,
-                                     PersonDisplayNameResolver displayNameResolver) {
+                                     PersonDisplayNameResolver displayNameResolver,
+                                     SystemMessageService systemMessageService) {
         this.messagingTemplate = messagingTemplate;
         this.pushNotificationService = pushNotificationService;
         this.bookingRepository = bookingRepository;
         this.userProfileRepository = userProfileRepository;
         this.displayNameResolver = displayNameResolver;
+        this.systemMessageService = systemMessageService;
     }
 
     @Async
@@ -57,6 +60,8 @@ public class BookingBroadcastListener {
         notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
                 "CONFIRMED", "Booking confirmed",
                 "%s confirmed your booking");
+
+        postSystemMessage(event.rideId(), event.driverId(), "system.booking_confirmed");
     }
 
     @Async
@@ -65,6 +70,8 @@ public class BookingBroadcastListener {
         notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
                 "REJECTED", "Booking rejected",
                 "%s rejected your booking request");
+
+        postSystemMessage(event.rideId(), event.driverId(), "system.booking_rejected");
     }
 
     @Async
@@ -76,6 +83,8 @@ public class BookingBroadcastListener {
         notifyUser(event.bookingId(), recipientId, event.cancelledByUserId(),
                 "CANCELLED", "Booking cancelled",
                 "%s cancelled the booking");
+
+        postSystemMessage(event.rideId(), event.cancelledByUserId(), "system.booking_cancelled");
     }
 
     @Async
@@ -84,6 +93,15 @@ public class BookingBroadcastListener {
         notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
                 "EXPIRED", "Booking expired",
                 "Your booking request expired");
+    }
+
+    private void postSystemMessage(Long rideId, Long actorId, String bodyKey) {
+        try {
+            String topicKey = "offer:r-" + rideId;
+            systemMessageService.postSystemMessage(topicKey, actorId, bodyKey);
+        } catch (Exception e) {
+            log.error("Failed to post system message for ride {}: {}", rideId, e.getMessage(), e);
+        }
     }
 
     private void notifyUser(Long bookingId, Long recipientId, Long counterpartyId,

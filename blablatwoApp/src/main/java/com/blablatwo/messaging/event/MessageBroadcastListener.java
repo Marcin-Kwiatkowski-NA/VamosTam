@@ -52,7 +52,8 @@ public class MessageBroadcastListener {
                     false, // isMine is viewer-relative; clients resolve this by comparing senderId
                     message.getBody(),
                     message.getCreatedAt(),
-                    MessageStatus.SENT
+                    MessageStatus.SENT,
+                    message.getMessageType()
             );
 
             messagingTemplate.convertAndSend(

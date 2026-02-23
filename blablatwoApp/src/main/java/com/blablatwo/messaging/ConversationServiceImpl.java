@@ -254,7 +254,8 @@ public class ConversationServiceImpl implements ConversationService {
                 message.getSender().getId().equals(viewerId),
                 baseDto.body(),
                 baseDto.createdAt(),
-                baseDto.status()
+                baseDto.status(),
+                baseDto.messageType()
         );
     }
 }
