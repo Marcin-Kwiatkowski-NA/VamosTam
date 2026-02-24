@@ -89,11 +89,11 @@ class NotificationServiceTest {
         void collapsesExistingNotification() {
             var existing = Notification.builder()
                     .recipient(recipient)
-                    .notificationType(NotificationType.CHAT_MESSAGE_NEW)
-                    .channel(NotificationChannel.MESSAGES)
-                    .entityType(EntityType.CONVERSATION)
-                    .entityId("conv-uuid")
-                    .collapseKey("conv:conv-uuid")
+                    .notificationType(NotificationType.BOOKING_REQUESTED)
+                    .channel(NotificationChannel.BOOKING_UPDATES)
+                    .entityType(EntityType.RIDE)
+                    .entityId("42")
+                    .collapseKey("booking:99")
                     .count(2)
                     .build();
             existing.setId(UUID.randomUUID());
@@ -101,14 +101,14 @@ class NotificationServiceTest {
 
             var request = NotificationRequest.builder()
                     .recipientId(1L)
-                    .type(NotificationType.CHAT_MESSAGE_NEW)
-                    .entityType(EntityType.CONVERSATION)
-                    .entityId("conv-uuid")
-                    .params(Map.of("conversationId", "conv-uuid"))
-                    .collapseKey("conv:conv-uuid")
+                    .type(NotificationType.BOOKING_REQUESTED)
+                    .entityType(EntityType.RIDE)
+                    .entityId("42")
+                    .params(Map.of("offerKey", "r-42"))
+                    .collapseKey("booking:99")
                     .build();
 
-            when(notificationRepository.findByRecipientIdAndCollapseKeyAndReadAtIsNull(1L, "conv:conv-uuid"))
+            when(notificationRepository.findByRecipientIdAndCollapseKeyAndReadAtIsNull(1L, "booking:99"))
                     .thenReturn(Optional.of(existing));
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(3L);
@@ -118,6 +118,34 @@ class NotificationServiceTest {
             ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
             verify(notificationRepository).save(captor.capture());
             assertEquals(3, captor.getValue().getCount());
+        }
+
+        @Test
+        @DisplayName("should broadcast STOMP alert without DB persistence for CHAT_MESSAGE_NEW")
+        void chatMessageBroadcastsWithoutPersistence() {
+            var request = NotificationRequest.builder()
+                    .recipientId(1L)
+                    .type(NotificationType.CHAT_MESSAGE_NEW)
+                    .entityType(EntityType.CONVERSATION)
+                    .entityId("conv-uuid")
+                    .params(Map.of("conversationId", "conv-uuid"))
+                    .collapseKey("conv:conv-uuid")
+                    .build();
+
+            when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(2L);
+
+            notificationService.notify(request);
+
+            verify(notificationRepository, never()).save(any());
+            verify(pushNotificationService, never()).sendToUser(anyLong(), anyString(), anyString(), anyMap());
+
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(messagingTemplate).convertAndSendToUser(
+                    eq("1"), eq("/queue/notifications"), payloadCaptor.capture());
+
+            var alert = (NotificationAlertDto) payloadCaptor.getValue();
+            assertEquals(NotificationType.CHAT_MESSAGE_NEW, alert.type());
+            assertEquals(2L, alert.unreadCount());
         }
 
         @Test
@@ -158,9 +186,11 @@ class NotificationServiceTest {
             notification.setCreatedAt(Instant.now());
 
             var slice = new SliceImpl<>(List.of(notification), PageRequest.of(0, 20), false);
-            when(notificationRepository.findByRecipientIdOrderByCreatedAtDesc(1L, PageRequest.of(0, 20)))
+            when(notificationRepository.findByRecipientIdAndNotificationTypeNotOrderByCreatedAtDesc(
+                    1L, NotificationType.CHAT_MESSAGE_NEW, PageRequest.of(0, 20)))
                     .thenReturn(slice);
-            when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(1L);
+            when(notificationRepository.countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(
+                    1L, NotificationType.CHAT_MESSAGE_NEW)).thenReturn(1L);
 
             NotificationPageDto result = notificationService.getNotifications(1L, 0, 20);
 
@@ -178,7 +208,8 @@ class NotificationServiceTest {
         @DisplayName("should mark read and broadcast count sync")
         void marksReadAndBroadcasts() {
             UUID id = UUID.randomUUID();
-            when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(2L);
+            when(notificationRepository.countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(
+                    1L, NotificationType.CHAT_MESSAGE_NEW)).thenReturn(2L);
 
             notificationService.markRead(1L, id);
 

@@ -52,6 +52,15 @@ public class NotificationService {
                 return;
             }
 
+            // Chat messages: popup-only (STOMP alert without DB persistence)
+            if (request.type() == NotificationType.CHAT_MESSAGE_NEW) {
+                long unreadCount = notificationRepository.countByRecipientIdAndReadAtIsNull(request.recipientId());
+                var alert = NotificationAlertDto.fromRequest(request, unreadCount);
+                messagingTemplate.convertAndSendToUser(
+                        request.recipientId().toString(), NOTIFICATION_QUEUE, alert);
+                return;
+            }
+
             Notification notification = persistOrCollapse(recipient, request);
 
             long unreadCount = notificationRepository.countByRecipientIdAndReadAtIsNull(request.recipientId());
@@ -70,8 +79,10 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public NotificationPageDto getNotifications(Long userId, int page, int size) {
         Slice<Notification> slice = notificationRepository
-                .findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
-        long unreadCount = notificationRepository.countByRecipientIdAndReadAtIsNull(userId);
+                .findByRecipientIdAndNotificationTypeNotOrderByCreatedAtDesc(
+                        userId, NotificationType.CHAT_MESSAGE_NEW, PageRequest.of(page, size));
+        long unreadCount = notificationRepository
+                .countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(userId, NotificationType.CHAT_MESSAGE_NEW);
         return new NotificationPageDto(
                 slice.getContent().stream().map(NotificationResponseDto::from).toList(),
                 slice.hasNext(),
@@ -81,7 +92,8 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public UnreadCountDto getUnreadCount(Long userId) {
-        return new UnreadCountDto(notificationRepository.countByRecipientIdAndReadAtIsNull(userId));
+        return new UnreadCountDto(notificationRepository
+                .countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(userId, NotificationType.CHAT_MESSAGE_NEW));
     }
 
     @Transactional
@@ -128,7 +140,8 @@ public class NotificationService {
     }
 
     private void broadcastCountSync(Long userId) {
-        long unreadCount = notificationRepository.countByRecipientIdAndReadAtIsNull(userId);
+        long unreadCount = notificationRepository
+                .countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(userId, NotificationType.CHAT_MESSAGE_NEW);
         messagingTemplate.convertAndSendToUser(
                 userId.toString(), NOTIFICATION_SYNC_QUEUE,
                 Map.of("unreadCount", unreadCount));

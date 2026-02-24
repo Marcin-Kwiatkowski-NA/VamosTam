@@ -3,6 +3,7 @@ package com.blablatwo.notification.dto;
 import com.blablatwo.notification.EntityType;
 import com.blablatwo.notification.Notification;
 import com.blablatwo.notification.NotificationChannel;
+import com.blablatwo.notification.NotificationRequest;
 import com.blablatwo.notification.NotificationType;
 
 import java.time.Instant;
@@ -37,6 +38,25 @@ public record NotificationAlertDto(
                 n.getCollapseKey(),
                 n.getCount(),
                 n.getCreatedAt(),
+                unreadCount
+        );
+    }
+
+    /**
+     * Build a transient alert from a request (no DB entity).
+     * Used for popup-only notifications that skip persistence.
+     */
+    public static NotificationAlertDto fromRequest(NotificationRequest request, long unreadCount) {
+        return new NotificationAlertDto(
+                UUID.randomUUID(),
+                request.type(),
+                request.channel(),
+                request.entityType(),
+                request.entityId(),
+                request.params(),
+                request.collapseKey(),
+                1,
+                Instant.now(),
                 unreadCount
         );
     }

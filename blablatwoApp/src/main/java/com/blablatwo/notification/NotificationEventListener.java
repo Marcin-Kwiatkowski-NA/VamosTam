@@ -63,7 +63,23 @@ public class NotificationEventListener {
         Long recipientId = event.cancelledByUserId().equals(event.driverId())
                 ? event.passengerId()
                 : event.driverId();
-        notifyBooking(recipientId, event.rideId(), event.bookingId(), NotificationType.BOOKING_CANCELLED);
+        try {
+            var params = new java.util.HashMap<>(Map.of("offerKey", "r-" + event.rideId()));
+            if (event.reason() != null && !event.reason().isBlank()) {
+                params.put("reason", event.reason());
+            }
+            notificationService.notify(NotificationRequest.builder()
+                    .recipientId(recipientId)
+                    .type(NotificationType.BOOKING_CANCELLED)
+                    .entityType(EntityType.RIDE)
+                    .entityId(event.rideId().toString())
+                    .params(params)
+                    .collapseKey("booking:" + event.bookingId())
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to notify booking {} (type=BOOKING_CANCELLED): {}",
+                    event.bookingId(), e.getMessage(), e);
+        }
     }
 
     @Async
