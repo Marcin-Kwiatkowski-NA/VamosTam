@@ -71,6 +71,12 @@ public class RideBooking {
     @Column(name = "proposed_price", precision = 10, scale = 2)
     private BigDecimal proposedPrice;
 
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     public boolean isActive() {
         return status.isActive();
     }

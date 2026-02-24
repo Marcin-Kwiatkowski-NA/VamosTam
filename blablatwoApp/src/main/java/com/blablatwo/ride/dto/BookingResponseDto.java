@@ -19,6 +19,7 @@ public record BookingResponseDto(
         RideSummaryDto ride,
         Instant bookedAt,
         Instant resolvedAt,
-        BigDecimal proposedPrice
+        BigDecimal proposedPrice,
+        String cancellationReason
 ) {
 }

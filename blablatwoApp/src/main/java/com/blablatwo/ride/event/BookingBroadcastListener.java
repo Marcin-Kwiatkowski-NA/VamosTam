@@ -80,9 +80,11 @@ public class BookingBroadcastListener {
         Long recipientId = event.cancelledByUserId().equals(event.driverId())
                 ? event.passengerId()
                 : event.driverId();
+        // Privacy-safe: don't expose reason on lock screen, only in STOMP payload
         notifyUser(event.bookingId(), recipientId, event.cancelledByUserId(),
                 "CANCELLED", "Booking cancelled",
-                "%s cancelled the booking");
+                "Booking cancelled — tap to see details",
+                event.reason());
 
         postSystemMessage(event.rideId(), event.cancelledByUserId(), "system.booking_cancelled");
     }
@@ -106,6 +108,12 @@ public class BookingBroadcastListener {
 
     private void notifyUser(Long bookingId, Long recipientId, Long counterpartyId,
                              String eventType, String pushTitle, String pushBodyTemplate) {
+        notifyUser(bookingId, recipientId, counterpartyId, eventType, pushTitle, pushBodyTemplate, null);
+    }
+
+    private void notifyUser(Long bookingId, Long recipientId, Long counterpartyId,
+                             String eventType, String pushTitle, String pushBodyTemplate,
+                             String cancellationReason) {
         try {
             RideBooking booking = bookingRepository.findById(bookingId).orElse(null);
             if (booking == null) {
@@ -126,6 +134,7 @@ public class BookingBroadcastListener {
                     .rideDestination(ride.getDestination().getName(null))
                     .departureTime(ride.getDepartureDateTime())
                     .counterpartyName(counterpartyName)
+                    .cancellationReason(cancellationReason)
                     .build();
 
             messagingTemplate.convertAndSendToUser(

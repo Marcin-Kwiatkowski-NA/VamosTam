@@ -297,7 +297,7 @@ class BookingServiceImplTest {
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
-            bookingService.cancelBooking(ID_100, 1L, 2L);
+            bookingService.cancelBooking(ID_100, 1L, 2L, "No longer need this ride");
 
             assertEquals(BookingStatus.CANCELLED_BY_PASSENGER, booking.getStatus());
             verify(eventPublisher).publishEvent(any(BookingCancelledEvent.class));
@@ -312,7 +312,7 @@ class BookingServiceImplTest {
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
-            bookingService.cancelBooking(ID_100, 1L, ID_ONE);
+            bookingService.cancelBooking(ID_100, 1L, ID_ONE, "Cancelling this booking");
 
             assertEquals(BookingStatus.CANCELLED_BY_DRIVER, booking.getStatus());
         }
@@ -326,7 +326,7 @@ class BookingServiceImplTest {
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
-            bookingService.cancelBooking(ID_100, 1L, 2L);
+            bookingService.cancelBooking(ID_100, 1L, 2L, "No longer need this ride");
 
             assertEquals(BookingStatus.CANCELLED_BY_PASSENGER, booking.getStatus());
         }
@@ -340,7 +340,7 @@ class BookingServiceImplTest {
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(InvalidBookingTransitionException.class,
-                    () -> bookingService.cancelBooking(ID_100, 1L, 2L));
+                    () -> bookingService.cancelBooking(ID_100, 1L, 2L, "Some reason"));
         }
 
         @Test
@@ -352,7 +352,7 @@ class BookingServiceImplTest {
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(NotRideDriverException.class,
-                    () -> bookingService.cancelBooking(ID_100, 1L, 999L));
+                    () -> bookingService.cancelBooking(ID_100, 1L, 999L, "Some reason"));
         }
     }
 

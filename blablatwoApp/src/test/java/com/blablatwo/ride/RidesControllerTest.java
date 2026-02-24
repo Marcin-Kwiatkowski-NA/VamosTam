@@ -196,15 +196,16 @@ class RidesControllerTest {
 
     @Test
     @DisplayName("PUT /rides/{id} - Update ride - Success")
-    @WithMockUser
     void updateRide_Success() throws Exception {
         // Arrange
-        when(rideService.update(any(RideCreationDto.class), eq(ID_100)))
+        when(rideService.update(any(RideCreationDto.class), eq(ID_100), any()))
                 .thenReturn(rideResponseDto);
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
 
         // Act & Assert
         mockMvc.perform(put(BASE_URL + "/" + ID_100)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isOk())
@@ -214,15 +215,16 @@ class RidesControllerTest {
 
     @Test
     @DisplayName("PUT /rides/{id} - Update ride - Not Found (ETag removed)")
-    @WithMockUser
     void updateRide_NotFound() throws Exception {
         // Arrange
-        when(rideService.update(any(RideCreationDto.class), eq(NON_EXISTENT_ID)))
+        when(rideService.update(any(RideCreationDto.class), eq(NON_EXISTENT_ID), any()))
                 .thenThrow(new NoSuchRideException(NON_EXISTENT_ID));
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
 
         // Act & Assert
         mockMvc.perform(put(BASE_URL + "/" + NON_EXISTENT_ID)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(rideCreationDTO)))
                 .andExpect(status().isNotFound());

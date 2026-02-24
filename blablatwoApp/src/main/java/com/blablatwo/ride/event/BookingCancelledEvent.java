@@ -5,6 +5,7 @@ public record BookingCancelledEvent(
         Long rideId,
         Long passengerId,
         Long driverId,
-        Long cancelledByUserId
+        Long cancelledByUserId,
+        String reason
 ) {
 }

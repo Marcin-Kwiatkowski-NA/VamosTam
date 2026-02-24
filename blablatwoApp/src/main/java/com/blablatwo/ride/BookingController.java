@@ -1,6 +1,7 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.auth.AppPrincipal;
+import com.blablatwo.dto.CancellationRequest;
 import com.blablatwo.ride.dto.BookRideRequest;
 import com.blablatwo.ride.dto.BookingResponseDto;
 import jakarta.validation.Valid;
@@ -68,8 +69,10 @@ public class BookingController {
     public ResponseEntity<BookingResponseDto> cancelBooking(
             @PathVariable Long rideId,
             @PathVariable Long bookingId,
+            @Valid @RequestBody CancellationRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
-        return ResponseEntity.ok(bookingService.cancelBooking(rideId, bookingId, principal.userId()));
+        return ResponseEntity.ok(
+                bookingService.cancelBooking(rideId, bookingId, principal.userId(), request.reason()));
     }
 
     @GetMapping("/me/bookings")

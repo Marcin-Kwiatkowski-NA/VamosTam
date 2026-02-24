@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -90,6 +91,21 @@ public class SeatController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return ResponseEntity.ok(seatService.searchSeats(criteria, pageable));
+    }
+
+    @PutMapping("/seats/{id}")
+    public ResponseEntity<SeatResponseDto> updateSeat(@Valid @RequestBody SeatCreationDto dto,
+                                                       @PathVariable Long id,
+                                                       @AuthenticationPrincipal AppPrincipal principal) {
+        var updated = seatService.update(dto, id, principal.userId());
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/seats/{id}/cancel")
+    public ResponseEntity<SeatResponseDto> cancelSeat(@PathVariable Long id,
+                                                       @AuthenticationPrincipal AppPrincipal principal) {
+        var cancelled = seatService.cancelSeat(id, principal.userId());
+        return ResponseEntity.ok(cancelled);
     }
 
     @DeleteMapping("/seats/{id}")

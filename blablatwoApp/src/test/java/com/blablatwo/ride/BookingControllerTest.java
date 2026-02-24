@@ -162,12 +162,14 @@ class BookingControllerTest {
         @Test
         @DisplayName("200 OK on cancel")
         void cancelBooking_Success() throws Exception {
-            when(bookingService.cancelBooking(eq(ID_100), eq(1L), any()))
+            when(bookingService.cancelBooking(eq(ID_100), eq(1L), any(), any()))
                     .thenReturn(bookingResponseDto);
 
             mockMvc.perform(post("/rides/" + ID_100 + "/bookings/1/cancel")
                             .with(csrf())
-                            .with(authentication(userAuth())))
+                            .with(authentication(userAuth()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"reason\": \"No longer need this ride\"}"))
                     .andExpect(status().isOk());
         }
     }

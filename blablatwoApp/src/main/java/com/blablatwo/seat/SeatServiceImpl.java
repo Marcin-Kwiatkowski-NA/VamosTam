@@ -3,6 +3,7 @@ package com.blablatwo.seat;
 import com.blablatwo.domain.Status;
 import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.NoSuchSeatException;
+import com.blablatwo.exceptions.NotSeatPassengerException;
 import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationResolutionService;
 import com.blablatwo.seat.dto.SeatCreationDto;
@@ -154,6 +155,53 @@ public class SeatServiceImpl implements SeatService {
                 .toList();
         List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
+    }
+
+    @Override
+    @Transactional
+    public SeatResponseDto update(SeatCreationDto dto, Long id, Long userId) {
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new NoSuchSeatException(id));
+
+        if (!seat.getPassenger().getId().equals(userId)) {
+            throw new NotSeatPassengerException(id, userId);
+        }
+
+        Location origin = locationResolutionService.resolve(dto.origin());
+        Location destination = locationResolutionService.resolve(dto.destination());
+
+        seat.setOrigin(origin);
+        seat.setDestination(destination);
+        seat.setDepartureDate(dto.departureTime().toLocalDate());
+        seat.setDepartureTime(dto.departureTime().toLocalTime());
+        seat.setTimeApproximate(dto.isTimeApproximate());
+        seat.setCount(dto.count());
+        seat.setPriceWillingToPay(dto.priceWillingToPay());
+        seat.setDescription(dto.description());
+        seat.setLastModified(Instant.now());
+
+        return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
+    }
+
+    @Override
+    @Transactional
+    public SeatResponseDto cancelSeat(Long id, Long userId) {
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new NoSuchSeatException(id));
+
+        if (!seat.getPassenger().getId().equals(userId)) {
+            throw new NotSeatPassengerException(id, userId);
+        }
+
+        // Idempotent: if already cancelled, return current state
+        if (seat.getStatus() == Status.CANCELLED) {
+            return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
+        }
+
+        seat.setStatus(Status.CANCELLED);
+        seat.setLastModified(Instant.now());
+
+        return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
     }
 
     @Override

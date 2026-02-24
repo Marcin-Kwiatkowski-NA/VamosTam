@@ -3,6 +3,7 @@ package com.blablatwo.ride;
 import com.blablatwo.domain.Status;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.NotRideDriverException;
+import com.blablatwo.exceptions.RideHasBookingsException;
 import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationResolutionService;
 import com.blablatwo.ride.dto.RideCreationDto;
@@ -143,7 +144,7 @@ class RideServiceImplTest {
     void throwExceptionWhenUpdatingNonExistentRide() {
         when(rideRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchRideException.class, () -> rideService.update(rideCreationDTO, NON_EXISTENT_ID));
+        assertThrows(NoSuchRideException.class, () -> rideService.update(rideCreationDTO, NON_EXISTENT_ID, ID_ONE));
         verify(rideRepository).findById(NON_EXISTENT_ID);
         verify(rideMapper, never()).update(any(), any());
         verify(rideRepository, never()).save(any());
@@ -284,35 +285,27 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Cancel ride sets status to CANCELLED and cascades to active bookings")
-        void cancelRide_Success() {
+        @DisplayName("Cancel ride with active bookings throws RideHasBookingsException")
+        void cancelRide_BlockedByActiveBookings() {
             UserAccount passenger = aPassengerAccount().build();
             RideBooking activeBooking = aBooking(cancelableRide, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            cancelableRide.setBookings(new ArrayList<>(List.of(activeBooking)));
 
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(cancelableRide));
-            when(bookingRepository.findByRideIdAndStatusIn(eq(ID_100), any()))
-                    .thenReturn(List.of(activeBooking));
 
-            rideService.cancelRide(ID_100, ID_ONE);
-
-            assertEquals(Status.CANCELLED, cancelableRide.getStatus());
-            assertEquals(BookingStatus.CANCELLED_BY_DRIVER, activeBooking.getStatus());
-            assertNotNull(activeBooking.getResolvedAt());
-            verify(eventPublisher).publishEvent(any(BookingCancelledEvent.class));
+            assertThrows(RideHasBookingsException.class,
+                    () -> rideService.cancelRide(ID_100, ID_ONE));
         }
 
         @Test
-        @DisplayName("Cancel ride with no active bookings does not publish events")
+        @DisplayName("Cancel ride with no active bookings sets status to CANCELLED")
         void cancelRide_NoActiveBookings() {
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(cancelableRide));
-            when(bookingRepository.findByRideIdAndStatusIn(eq(ID_100), any()))
-                    .thenReturn(List.of());
 
             rideService.cancelRide(ID_100, ID_ONE);
 
             assertEquals(Status.CANCELLED, cancelableRide.getStatus());
-            verify(eventPublisher, never()).publishEvent(any());
         }
 
         @Test

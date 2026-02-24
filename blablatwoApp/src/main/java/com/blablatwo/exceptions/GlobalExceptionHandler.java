@@ -46,8 +46,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(NotRideDriverException.class)
-    public ProblemDetail handleNotRideDriverException(HttpServletRequest request, NotRideDriverException ex) {
+    @ExceptionHandler({NotRideDriverException.class, NotSeatPassengerException.class})
+    public ProblemDetail handleOwnershipException(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 

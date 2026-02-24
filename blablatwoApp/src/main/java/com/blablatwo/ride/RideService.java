@@ -14,7 +14,7 @@ public interface RideService {
 
     RideResponseDto createForCurrentUser(RideCreationDto ride, Long userId);
 
-    RideResponseDto update(RideCreationDto ride, Long id);
+    RideResponseDto update(RideCreationDto ride, Long id, Long driverId);
 
     void delete(Long id);
 

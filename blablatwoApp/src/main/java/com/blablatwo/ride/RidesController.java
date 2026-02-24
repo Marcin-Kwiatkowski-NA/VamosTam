@@ -64,8 +64,9 @@ public class RidesController {
 
     @PutMapping("/rides/{id}")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
-                                                      @PathVariable Long id) {
-        var updatedRide = rideService.update(rideDTO, id);
+                                                      @PathVariable Long id,
+                                                      @AuthenticationPrincipal AppPrincipal principal) {
+        var updatedRide = rideService.update(rideDTO, id, principal.userId());
         return ResponseEntity.ok()
                 .location(getUriFromId(id))
                 .body(updatedRide);

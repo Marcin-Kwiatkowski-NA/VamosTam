@@ -15,7 +15,7 @@ public interface BookingService {
 
     BookingResponseDto rejectBooking(Long rideId, Long bookingId, Long driverId);
 
-    BookingResponseDto cancelBooking(Long rideId, Long bookingId, Long userId);
+    BookingResponseDto cancelBooking(Long rideId, Long bookingId, Long userId, String reason);
 
     List<BookingResponseDto> getBookingsForRide(Long rideId, Long driverId);
 

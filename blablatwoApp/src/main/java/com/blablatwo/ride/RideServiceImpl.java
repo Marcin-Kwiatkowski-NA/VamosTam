@@ -109,9 +109,13 @@ private final RideRepository rideRepository;
 
     @Override
     @Transactional
-    public RideResponseDto update(RideCreationDto dto, Long id) {
+    public RideResponseDto update(RideCreationDto dto, Long id, Long driverId) {
         var existingRide = rideRepository.findById(id)
                 .orElseThrow(() -> new NoSuchRideException(id));
+
+        if (!existingRide.getDriver().getId().equals(driverId)) {
+            throw new NotRideDriverException(id, driverId);
+        }
 
         if (!existingRide.getActiveBookings().isEmpty()) {
             throw new RideHasBookingsException(id);
@@ -146,16 +150,17 @@ private final RideRepository rideRepository;
             throw new NotRideDriverException(id, driverId);
         }
 
+        // Idempotent: already cancelled
+        if (ride.getStatus() == Status.CANCELLED) {
+            return;
+        }
+
+        if (!ride.getActiveBookings().isEmpty()) {
+            throw new RideHasBookingsException(id);
+        }
+
         ride.setStatus(Status.CANCELLED);
         ride.setLastModified(Instant.now());
-
-        List<RideBooking> activeBookings = bookingRepository.findByRideIdAndStatusIn(id, ACTIVE_STATUSES);
-        for (RideBooking booking : activeBookings) {
-            booking.setStatus(BookingStatus.CANCELLED_BY_DRIVER);
-            booking.setResolvedAt(Instant.now());
-            eventPublisher.publishEvent(new BookingCancelledEvent(
-                    booking.getId(), id, booking.getPassenger().getId(), driverId, driverId));
-        }
     }
 
     @Override

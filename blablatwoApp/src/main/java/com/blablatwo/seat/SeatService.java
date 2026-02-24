@@ -15,9 +15,13 @@ public interface SeatService {
 
     Optional<SeatResponseDto> getById(Long id);
 
+    SeatResponseDto update(SeatCreationDto dto, Long id, Long userId);
+
     Page<SeatResponseDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable);
 
     void delete(Long id);
+
+    SeatResponseDto cancelSeat(Long id, Long userId);
 
     List<SeatResponseDto> getSeatsForPassenger(Long passengerId);
 }

@@ -15,6 +15,7 @@ public record BookingNotificationDto(
         String rideOrigin,
         String rideDestination,
         LocalDateTime departureTime,
-        String counterpartyName
+        String counterpartyName,
+        String cancellationReason
 ) {
 }

@@ -197,11 +197,22 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponseDto cancelBooking(Long rideId, Long bookingId, Long userId) {
+    public BookingResponseDto cancelBooking(Long rideId, Long bookingId, Long userId, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Cancellation reason is required");
+        }
+
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
         RideBooking booking = findBookingForRide(rideId, bookingId);
+
+        // Idempotent: if already in a terminal cancellation status, return current state
+        if (booking.getStatus() == BookingStatus.CANCELLED_BY_DRIVER
+                || booking.getStatus() == BookingStatus.CANCELLED_BY_PASSENGER) {
+            BookingResponseDto dto = bookingMapper.toResponseDto(booking);
+            return bookingResponseEnricher.enrich(booking, dto);
+        }
 
         Long driverId = ride.getDriver().getId();
         Long passengerId = booking.getPassenger().getId();
@@ -219,10 +230,12 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(targetStatus);
         booking.setResolvedAt(Instant.now());
+        booking.setCancellationReason(reason);
+        booking.setCancelledAt(Instant.now());
         ride.setLastModified(Instant.now());
 
         eventPublisher.publishEvent(new BookingCancelledEvent(
-                booking.getId(), rideId, passengerId, driverId, userId));
+                booking.getId(), rideId, passengerId, driverId, userId, reason));
 
         BookingResponseDto dto = bookingMapper.toResponseDto(booking);
         return bookingResponseEnricher.enrich(booking, dto);
