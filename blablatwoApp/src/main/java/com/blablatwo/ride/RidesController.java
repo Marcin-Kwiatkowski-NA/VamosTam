@@ -85,6 +85,12 @@ public class RidesController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/rides/{id}/complete")
+    public ResponseEntity<RideResponseDto> completeRide(@PathVariable Long id,
+                                                         @AuthenticationPrincipal AppPrincipal principal) {
+        return ResponseEntity.ok(rideService.completeRide(id, principal.userId()));
+    }
+
     @GetMapping("/rides")
     public ResponseEntity<Page<RideResponseDto>> getAllRides(
             @RequestParam(defaultValue = "0") int page,

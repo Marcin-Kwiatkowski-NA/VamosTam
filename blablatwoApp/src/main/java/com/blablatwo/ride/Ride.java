@@ -17,6 +17,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -60,6 +61,12 @@ public class Ride extends AbstractTrip {
     @OneToMany(mappedBy = "ride", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RideBooking> bookings;
 
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "estimated_arrival_at")
+    private Instant estimatedArrivalAt;
+
     public Location getOrigin() {
         return stops.get(0).getLocation();
     }
@@ -99,18 +106,19 @@ public class Ride extends AbstractTrip {
         return getAvailableSeatsForSegment(0, stops.size() - 1);
     }
 
-    public RideStatus computeRideStatus() {
+    public RideStatus getRideStatus() {
         return switch (getStatus()) {
+            case ACTIVE -> getMinAvailableSeats() <= 0 ? RideStatus.FULL : RideStatus.OPEN;
+            case COMPLETED -> RideStatus.COMPLETED;
             case CANCELLED -> RideStatus.CANCELLED;
             case BANNED -> RideStatus.BANNED;
-            case ACTIVE -> {
-                boolean departed = getDepartureDateTime().isBefore(LocalDateTime.now());
-                boolean hasActiveBookings = !getActiveBookings().isEmpty();
-                if (departed) {
-                    yield hasActiveBookings ? RideStatus.COMPLETED : RideStatus.EXPIRED;
-                }
-                yield getMinAvailableSeats() <= 0 ? RideStatus.FULL : RideStatus.OPEN;
-            }
         };
+    }
+
+    public List<RideBooking> getConfirmedBookings() {
+        if (bookings == null) return List.of();
+        return bookings.stream()
+                .filter(b -> b.getStatus() == BookingStatus.CONFIRMED)
+                .toList();
     }
 }

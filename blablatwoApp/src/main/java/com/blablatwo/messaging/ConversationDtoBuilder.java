@@ -104,7 +104,7 @@ public class ConversationDtoBuilder {
                             ride.getDestination().getName(null),
                             ride.getDepartureDate(),
                             ride.isTimeApproximate() ? null : ride.getDepartureTime(),
-                            OfferStatus.from(ride.computeRideStatus()),
+                            OfferStatus.from(ride.getRideStatus()),
                             viewerRole,
                             isCreator
                     );

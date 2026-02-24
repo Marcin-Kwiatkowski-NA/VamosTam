@@ -83,8 +83,8 @@ public class BookingServiceImpl implements BookingService {
         UserAccount passenger = userAccountRepository.findById(passengerId)
                 .orElseThrow(() -> new NoSuchUserException(passengerId));
 
-        if (ride.computeRideStatus() != RideStatus.OPEN) {
-            throw new RideNotBookableException(rideId, ride.computeRideStatus().name());
+        if (ride.getRideStatus() != RideStatus.OPEN) {
+            throw new RideNotBookableException(rideId, ride.getRideStatus().name());
         }
 
         RideStop boardStop = findStop(ride, request.boardStopOsmId());

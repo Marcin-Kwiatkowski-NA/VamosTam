@@ -31,6 +31,8 @@ public abstract class RideMapper {
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
     @Mapping(target = "isTimeApproximate", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
+    @Mapping(target = "estimatedArrivalAt", ignore = true)
     public abstract Ride rideCreationDtoToEntity(RideCreationDto rideCreationDto);
 
     @Mapping(target = "id", ignore = true)
@@ -45,6 +47,8 @@ public abstract class RideMapper {
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
     @Mapping(target = "timeApproximate", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
+    @Mapping(target = "estimatedArrivalAt", ignore = true)
     public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
 
     @Mapping(target = "driver", ignore = true)
@@ -57,6 +61,6 @@ public abstract class RideMapper {
     @Mapping(target = "isTimeApproximate", source = "timeApproximate")
     @Mapping(target = "availableSeats", expression = "java(ride.getMinAvailableSeats())")
     @Mapping(target = "seatsTaken", expression = "java(ride.getTotalSeats() - ride.getMinAvailableSeats())")
-    @Mapping(target = "rideStatus", expression = "java(ride.computeRideStatus())")
+    @Mapping(target = "rideStatus", expression = "java(ride.getRideStatus())")
     public abstract RideResponseDto rideEntityToRideResponseDto(Ride ride);
 }

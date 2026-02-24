@@ -55,6 +55,42 @@ public class SystemMessageService {
         }
     }
 
+    /**
+     * Posts a system message to a specific conversation between two participants.
+     *
+     * @param topicKey       the offer topic key (e.g. "offer:r-123")
+     * @param participantAId one participant
+     * @param participantBId the other participant
+     * @param bodyKey        localization key
+     * @param silent         if true, the message won't bump the conversation in the inbox
+     */
+    @Transactional
+    public void postSystemMessageToConversation(String topicKey, Long participantAId,
+                                                  Long participantBId, String bodyKey, boolean silent) {
+        // Try both orderings since participant order may vary
+        conversationRepository.findByTopicKeyAndParticipants(topicKey, participantAId, participantBId)
+                .or(() -> conversationRepository.findByTopicKeyAndParticipants(topicKey, participantBId, participantAId))
+                .ifPresent(conversation -> {
+                    if (silent) {
+                        postToConversationSilent(conversation, participantAId, bodyKey);
+                    } else {
+                        postToConversation(conversation, participantAId, bodyKey);
+                    }
+                });
+    }
+
+    private void postToConversationSilent(Conversation conversation, Long actorId, String bodyKey) {
+        Message message = Message.builder()
+                .conversation(conversation)
+                .sender(userAccountRepository.getReferenceById(actorId))
+                .body(bodyKey)
+                .messageType(MessageType.SYSTEM)
+                .build();
+
+        messageRepository.save(message);
+        // Silent: do NOT update conversation denormalized fields or publish event
+    }
+
     private void postToConversation(Conversation conversation, Long actorId, String bodyKey) {
         Message message = Message.builder()
                 .conversation(conversation)

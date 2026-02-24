@@ -66,6 +66,9 @@ class RideServiceImplTest {
     @Mock
     ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    RideArrivalEstimator arrivalEstimator;
+
     @InjectMocks
     private RideServiceImpl rideService;
 

@@ -20,6 +20,8 @@ public interface RideService {
 
     void cancelRide(Long id, Long driverId);
 
+    RideResponseDto completeRide(Long rideId, Long driverId);
+
     Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable);
 
     Page<RideResponseDto> getAllRides(Pageable pageable);

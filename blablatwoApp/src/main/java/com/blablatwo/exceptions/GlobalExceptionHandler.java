@@ -8,6 +8,10 @@ import com.blablatwo.location.NoSuchLocationException;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
+import com.blablatwo.review.exception.BookingNotReviewableException;
+import com.blablatwo.review.exception.ReviewAlreadySubmittedException;
+import com.blablatwo.review.exception.ReviewDeadlinePassedException;
+import com.blablatwo.review.exception.ReviewNotAllowedException;
 import com.blablatwo.user.exception.DuplicateEmailException;
 import com.blablatwo.user.exception.NoSuchUserException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -143,5 +147,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         LOGGER.error("Facebook bot account not found - DataInitializer may have failed", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"));
+    }
+
+    @ExceptionHandler(ReviewAlreadySubmittedException.class)
+    public ProblemDetail handleReviewAlreadySubmittedException(HttpServletRequest request, ReviewAlreadySubmittedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler({ReviewDeadlinePassedException.class, BookingNotReviewableException.class})
+    public ProblemDetail handleReviewBadRequestException(HttpServletRequest request, RuntimeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ReviewNotAllowedException.class)
+    public ProblemDetail handleReviewNotAllowedException(HttpServletRequest request, ReviewNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 }

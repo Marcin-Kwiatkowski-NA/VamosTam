@@ -12,6 +12,7 @@ import com.blablatwo.ride.dto.RideCreationDto;
 import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
 import com.blablatwo.ride.event.BookingCancelledEvent;
+import com.blablatwo.ride.event.RideCompletedEvent;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
@@ -55,6 +56,7 @@ private final RideRepository rideRepository;
     private final RideResponseEnricher rideResponseEnricher;
     private final CapabilityService capabilityService;
     private final ApplicationEventPublisher eventPublisher;
+    private final RideArrivalEstimator arrivalEstimator;
 
     @Value("${search.proximity.default-radius-km:50}")
     private double defaultRadiusKm;
@@ -66,7 +68,8 @@ private final RideRepository rideRepository;
                            UserAccountRepository userAccountRepository,
                            RideResponseEnricher rideResponseEnricher,
                            CapabilityService capabilityService,
-                           ApplicationEventPublisher eventPublisher) {
+                           ApplicationEventPublisher eventPublisher,
+                           RideArrivalEstimator arrivalEstimator) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -75,6 +78,7 @@ private final RideRepository rideRepository;
         this.rideResponseEnricher = rideResponseEnricher;
         this.capabilityService = capabilityService;
         this.eventPublisher = eventPublisher;
+        this.arrivalEstimator = arrivalEstimator;
     }
 
     @Override
@@ -103,6 +107,8 @@ private final RideRepository rideRepository;
         setDenormalizedDepartureFields(newRide, dto.departureTime());
         newRide.setTimeApproximate(dto.isTimeApproximate());
 
+        newRide.setEstimatedArrivalAt(arrivalEstimator.estimate(newRide));
+
         Ride saved = rideRepository.save(newRide);
         return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
     }
@@ -126,6 +132,7 @@ private final RideRepository rideRepository;
         setDenormalizedDepartureFields(existingRide, dto.departureTime());
         existingRide.setTimeApproximate(dto.isTimeApproximate());
         existingRide.setLastModified(Instant.now());
+        existingRide.setEstimatedArrivalAt(arrivalEstimator.estimate(existingRide));
 
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
     }
@@ -161,6 +168,47 @@ private final RideRepository rideRepository;
 
         ride.setStatus(Status.CANCELLED);
         ride.setLastModified(Instant.now());
+    }
+
+    @Override
+    @Transactional
+    public RideResponseDto completeRide(Long rideId, Long driverId) {
+        Ride ride = rideRepository.findByIdForUpdate(rideId)
+                .orElseThrow(() -> new NoSuchRideException(rideId));
+
+        if (!ride.getDriver().getId().equals(driverId)) {
+            throw new NotRideDriverException(rideId, driverId);
+        }
+
+        // Idempotent: already completed
+        if (ride.getStatus() == Status.COMPLETED) {
+            return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
+        }
+
+        if (ride.getStatus() != Status.ACTIVE) {
+            throw new IllegalStateException("Ride " + rideId + " cannot be completed from status " + ride.getStatus());
+        }
+
+        if (!ride.getDepartureDateTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Ride " + rideId + " has not departed yet");
+        }
+
+        List<RideBooking> confirmedBookings = ride.getConfirmedBookings();
+        if (confirmedBookings.isEmpty()) {
+            throw new IllegalStateException("Ride " + rideId + " has no confirmed bookings");
+        }
+
+        ride.setStatus(Status.COMPLETED);
+        ride.setCompletedAt(Instant.now());
+        ride.setLastModified(Instant.now());
+
+        List<Long> confirmedBookingIds = confirmedBookings.stream()
+                .map(RideBooking::getId)
+                .toList();
+
+        eventPublisher.publishEvent(new RideCompletedEvent(rideId, driverId, confirmedBookingIds));
+
+        return rideResponseEnricher.enrich(ride, rideMapper.rideEntityToRideResponseDto(ride));
     }
 
     @Override
