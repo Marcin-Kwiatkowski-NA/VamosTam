@@ -2,7 +2,6 @@ package com.blablatwo.ride.event;
 
 import com.blablatwo.domain.PersonDisplayNameResolver;
 import com.blablatwo.messaging.SystemMessageService;
-import com.blablatwo.notification.PushNotificationService;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideBooking;
 import com.blablatwo.ride.RideBookingRepository;
@@ -17,8 +16,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.Map;
-
+/**
+ * Broadcasts booking events over STOMP and posts system messages.
+ * Push notification dispatch is handled separately by
+ * {@link com.blablatwo.notification.NotificationEventListener}.
+ */
 @Component
 public class BookingBroadcastListener {
 
@@ -26,20 +28,17 @@ public class BookingBroadcastListener {
     private static final String BOOKING_QUEUE = "/queue/bookings";
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final PushNotificationService pushNotificationService;
     private final RideBookingRepository bookingRepository;
     private final UserProfileRepository userProfileRepository;
     private final PersonDisplayNameResolver displayNameResolver;
     private final SystemMessageService systemMessageService;
 
     public BookingBroadcastListener(SimpMessagingTemplate messagingTemplate,
-                                     PushNotificationService pushNotificationService,
                                      RideBookingRepository bookingRepository,
                                      UserProfileRepository userProfileRepository,
                                      PersonDisplayNameResolver displayNameResolver,
                                      SystemMessageService systemMessageService) {
         this.messagingTemplate = messagingTemplate;
-        this.pushNotificationService = pushNotificationService;
         this.bookingRepository = bookingRepository;
         this.userProfileRepository = userProfileRepository;
         this.displayNameResolver = displayNameResolver;
@@ -49,28 +48,20 @@ public class BookingBroadcastListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingRequested(BookingRequestedEvent event) {
-        notifyUser(event.bookingId(), event.driverId(), event.passengerId(),
-                "REQUESTED", "New booking request",
-                "%s wants to join your ride");
+        broadcastStomp(event.bookingId(), event.driverId(), event.passengerId(), "REQUESTED");
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingConfirmed(BookingConfirmedEvent event) {
-        notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
-                "CONFIRMED", "Booking confirmed",
-                "%s confirmed your booking");
-
+        broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "CONFIRMED");
         postSystemMessage(event.rideId(), event.driverId(), "system.booking_confirmed");
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingRejected(BookingRejectedEvent event) {
-        notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
-                "REJECTED", "Booking rejected",
-                "%s rejected your booking request");
-
+        broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "REJECTED");
         postSystemMessage(event.rideId(), event.driverId(), "system.booking_rejected");
     }
 
@@ -80,21 +71,15 @@ public class BookingBroadcastListener {
         Long recipientId = event.cancelledByUserId().equals(event.driverId())
                 ? event.passengerId()
                 : event.driverId();
-        // Privacy-safe: don't expose reason on lock screen, only in STOMP payload
-        notifyUser(event.bookingId(), recipientId, event.cancelledByUserId(),
-                "CANCELLED", "Booking cancelled",
-                "Booking cancelled — tap to see details",
-                event.reason());
-
+        broadcastStomp(event.bookingId(), recipientId, event.cancelledByUserId(),
+                "CANCELLED", event.reason());
         postSystemMessage(event.rideId(), event.cancelledByUserId(), "system.booking_cancelled");
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingExpired(BookingExpiredEvent event) {
-        notifyUser(event.bookingId(), event.passengerId(), event.driverId(),
-                "EXPIRED", "Booking expired",
-                "Your booking request expired");
+        broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "EXPIRED");
     }
 
     private void postSystemMessage(Long rideId, Long actorId, String bodyKey) {
@@ -106,14 +91,13 @@ public class BookingBroadcastListener {
         }
     }
 
-    private void notifyUser(Long bookingId, Long recipientId, Long counterpartyId,
-                             String eventType, String pushTitle, String pushBodyTemplate) {
-        notifyUser(bookingId, recipientId, counterpartyId, eventType, pushTitle, pushBodyTemplate, null);
+    private void broadcastStomp(Long bookingId, Long recipientId, Long counterpartyId,
+                                 String eventType) {
+        broadcastStomp(bookingId, recipientId, counterpartyId, eventType, null);
     }
 
-    private void notifyUser(Long bookingId, Long recipientId, Long counterpartyId,
-                             String eventType, String pushTitle, String pushBodyTemplate,
-                             String cancellationReason) {
+    private void broadcastStomp(Long bookingId, Long recipientId, Long counterpartyId,
+                                 String eventType, String cancellationReason) {
         try {
             RideBooking booking = bookingRepository.findById(bookingId).orElse(null);
             if (booking == null) {
@@ -139,16 +123,6 @@ public class BookingBroadcastListener {
 
             messagingTemplate.convertAndSendToUser(
                     recipientId.toString(), BOOKING_QUEUE, payload);
-
-            String pushBody = pushBodyTemplate.contains("%s")
-                    ? String.format(pushBodyTemplate, counterpartyName)
-                    : pushBodyTemplate;
-
-            pushNotificationService.sendToUser(recipientId, pushTitle, pushBody,
-                    Map.of("type", "booking",
-                            "bookingId", bookingId.toString(),
-                            "rideId", ride.getId().toString(),
-                            "eventType", eventType));
 
         } catch (Exception e) {
             log.error("Failed to broadcast booking event {} for booking {}: {}",
