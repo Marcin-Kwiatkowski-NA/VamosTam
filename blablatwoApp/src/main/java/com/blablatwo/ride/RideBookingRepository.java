@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RideBookingRepository extends JpaRepository<RideBooking, Long> {
@@ -26,6 +27,16 @@ public interface RideBookingRepository extends JpaRepository<RideBooking, Long> 
     List<RideBooking> findByStatusAndBookedAtBefore(BookingStatus status, Instant cutoff);
 
     void deleteByPassengerId(Long passengerId);
+
+    @Query("""
+        SELECT b FROM RideBooking b
+        JOIN FETCH b.ride r
+        JOIN FETCH r.stops s
+        JOIN FETCH s.location
+        WHERE b.id = :id
+        ORDER BY s.stopOrder
+        """)
+    Optional<RideBooking> findByIdWithRideAndLocations(@Param("id") Long id);
 
     @Query("""
         SELECT b FROM RideBooking b

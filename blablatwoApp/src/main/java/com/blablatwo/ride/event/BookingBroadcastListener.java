@@ -11,12 +11,7 @@ import com.blablatwo.user.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Broadcasts booking events over STOMP and posts system messages.
@@ -47,32 +42,24 @@ public class BookingBroadcastListener {
         this.systemMessageService = systemMessageService;
     }
 
-    @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @AsyncAfterCommitListener
     public void onBookingRequested(BookingRequestedEvent event) {
         broadcastStomp(event.bookingId(), event.driverId(), event.passengerId(), "REQUESTED");
     }
 
-    @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @AsyncAfterCommitListener
     public void onBookingConfirmed(BookingConfirmedEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "CONFIRMED");
         postSystemMessage(event.rideId(), event.driverId(), "system.booking_confirmed");
     }
 
-    @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @AsyncAfterCommitListener
     public void onBookingRejected(BookingRejectedEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "REJECTED");
         postSystemMessage(event.rideId(), event.driverId(), "system.booking_rejected");
     }
 
-    @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @AsyncAfterCommitListener
     public void onBookingCancelled(BookingCancelledEvent event) {
         Long recipientId = event.cancelledByUserId().equals(event.driverId())
                 ? event.passengerId()
@@ -82,9 +69,7 @@ public class BookingBroadcastListener {
         postSystemMessage(event.rideId(), event.cancelledByUserId(), "system.booking_cancelled");
     }
 
-    @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @AsyncAfterCommitListener
     public void onBookingExpired(BookingExpiredEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "EXPIRED");
     }
@@ -106,7 +91,7 @@ public class BookingBroadcastListener {
     private void broadcastStomp(Long bookingId, Long recipientId, Long counterpartyId,
                                  String eventType, String cancellationReason) {
         try {
-            RideBooking booking = bookingRepository.findById(bookingId).orElse(null);
+            RideBooking booking = bookingRepository.findByIdWithRideAndLocations(bookingId).orElse(null);
             if (booking == null) {
                 log.warn("Booking {} not found for broadcast", bookingId);
                 return;
