@@ -55,7 +55,6 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
                 .passenger(proxy)
                 .origin(locations.origin())
                 .destination(locations.destination())
-                .departureDate(dto.departureDate())
                 .departureTime(dto.departureTime())
                 .isTimeApproximate(dto.isTimeApproximate())
                 .source(RideSource.FACEBOOK)

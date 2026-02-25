@@ -1,7 +1,6 @@
 package com.blablatwo.ride;
 
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.CannotCreateRideException;
 import com.blablatwo.exceptions.NoSuchRideException;
 import com.blablatwo.exceptions.NotRideDriverException;
@@ -33,8 +32,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -104,7 +101,7 @@ private final RideRepository rideRepository;
 
         List<RideStop> stops = buildStops(newRide, dto);
         newRide.setStops(stops);
-        setDenormalizedDepartureFields(newRide, dto.departureTime());
+        newRide.setDepartureTime(dto.departureTime());
         newRide.setTimeApproximate(dto.isTimeApproximate());
 
         newRide.setEstimatedArrivalAt(arrivalEstimator.estimate(newRide));
@@ -129,7 +126,7 @@ private final RideRepository rideRepository;
 
         rideMapper.update(existingRide, dto);
         updateStops(existingRide, dto);
-        setDenormalizedDepartureFields(existingRide, dto.departureTime());
+        existingRide.setDepartureTime(dto.departureTime());
         existingRide.setTimeApproximate(dto.isTimeApproximate());
         existingRide.setLastModified(Instant.now());
         existingRide.setEstimatedArrivalAt(arrivalEstimator.estimate(existingRide));
@@ -189,7 +186,7 @@ private final RideRepository rideRepository;
             throw new IllegalStateException("Ride " + rideId + " cannot be completed from status " + ride.getStatus());
         }
 
-        if (!ride.getDepartureDateTime().isBefore(LocalDateTime.now())) {
+        if (!ride.getDepartureTime().isBefore(Instant.now())) {
             throw new IllegalStateException("Ride " + rideId + " has not departed yet");
         }
 
@@ -221,19 +218,15 @@ private final RideRepository rideRepository;
     }
 
     private Page<RideResponseDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
-        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
-                criteria.departureDate(), criteria.departureTimeFrom());
-
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
                 .and(RideSpecifications.hasStopWithOriginOsmId(criteria.originOsmId()))
                 .and(RideSpecifications.hasStopWithDestinationOsmId(criteria.destinationOsmId()))
                 .and(RideSpecifications.originBeforeDestination(criteria.originOsmId(), criteria.destinationOsmId()))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
-                .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
+                .and(RideSpecifications.departsOnOrAfter(criteria.earliestDeparture()));
 
-        if (criteria.departureDateTo() != null) {
-            spec = spec.and(RideSpecifications.departsOnOrBefore(
-                    criteria.departureDateTo(), LocalTime.MAX));
+        if (criteria.latestDeparture() != null) {
+            spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
         Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
@@ -250,9 +243,6 @@ private final RideRepository rideRepository;
     }
 
     private Page<RideResponseDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
-        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
-                criteria.departureDate(), criteria.departureTimeFrom());
-
         double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
         double radiusMeters = radiusKm * 1000;
 
@@ -260,15 +250,14 @@ private final RideRepository rideRepository;
                 .and(RideSpecifications.hasStopNearOrigin(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
-                .and(RideSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
+                .and(RideSpecifications.departsOnOrAfter(criteria.earliestDeparture()))
                 .and(RideSpecifications.orderByNearestStopDistance(
                         criteria.originLat(), criteria.originLon(),
                         criteria.destinationLat(), criteria.destinationLon(),
                         radiusMeters));
 
-        if (criteria.departureDateTo() != null) {
-            spec = spec.and(RideSpecifications.departsOnOrBefore(
-                    criteria.departureDateTo(), LocalTime.MAX));
+        if (criteria.latestDeparture() != null) {
+            spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
         Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
@@ -416,7 +405,7 @@ private final RideRepository rideRepository;
     }
 
     private void validateStopTimeOrdering(List<RideStop> stops) {
-        LocalDateTime prev = null;
+        Instant prev = null;
         for (RideStop stop : stops) {
             if (stop.getDepartureTime() == null) continue;
             if (prev != null && !stop.getDepartureTime().isAfter(prev)) {
@@ -426,10 +415,5 @@ private final RideRepository rideRepository;
             }
             prev = stop.getDepartureTime();
         }
-    }
-
-    private void setDenormalizedDepartureFields(Ride ride, LocalDateTime departureTime) {
-        ride.setDepartureDate(departureTime.toLocalDate());
-        ride.setDepartureTime(departureTime.toLocalTime());
     }
 }

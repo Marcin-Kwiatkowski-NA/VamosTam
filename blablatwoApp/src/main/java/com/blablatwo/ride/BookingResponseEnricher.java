@@ -124,7 +124,7 @@ public class BookingResponseEnricher {
                     .id(ride.getId())
                     .origin(locationMapper.locationToDto(ride.getOrigin()))
                     .destination(locationMapper.locationToDto(ride.getDestination()))
-                    .departureTime(ride.getDepartureDateTime())
+                    .departureTime(ride.getDepartureTime())
                     .pricePerSeat(ride.getPricePerSeat())
                     .totalSeats(ride.getTotalSeats())
                     .driver(driverCard)

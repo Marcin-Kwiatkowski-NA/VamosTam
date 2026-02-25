@@ -102,8 +102,7 @@ public class ConversationDtoBuilder {
                             rideId,
                             ride.getOrigin().getName(null),
                             ride.getDestination().getName(null),
-                            ride.getDepartureDate(),
-                            ride.isTimeApproximate() ? null : ride.getDepartureTime(),
+                            ride.getDepartureTime(),
                             OfferStatus.from(ride.getRideStatus()),
                             viewerRole,
                             isCreator
@@ -124,8 +123,7 @@ public class ConversationDtoBuilder {
                             seatId,
                             seat.getOrigin().getName(null),
                             seat.getDestination().getName(null),
-                            seat.getDepartureDate(),
-                            seat.isTimeApproximate() ? null : seat.getDepartureTime(),
+                            seat.getDepartureTime(),
                             OfferStatus.from(seat.computeSeatStatus()),
                             viewerRole,
                             isCreator

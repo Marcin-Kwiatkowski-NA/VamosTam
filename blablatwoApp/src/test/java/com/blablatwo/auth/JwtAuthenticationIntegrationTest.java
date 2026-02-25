@@ -113,7 +113,8 @@ class JwtAuthenticationIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("/rides/search allows anonymous access")
     void publicEndpoint_ridesSearch_allowsAnonymousAccess() throws Exception {
-        mockMvc.perform(get("/rides/search"))
+        mockMvc.perform(get("/rides/search")
+                        .param("earliestDeparture", java.time.Instant.now().toString()))
                 .andExpect(status().isOk());
     }
 

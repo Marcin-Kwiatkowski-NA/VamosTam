@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Builder(toBuilder = true)
@@ -25,7 +25,7 @@ public record RideCreationDto(
 
         @NotNull(message = "Departure time cannot be null")
         @Future(message = "Departure time must be in the future")
-        LocalDateTime departureTime,
+        Instant departureTime,
 
         boolean isTimeApproximate,
 

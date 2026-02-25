@@ -2,7 +2,6 @@ package com.blablatwo.ride;
 
 import com.blablatwo.domain.SpatialSpecifications;
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.location.Location;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
@@ -11,8 +10,7 @@ import jakarta.persistence.criteria.Subquery;
 import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
 
 public class RideSpecifications {
 
@@ -84,12 +82,14 @@ public class RideSpecifications {
                         cb.greaterThanOrEqualTo(root.get("totalSeats"), minSeats);
     }
 
-    public static Specification<Ride> departsOnOrAfter(LocalDate date, LocalTime time) {
-        return TimePredicateHelper.departsOnOrAfter(date, time);
+    public static Specification<Ride> departsOnOrAfter(Instant from) {
+        return (root, query, cb) ->
+                from == null ? null : cb.greaterThanOrEqualTo(root.get("departureTime"), from);
     }
 
-    public static Specification<Ride> departsOnOrBefore(LocalDate date, LocalTime time) {
-        return TimePredicateHelper.departsOnOrBefore(date, time);
+    public static Specification<Ride> departsBefore(Instant to) {
+        return (root, query, cb) ->
+                to == null ? null : cb.lessThan(root.get("departureTime"), to);
     }
 
     public static Specification<Ride> hasStopNearOrigin(Double lat, Double lon, double radiusMeters) {

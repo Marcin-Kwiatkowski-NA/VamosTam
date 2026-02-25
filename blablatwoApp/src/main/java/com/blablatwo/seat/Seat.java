@@ -15,9 +15,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.Instant;
 
 @Entity
 @Getter
@@ -35,11 +33,8 @@ public class Seat extends AbstractTrip {
     @JoinColumn(name = "destination_location_id", nullable = false)
     private Location destination;
 
-    @Column(name = "departure_date", nullable = false)
-    private LocalDate departureDate;
-
     @Column(name = "departure_time", nullable = false)
-    private LocalTime departureTime;
+    private Instant departureTime;
 
     @Column(name = "is_time_approximate", nullable = false)
     private boolean isTimeApproximate;
@@ -52,17 +47,13 @@ public class Seat extends AbstractTrip {
     @Column(name = "price_willing_to_pay", precision = 10, scale = 2)
     private BigDecimal priceWillingToPay;
 
-    public LocalDateTime getDepartureDateTime() {
-        return departureDate.atTime(departureTime);
-    }
-
     public SeatStatus computeSeatStatus() {
         return switch (getStatus()) {
             case COMPLETED -> SeatStatus.COMPLETED;
             case CANCELLED -> SeatStatus.CANCELLED;
             case BANNED -> SeatStatus.BANNED;
             case ACTIVE -> {
-                boolean departed = getDepartureDateTime().isBefore(LocalDateTime.now());
+                boolean departed = getDepartureTime().isBefore(Instant.now());
                 yield departed ? SeatStatus.EXPIRED : SeatStatus.SEARCHING;
             }
         };

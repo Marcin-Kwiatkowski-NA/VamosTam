@@ -48,7 +48,6 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
         Ride ride = Ride.builder()
                 .driver(proxy)
-                .departureDate(dto.departureDate())
                 .departureTime(dto.departureTime())
                 .isTimeApproximate(dto.isTimeApproximate())
                 .source(RideSource.FACEBOOK)
@@ -66,7 +65,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
 
         stops.add(RideStop.builder()
                 .ride(saved).location(locations.origin()).stopOrder(order++)
-                .departureTime(dto.departureDate().atTime(dto.departureTime()))
+                .departureTime(dto.departureTime())
                 .build());
 
         if (dto.intermediateStopLocationNames() != null) {

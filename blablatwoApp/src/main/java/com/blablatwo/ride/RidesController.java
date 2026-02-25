@@ -13,11 +13,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -25,8 +26,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -106,30 +105,8 @@ public class RidesController {
 
     @GetMapping("/rides/search")
     public ResponseEntity<Page<RideResponseDto>> searchRides(
-            @RequestParam(required = false) Long originOsmId,
-            @RequestParam(required = false) Long destinationOsmId,
-            @RequestParam(required = false) Double originLat,
-            @RequestParam(required = false) Double originLon,
-            @RequestParam(required = false) Double destinationLat,
-            @RequestParam(required = false) Double destinationLon,
-            @RequestParam(required = false) Double radiusKm,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate departureDateTo,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTimeFrom,
-            @RequestParam(required = false, defaultValue = "1") Integer minSeats,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
-                originOsmId, destinationOsmId,
-                originLat, originLon, destinationLat, destinationLon,
-                radiusKm,
-                departureDate, departureDateTo, departureTimeFrom, minSeats
-        );
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by("departureDate").ascending()
-                        .and(Sort.by("departureTime").ascending()));
-
+            @Valid @ModelAttribute RideSearchCriteriaDto criteria,
+            @PageableDefault(size = 10, sort = "departureTime", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
     }
 

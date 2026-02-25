@@ -91,8 +91,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
                 () -> assertEquals(2, savedRide.getStops().size(), "Should have 2 stops"),
                 () -> assertEquals(origin.getId(), savedRide.getOrigin().getId(), "Origin should match"),
                 () -> assertEquals(destination.getId(), savedRide.getDestination().getId(), "Destination should match"),
-                () -> assertEquals(LOCAL_DATE, savedRide.getDepartureDate(), "Departure date should match"),
-                () -> assertEquals(LOCAL_TIME, savedRide.getDepartureTime(), "Departure time should match"),
+                () -> assertEquals(FUTURE_DEPARTURE, savedRide.getDepartureTime(), "Departure time should match"),
                 () -> assertEquals(ONE, savedRide.getTotalSeats(), "Total seats should match"),
                 () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),
                 () -> assertEquals(vehicle.getId(), savedRide.getVehicle().getId(), "Vehicle should match"),
@@ -175,8 +174,8 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     void findAllRidesTest() {
         Ride ride1 = createRideWithStops(origin, destination);
         Ride ride2 = createRideWithStops(origin, destination);
-        ride2.setDepartureTime(LOCAL_TIME.plusHours(1));
-        ride2.getStops().get(0).setDepartureTime(LOCAL_DATE.atTime(LOCAL_TIME.plusHours(1)));
+        ride2.setDepartureTime(FUTURE_DEPARTURE.plusSeconds(3600));
+        ride2.getStops().get(0).setDepartureTime(FUTURE_DEPARTURE.plusSeconds(3600));
 
         rideRepository.save(ride1);
         rideRepository.save(ride2);
@@ -191,8 +190,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     void updateNonExistentRide() {
         Ride nonExistentRide = new Ride();
         nonExistentRide.setId(NON_EXISTENT_ID);
-        nonExistentRide.setDepartureDate(LOCAL_DATE);
-        nonExistentRide.setDepartureTime(LOCAL_TIME);
+        nonExistentRide.setDepartureTime(FUTURE_DEPARTURE);
         nonExistentRide.setDescription(RIDE_DESCRIPTION);
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {

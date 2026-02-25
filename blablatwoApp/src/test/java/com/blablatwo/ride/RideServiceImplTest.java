@@ -28,8 +28,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -185,7 +184,7 @@ class RideServiceImplTest {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    LocalDate.now(), null, null, 1
+                    Instant.now(), null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -201,9 +200,12 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Search rides with null criteria returns results")
-        void searchRides_WithNullCriteria_ReturnsResults() {
-            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(null, null, null, null, null, null, null, null, null, null, 1);
+        @DisplayName("Search rides with minimal criteria returns results")
+        void searchRides_WithMinimalCriteria_ReturnsResults() {
+            RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
+                    null, null, null, null, null, null, null,
+                    Instant.now(), null, 1
+            );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
@@ -217,13 +219,14 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Search rides with specific time returns results")
-        void searchRides_WithSpecificTime_ReturnsResults() {
-            LocalTime searchTime = LocalTime.of(14, 0);
+        @DisplayName("Search rides with time window returns results")
+        void searchRides_WithTimeWindow_ReturnsResults() {
+            Instant earliest = FUTURE_DEPARTURE;
+            Instant latest = earliest.plus(java.time.Duration.ofHours(12));
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    LocalDate.now().plusDays(1), null, searchTime, 1
+                    earliest, latest, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -239,12 +242,12 @@ class RideServiceImplTest {
         }
 
         @Test
-        @DisplayName("Search rides for future date without time uses start of day")
-        void searchRides_FutureDateWithoutTime_UsesStartOfDay() {
+        @DisplayName("Search rides with future departure returns results")
+        void searchRides_FutureDeparture_ReturnsResults() {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    LocalDate.now().plusDays(5), null, null, 1
+                    FUTURE_DEPARTURE, null, 1
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));

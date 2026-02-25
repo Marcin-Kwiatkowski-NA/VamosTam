@@ -81,7 +81,7 @@ class ExternalSeatControllerTest {
     @WithMockUser
     void createExternalSeat_ValidationError() throws Exception {
         ExternalSeatCreationDto invalidDto = new ExternalSeatCreationDto(
-                null, null, null, null,
+                null, null, null,
                 false, 0, null, null,
                 null, null, null, null, null
         );

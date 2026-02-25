@@ -1,7 +1,8 @@
 package com.blablatwo.seat.dto;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
 
 public record SeatSearchCriteriaDto(
         Long originOsmId,
@@ -11,9 +12,8 @@ public record SeatSearchCriteriaDto(
         Double destinationLat,
         Double destinationLon,
         Double radiusKm,
-        LocalDate departureDate,
-        LocalDate departureDateTo,
-        LocalTime departureTimeFrom,
+        @NotNull Instant earliestDeparture,
+        Instant latestDeparture,
         Integer availableSeatsInCar
 ) {
 

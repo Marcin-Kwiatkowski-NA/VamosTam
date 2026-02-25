@@ -5,14 +5,14 @@ import com.blablatwo.location.LocationDto;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder(toBuilder = true)
 public record RideSummaryDto(
         Long id,
         LocationDto origin,
         LocationDto destination,
-        LocalDateTime departureTime,
+        Instant departureTime,
         BigDecimal pricePerSeat,
         int totalSeats,
         UserCardDto driver

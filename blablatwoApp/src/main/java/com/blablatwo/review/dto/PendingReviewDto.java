@@ -4,7 +4,6 @@ import com.blablatwo.review.ReviewRole;
 import lombok.Builder;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 @Builder
 public record PendingReviewDto(
@@ -15,7 +14,7 @@ public record PendingReviewDto(
         ReviewRole yourRole,
         String origin,
         String destination,
-        LocalDate departureDate,
+        Instant departureTime,
         Instant deadlineAt,
         boolean counterpartSubmitted
 ) {

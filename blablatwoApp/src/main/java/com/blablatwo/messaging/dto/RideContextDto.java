@@ -1,7 +1,6 @@
 package com.blablatwo.messaging.dto;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
 
 /**
  * Ride/seat context embedded in conversation responses.
@@ -12,8 +11,7 @@ public record RideContextDto(
     long offerId,
     String originName,
     String destinationName,
-    LocalDate departureDate,
-    LocalTime departureTime,
+    Instant departureTime,
     OfferStatus offerStatus,
     ViewerRole viewerRole,
     boolean isCreator

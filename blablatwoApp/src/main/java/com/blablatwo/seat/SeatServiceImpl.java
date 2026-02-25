@@ -1,7 +1,6 @@
 package com.blablatwo.seat;
 
 import com.blablatwo.domain.Status;
-import com.blablatwo.domain.TimePredicateHelper;
 import com.blablatwo.exceptions.NoSuchSeatException;
 import com.blablatwo.exceptions.NotSeatPassengerException;
 import com.blablatwo.location.Location;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,8 +71,7 @@ public class SeatServiceImpl implements SeatService {
         seat.setPassenger(passenger);
         seat.setOrigin(origin);
         seat.setDestination(destination);
-        seat.setDepartureDate(dto.departureTime().toLocalDate());
-        seat.setDepartureTime(dto.departureTime().toLocalTime());
+        seat.setDepartureTime(dto.departureTime());
         seat.setTimeApproximate(dto.isTimeApproximate());
         seat.setLastModified(Instant.now());
 
@@ -99,18 +96,14 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatResponseDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
-        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
-                criteria.departureDate(), criteria.departureTimeFrom());
-
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
                 .and(SeatSpecifications.originOsmIdEquals(criteria.originOsmId()))
                 .and(SeatSpecifications.destinationOsmIdEquals(criteria.destinationOsmId()))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()));
+                .and(SeatSpecifications.departsOnOrAfter(criteria.earliestDeparture()));
 
-        if (criteria.departureDateTo() != null) {
-            spec = spec.and(SeatSpecifications.departsOnOrBefore(
-                    criteria.departureDateTo(), LocalTime.MAX));
+        if (criteria.latestDeparture() != null) {
+            spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
         Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
@@ -124,9 +117,6 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatResponseDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
-        var departureFrom = TimePredicateHelper.calculateDepartureFrom(
-                criteria.departureDate(), criteria.departureTimeFrom());
-
         double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
         double radiusMeters = radiusKm * 1000;
 
@@ -134,14 +124,13 @@ public class SeatServiceImpl implements SeatService {
                 .and(SeatSpecifications.originWithinRadius(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(SeatSpecifications.destinationWithinRadius(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(departureFrom.date(), departureFrom.time()))
+                .and(SeatSpecifications.departsOnOrAfter(criteria.earliestDeparture()))
                 .and(SeatSpecifications.orderByCombinedDistance(
                         criteria.originLat(), criteria.originLon(),
                         criteria.destinationLat(), criteria.destinationLon()));
 
-        if (criteria.departureDateTo() != null) {
-            spec = spec.and(SeatSpecifications.departsOnOrBefore(
-                    criteria.departureDateTo(), LocalTime.MAX));
+        if (criteria.latestDeparture() != null) {
+            spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
         Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
@@ -172,8 +161,7 @@ public class SeatServiceImpl implements SeatService {
 
         seat.setOrigin(origin);
         seat.setDestination(destination);
-        seat.setDepartureDate(dto.departureTime().toLocalDate());
-        seat.setDepartureTime(dto.departureTime().toLocalTime());
+        seat.setDepartureTime(dto.departureTime());
         seat.setTimeApproximate(dto.isTimeApproximate());
         seat.setCount(dto.count());
         seat.setPriceWillingToPay(dto.priceWillingToPay());

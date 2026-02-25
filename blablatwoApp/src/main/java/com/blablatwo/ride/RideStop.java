@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "ride_stop", indexes = {
@@ -46,5 +46,5 @@ public class RideStop {
     private int stopOrder;
 
     @Column(name = "departure_time")
-    private LocalDateTime departureTime;
+    private Instant departureTime;
 }

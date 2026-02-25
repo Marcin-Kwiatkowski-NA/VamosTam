@@ -6,8 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
 import java.util.List;
 
 @Builder(toBuilder = true)
@@ -20,11 +19,8 @@ public record ExternalRideCreationDto(
 
         List<@NotBlank String> intermediateStopLocationNames,
 
-        @NotNull(message = "Departure date is required")
-        LocalDate departureDate,
-
         @NotNull(message = "Departure time is required")
-        LocalTime departureTime,
+        Instant departureTime,
 
         boolean isTimeApproximate,
 

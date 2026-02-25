@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record SeatCreationDto(
         @NotNull(message = "Origin is required")
@@ -19,7 +19,7 @@ public record SeatCreationDto(
 
         @NotNull(message = "Departure time cannot be null")
         @Future(message = "Departure time must be in the future")
-        LocalDateTime departureTime,
+        Instant departureTime,
 
         boolean isTimeApproximate,
 

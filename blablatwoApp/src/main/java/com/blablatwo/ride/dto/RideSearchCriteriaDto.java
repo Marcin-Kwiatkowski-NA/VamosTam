@@ -1,7 +1,9 @@
 package com.blablatwo.ride.dto;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
 
 public record RideSearchCriteriaDto(
         Long originOsmId,
@@ -11,10 +13,9 @@ public record RideSearchCriteriaDto(
         Double destinationLat,
         Double destinationLon,
         Double radiusKm,
-        LocalDate departureDate,
-        LocalDate departureDateTo,
-        LocalTime departureTimeFrom,
-        int minAvailableSeats
+        @NotNull Instant earliestDeparture,
+        Instant latestDeparture,
+        @Min(1) Integer minAvailableSeats
 ) {
 
     public boolean isProximityMode() {

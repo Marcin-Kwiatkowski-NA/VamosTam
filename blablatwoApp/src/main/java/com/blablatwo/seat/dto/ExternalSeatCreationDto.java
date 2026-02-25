@@ -7,8 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
 
 @Builder(toBuilder = true)
 public record ExternalSeatCreationDto(
@@ -18,11 +17,8 @@ public record ExternalSeatCreationDto(
         @NotBlank(message = "Destination location name is required")
         String destinationLocationName,
 
-        @NotNull(message = "Departure date is required")
-        LocalDate departureDate,
-
         @NotNull(message = "Departure time is required")
-        LocalTime departureTime,
+        Instant departureTime,
 
         boolean isTimeApproximate,
 

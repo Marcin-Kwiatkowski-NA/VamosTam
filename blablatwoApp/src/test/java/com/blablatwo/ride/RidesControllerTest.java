@@ -311,6 +311,7 @@ class RidesControllerTest {
             mockMvc.perform(get(BASE_URL + "/search")
                             .param("originOsmId", OSM_ID_ORIGIN.toString())
                             .param("destinationOsmId", OSM_ID_DESTINATION.toString())
+                            .param("earliestDeparture", FUTURE_DEPARTURE.toString())
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
@@ -330,15 +331,16 @@ class RidesControllerTest {
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
                             .param("originOsmId", "999999")
+                            .param("earliestDeparture", FUTURE_DEPARTURE.toString())
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isEmpty());
         }
 
         @Test
-        @DisplayName("GET /rides/search - Works with date parameter")
+        @DisplayName("GET /rides/search - Works with time window parameters")
         @WithMockUser
-        void searchRides_WithDate() throws Exception {
+        void searchRides_WithTimeWindow() throws Exception {
             // Arrange
             Page<RideResponseDto> ridePage = new PageImpl<>(List.of(rideResponseDto));
             when(rideService.searchRides(any(RideSearchCriteriaDto.class), any(Pageable.class)))
@@ -346,7 +348,8 @@ class RidesControllerTest {
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/search")
-                            .param("departureDate", "2025-09-12")
+                            .param("earliestDeparture", "2025-09-12T08:00:00Z")
+                            .param("latestDeparture", "2025-09-13T00:00:00Z")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray());

@@ -9,7 +9,7 @@ import com.blablatwo.vehicle.VehicleResponseDto;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Builder(toBuilder = true)
@@ -19,7 +19,7 @@ public record RideResponseDto(
         LocationDto origin,
         LocationDto destination,
         List<RideStopDto> stops,
-        LocalDateTime departureTime,
+        Instant departureTime,
         boolean isTimeApproximate,
         BigDecimal pricePerSeat,
         int availableSeats,

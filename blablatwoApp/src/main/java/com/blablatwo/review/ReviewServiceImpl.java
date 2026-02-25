@@ -171,7 +171,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .yourRole(isDriver ? ReviewRole.DRIVER : ReviewRole.PASSENGER)
                     .origin(ride.getOrigin().getName(null))
                     .destination(ride.getDestination().getName(null))
-                    .departureDate(ride.getDepartureDate())
+                    .departureTime(ride.getDepartureTime())
                     .deadlineAt(deadline)
                     .counterpartSubmitted(counterpartSubmitted)
                     .build());

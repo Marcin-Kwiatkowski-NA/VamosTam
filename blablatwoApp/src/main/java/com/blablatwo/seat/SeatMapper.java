@@ -17,7 +17,6 @@ public abstract class SeatMapper {
     @Mapping(target = "passenger", ignore = true)
     @Mapping(target = "origin", ignore = true)
     @Mapping(target = "destination", ignore = true)
-    @Mapping(target = "departureDate", ignore = true)
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "isTimeApproximate", ignore = true)
     @Mapping(target = "lastModified", ignore = true)
@@ -28,7 +27,7 @@ public abstract class SeatMapper {
 
     @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(seat.getOrigin()))")
     @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(seat.getDestination()))")
-    @Mapping(target = "departureTime", expression = "java(seat.getDepartureDateTime())")
+    @Mapping(target = "departureTime", source = "departureTime")
     @Mapping(target = "isTimeApproximate", source = "timeApproximate")
     @Mapping(target = "passenger", ignore = true)
     @Mapping(target = "contactMethods", ignore = true)

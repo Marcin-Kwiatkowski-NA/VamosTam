@@ -108,7 +108,7 @@ public class BookingBroadcastListener {
                     .seatCount(booking.getSeatCount())
                     .rideOrigin(ride.getOrigin().getName(null))
                     .rideDestination(ride.getDestination().getName(null))
-                    .departureTime(ride.getDepartureDateTime())
+                    .departureTime(ride.getDepartureTime())
                     .counterpartyName(counterpartyName)
                     .cancellationReason(cancellationReason)
                     .build();

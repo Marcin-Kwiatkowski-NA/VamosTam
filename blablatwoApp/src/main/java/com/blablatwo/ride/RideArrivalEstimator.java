@@ -4,8 +4,6 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -16,7 +14,6 @@ import java.util.List;
 public class RideArrivalEstimator {
 
     private static final double AVERAGE_SPEED_KM_H = 60.0;
-    private static final double METERS_PER_DEGREE_LAT = 111_320.0;
 
     /**
      * Estimates arrival as a UTC Instant.
@@ -40,7 +37,7 @@ public class RideArrivalEstimator {
 
         RideStop lastStop = stops.get(stops.size() - 1);
         if (lastStop.getDepartureTime() != null) {
-            return toInstant(lastStop.getDepartureTime());
+            return lastStop.getDepartureTime();
         }
 
         // Check second-to-last stop (last intermediate) as a fallback
@@ -52,7 +49,7 @@ public class RideArrivalEstimator {
                         stop.getLocation().getCoordinates(),
                         ride.getDestination().getCoordinates());
                 long additionalMinutes = Math.max(15, Math.round((distKm / AVERAGE_SPEED_KM_H) * 60));
-                return toInstant(stop.getDepartureTime()).plusSeconds(additionalMinutes * 60);
+                return stop.getDepartureTime().plusSeconds(additionalMinutes * 60);
             }
         }
 
@@ -66,7 +63,7 @@ public class RideArrivalEstimator {
         double distKm = approximateDistanceKm(origin, destination);
         long durationMinutes = Math.max(30, Math.round((distKm / AVERAGE_SPEED_KM_H) * 60));
 
-        return toInstant(ride.getDepartureDateTime()).plusSeconds(durationMinutes * 60);
+        return ride.getDepartureTime().plusSeconds(durationMinutes * 60);
     }
 
     /**
@@ -82,9 +79,5 @@ public class RideArrivalEstimator {
         double x = dLon * Math.cos((lat1 + lat2) / 2);
         double distMeters = Math.sqrt(x * x + dLat * dLat) * 6_371_000;
         return distMeters / 1000.0;
-    }
-
-    private Instant toInstant(LocalDateTime ldt) {
-        return ldt.atZone(ZoneId.systemDefault()).toInstant();
     }
 }

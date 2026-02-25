@@ -8,7 +8,7 @@ import com.blablatwo.seat.SeatStatus;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Builder(toBuilder = true)
@@ -17,7 +17,7 @@ public record SeatResponseDto(
         RideSource source,
         LocationDto origin,
         LocationDto destination,
-        LocalDateTime departureTime,
+        Instant departureTime,
         boolean isTimeApproximate,
         int count,
         BigDecimal priceWillingToPay,

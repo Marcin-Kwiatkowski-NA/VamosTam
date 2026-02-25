@@ -3,7 +3,7 @@ package com.blablatwo.ride.dto;
 import com.blablatwo.ride.BookingStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record BookingNotificationDto(
@@ -14,7 +14,7 @@ public record BookingNotificationDto(
         int seatCount,
         String rideOrigin,
         String rideDestination,
-        LocalDateTime departureTime,
+        Instant departureTime,
         String counterpartyName,
         String cancellationReason
 ) {

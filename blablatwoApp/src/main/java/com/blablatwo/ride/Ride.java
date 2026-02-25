@@ -18,9 +18,6 @@ import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Entity
@@ -45,11 +42,8 @@ public class Ride extends AbstractTrip {
     @Column(name = "is_time_approximate", nullable = false)
     private boolean isTimeApproximate;
 
-    @Column(name = "departure_date")
-    private LocalDate departureDate;
-
     @Column(name = "departure_time")
-    private LocalTime departureTime;
+    private Instant departureTime;
 
     @Column(name = "auto_approve", nullable = false)
     private boolean autoApprove;
@@ -73,10 +67,6 @@ public class Ride extends AbstractTrip {
 
     public Location getDestination() {
         return stops.get(stops.size() - 1).getLocation();
-    }
-
-    public LocalDateTime getDepartureDateTime() {
-        return departureDate.atTime(departureTime);
     }
 
     public List<RideBooking> getActiveBookings() {
