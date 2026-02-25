@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -47,14 +48,14 @@ public class BookingBroadcastListener {
     }
 
     @Async
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingRequested(BookingRequestedEvent event) {
         broadcastStomp(event.bookingId(), event.driverId(), event.passengerId(), "REQUESTED");
     }
 
     @Async
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingConfirmed(BookingConfirmedEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "CONFIRMED");
@@ -62,7 +63,7 @@ public class BookingBroadcastListener {
     }
 
     @Async
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingRejected(BookingRejectedEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "REJECTED");
@@ -70,7 +71,7 @@ public class BookingBroadcastListener {
     }
 
     @Async
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingCancelled(BookingCancelledEvent event) {
         Long recipientId = event.cancelledByUserId().equals(event.driverId())
@@ -82,7 +83,7 @@ public class BookingBroadcastListener {
     }
 
     @Async
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingExpired(BookingExpiredEvent event) {
         broadcastStomp(event.bookingId(), event.passengerId(), event.driverId(), "EXPIRED");
