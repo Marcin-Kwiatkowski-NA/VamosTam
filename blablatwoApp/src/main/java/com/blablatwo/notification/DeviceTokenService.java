@@ -28,17 +28,20 @@ public class DeviceTokenService {
         UserAccount user = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 
+        Instant now = Instant.now();
         DeviceToken token = deviceTokenRepository.findByToken(request.token())
                 .map(existing -> {
                     existing.setUser(user);
                     existing.setPlatform(request.platform());
+                    existing.setUpdatedAt(now);
                     return existing;
                 })
                 .orElseGet(() -> DeviceToken.builder()
                         .user(user)
                         .token(request.token())
                         .platform(request.platform())
-                        .createdAt(Instant.now())
+                        .createdAt(now)
+                        .updatedAt(now)
                         .build());
 
         DeviceToken saved = deviceTokenRepository.save(token);

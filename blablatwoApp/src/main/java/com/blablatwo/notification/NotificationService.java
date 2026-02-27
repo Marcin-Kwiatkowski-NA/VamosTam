@@ -150,8 +150,8 @@ public class NotificationService {
     private void dispatchPush(NotificationRequest request, Notification notification) {
         pushNotificationService.sendToUser(
                 request.recipientId(),
-                request.type().name(),
-                request.type().name(),
+                request.type().pushTitle(),
+                request.type().pushBody(),
                 Map.of(
                         "type", request.type().name(),
                         "entityType", request.entityType().name(),
