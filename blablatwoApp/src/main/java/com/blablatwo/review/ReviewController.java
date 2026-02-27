@@ -3,6 +3,7 @@ package com.blablatwo.review;
 import com.blablatwo.auth.AppPrincipal;
 import com.blablatwo.review.dto.PendingReviewDto;
 import com.blablatwo.review.dto.ReviewResponseDto;
+import com.blablatwo.review.dto.ReviewSummaryDto;
 import com.blablatwo.review.dto.SubmitReviewRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,11 @@ public class ReviewController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(reviewService.getPublishedReviews(userId, page, size));
+    }
+
+    @GetMapping("/users/{userId}/reviews/summary")
+    public ResponseEntity<ReviewSummaryDto> getReviewSummary(@PathVariable Long userId) {
+        return ResponseEntity.ok(reviewService.getReviewSummary(userId));
     }
 
     @GetMapping("/me/pending-reviews")

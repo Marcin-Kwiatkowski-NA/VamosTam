@@ -4,6 +4,7 @@ import com.blablatwo.domain.PersonDisplayNameResolver;
 import com.blablatwo.domain.Status;
 import com.blablatwo.review.dto.PendingReviewDto;
 import com.blablatwo.review.dto.ReviewResponseDto;
+import com.blablatwo.review.dto.ReviewSummaryDto;
 import com.blablatwo.review.dto.SubmitReviewRequest;
 import com.blablatwo.review.event.ReviewSubmittedEvent;
 import com.blablatwo.review.exception.BookingNotReviewableException;
@@ -27,9 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ReviewServiceImpl implements ReviewService {
@@ -130,6 +129,34 @@ public class ReviewServiceImpl implements ReviewService {
         Page<Review> reviews = reviewRepository.findPublishedReviewsForSubject(
                 subjectId, Instant.now(), PageRequest.of(page, size));
         return reviews.map(reviewMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReviewSummaryDto getReviewSummary(Long subjectId) {
+        Instant now = Instant.now();
+        List<ReviewRepository.StarsCount> rows = reviewRepository.findRatingDistribution(subjectId, now);
+
+        int[] distribution = new int[5];
+        long totalReviews = 0;
+        long totalStars = 0;
+
+        for (ReviewRepository.StarsCount row : rows) {
+            int idx = row.getStars() - 1;
+            if (idx >= 0 && idx < 5) {
+                distribution[idx] += (int) row.getCount();
+                totalReviews += row.getCount();
+                totalStars += (long) row.getStars() * row.getCount();
+            }
+        }
+
+        double average = totalReviews > 0 ? (double) totalStars / totalReviews : 0.0;
+
+        return ReviewSummaryDto.builder()
+                .averageRating(Math.round(average * 10.0) / 10.0)
+                .totalReviews((int) totalReviews)
+                .distribution(Arrays.stream(distribution).boxed().toList())
+                .build();
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.blablatwo.location.NoSuchLocationException;
 import com.blablatwo.messaging.exception.ConversationNotFoundException;
 import com.blablatwo.messaging.exception.NotParticipantException;
 import com.blablatwo.messaging.exception.SelfConversationException;
+import com.blablatwo.report.exception.AlreadyReportedException;
 import com.blablatwo.review.exception.BookingNotReviewableException;
 import com.blablatwo.review.exception.ReviewAlreadySubmittedException;
 import com.blablatwo.review.exception.ReviewDeadlinePassedException;
@@ -162,5 +163,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ReviewNotAllowedException.class)
     public ProblemDetail handleReviewNotAllowedException(HttpServletRequest request, ReviewNotAllowedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(AlreadyReportedException.class)
+    public ProblemDetail handleAlreadyReportedException(HttpServletRequest request, AlreadyReportedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 }

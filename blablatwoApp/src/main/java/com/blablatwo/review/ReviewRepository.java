@@ -3,7 +3,6 @@ package com.blablatwo.review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -40,4 +39,21 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findPendingReviewsReadyToPublish(@Param("now") Instant now);
 
     boolean existsByBookingIdAndAuthorId(Long bookingId, Long authorId);
+
+    interface StarsCount {
+        int getStars();
+        long getCount();
+    }
+
+    @Query("""
+        SELECT r.stars AS stars, COUNT(r) AS count
+        FROM Review r
+        WHERE r.subject.id = :subjectId
+        AND r.status = com.blablatwo.review.ReviewStatus.PUBLISHED
+        AND r.publishedAt <= :now
+        GROUP BY r.stars
+        """)
+    List<StarsCount> findRatingDistribution(
+            @Param("subjectId") Long subjectId,
+            @Param("now") Instant now);
 }
