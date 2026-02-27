@@ -4,7 +4,7 @@ import com.blablatwo.domain.Status;
 import com.blablatwo.ride.event.RideCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -15,36 +15,40 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * Auto-completes rides that have passed the estimated arrival time + buffer.
- * Only completes rides that have confirmed bookings.
+ * Scheduled jobs for ride lifecycle transitions:
+ * <ul>
+ *   <li>Auto-complete: rides with confirmed bookings, after estimated arrival + buffer</li>
+ *   <li>Auto-expire: rides with no confirmed bookings, after departure + expiry window</li>
+ * </ul>
  */
 @Component
+@EnableConfigurationProperties(RideBusinessProperties.class)
 public class RideCompletionScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(RideCompletionScheduler.class);
 
     private final RideRepository rideRepository;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Value("${ride.auto-complete-buffer-minutes:720}")
-    private int bufferMinutes;
+    private final RideBusinessProperties properties;
 
     public RideCompletionScheduler(RideRepository rideRepository,
-                                    ApplicationEventPublisher eventPublisher) {
+                                    ApplicationEventPublisher eventPublisher,
+                                    RideBusinessProperties properties) {
         this.rideRepository = rideRepository;
         this.eventPublisher = eventPublisher;
+        this.properties = properties;
     }
 
-    @Scheduled(fixedDelay = 300_000) // every 5 minutes
+    @Scheduled(fixedDelayString = "${ride.completion-check-interval-ms}")
     @Transactional
     public void autoCompleteRides() {
-        Instant cutoff = Instant.now().minus(bufferMinutes, ChronoUnit.MINUTES);
+        Instant cutoff = Instant.now().minus(properties.autoCompleteBufferMinutes(), ChronoUnit.MINUTES);
 
         List<Ride> ridesToComplete = rideRepository.findActiveRidesReadyForCompletion(cutoff);
 
         if (ridesToComplete.isEmpty()) return;
 
-        log.info("Auto-completing {} rides (buffer: {} min)", ridesToComplete.size(), bufferMinutes);
+        log.info("Auto-completing {} rides (buffer: {} min)", ridesToComplete.size(), properties.autoCompleteBufferMinutes());
 
         for (Ride ride : ridesToComplete) {
             ride.setStatus(Status.COMPLETED);
@@ -57,6 +61,23 @@ public class RideCompletionScheduler {
 
             eventPublisher.publishEvent(new RideCompletedEvent(
                     ride.getId(), ride.getDriver().getId(), confirmedBookingIds));
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${ride.completion-check-interval-ms}")
+    @Transactional
+    public void autoExpireRides() {
+        Instant cutoff = Instant.now().minus(properties.noBookingExpiryMinutes(), ChronoUnit.MINUTES);
+
+        List<Ride> ridesToExpire = rideRepository.findActiveRidesWithNoBookingsReadyForExpiry(cutoff);
+
+        if (ridesToExpire.isEmpty()) return;
+
+        log.info("Auto-expiring {} rides with no bookings (window: {} min)", ridesToExpire.size(), properties.noBookingExpiryMinutes());
+
+        for (Ride ride : ridesToExpire) {
+            ride.setStatus(Status.EXPIRED);
+            ride.setLastModified(Instant.now());
         }
     }
 }

@@ -37,7 +37,7 @@ public class ReviewPublishScheduler {
         this.notificationService = notificationService;
     }
 
-    @Scheduled(cron = "0 0 * * * ?") // every hour
+    @Scheduled(cron = "${review.publish-cron}")
     @Transactional
     public void publishPendingReviews() {
         List<Review> readyToPublish = reviewRepository.findPendingReviewsReadyToPublish(Instant.now());

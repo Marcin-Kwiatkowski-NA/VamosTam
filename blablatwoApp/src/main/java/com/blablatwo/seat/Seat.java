@@ -50,6 +50,7 @@ public class Seat extends AbstractTrip {
     public SeatStatus computeSeatStatus() {
         return switch (getStatus()) {
             case COMPLETED -> SeatStatus.COMPLETED;
+            case EXPIRED -> SeatStatus.EXPIRED;
             case CANCELLED -> SeatStatus.CANCELLED;
             case BANNED -> SeatStatus.BANNED;
             case ACTIVE -> {

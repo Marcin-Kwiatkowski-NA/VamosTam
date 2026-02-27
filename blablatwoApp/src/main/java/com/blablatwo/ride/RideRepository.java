@@ -35,4 +35,15 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
     List<Ride> findActiveRidesReadyForCompletion(@Param("cutoff") Instant cutoff);
 
     List<Ride> findByStatusAndCompletedAtBetween(Status status, Instant from, Instant to);
+
+    @Query("""
+        SELECT r FROM Ride r
+        WHERE r.status = com.blablatwo.domain.Status.ACTIVE
+        AND r.departureTime < :cutoff
+        AND NOT EXISTS (
+            SELECT 1 FROM RideBooking b
+            WHERE b.ride = r AND b.status = com.blablatwo.ride.BookingStatus.CONFIRMED
+        )
+        """)
+    List<Ride> findActiveRidesWithNoBookingsReadyForExpiry(@Param("cutoff") Instant cutoff);
 }

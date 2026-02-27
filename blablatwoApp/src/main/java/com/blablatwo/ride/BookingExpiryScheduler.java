@@ -21,7 +21,7 @@ public class BookingExpiryScheduler {
     private final RideBookingRepository bookingRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Value("${booking.pending-ttl-minutes:60}")
+    @Value("${booking.pending-ttl-minutes}")
     private int pendingTtlMinutes;
 
     public BookingExpiryScheduler(RideBookingRepository bookingRepository,
@@ -30,7 +30,7 @@ public class BookingExpiryScheduler {
         this.eventPublisher = eventPublisher;
     }
 
-    @Scheduled(fixedDelayString = "${booking.expiry-check-interval-ms:60000}")
+    @Scheduled(fixedDelayString = "${booking.expiry-check-interval-ms}")
     @Transactional
     public void expirePendingBookings() {
         Instant cutoff = Instant.now().minus(pendingTtlMinutes, ChronoUnit.MINUTES);

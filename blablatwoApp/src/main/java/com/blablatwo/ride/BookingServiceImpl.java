@@ -198,10 +198,6 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto cancelBooking(Long rideId, Long bookingId, Long userId, String reason) {
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Cancellation reason is required");
-        }
-
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
@@ -212,6 +208,12 @@ public class BookingServiceImpl implements BookingService {
                 || booking.getStatus() == BookingStatus.CANCELLED_BY_PASSENGER) {
             BookingResponseDto dto = bookingMapper.toResponseDto(booking);
             return bookingResponseEnricher.enrich(booking, dto);
+        }
+
+        // Reason is required only for confirmed bookings
+        if (booking.getStatus() == BookingStatus.CONFIRMED
+                && (reason == null || reason.isBlank())) {
+            throw new IllegalArgumentException("Cancellation reason is required for confirmed bookings");
         }
 
         Long driverId = ride.getDriver().getId();
@@ -230,7 +232,9 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(targetStatus);
         booking.setResolvedAt(Instant.now());
-        booking.setCancellationReason(reason);
+        if (reason != null && !reason.isBlank()) {
+            booking.setCancellationReason(reason);
+        }
         booking.setCancelledAt(Instant.now());
         ride.setLastModified(Instant.now());
 

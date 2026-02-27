@@ -100,6 +100,7 @@ public class Ride extends AbstractTrip {
         return switch (getStatus()) {
             case ACTIVE -> getMinAvailableSeats() <= 0 ? RideStatus.FULL : RideStatus.OPEN;
             case COMPLETED -> RideStatus.COMPLETED;
+            case EXPIRED -> RideStatus.EXPIRED;
             case CANCELLED -> RideStatus.CANCELLED;
             case BANNED -> RideStatus.BANNED;
         };

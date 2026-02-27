@@ -52,7 +52,7 @@ public class ReviewReminderScheduler {
         this.systemMessageService = systemMessageService;
     }
 
-    @Scheduled(cron = "0 0 10 * * ?") // daily at 10 AM
+    @Scheduled(cron = "${review.reminder-cron}")
     @Transactional
     public void sendReviewReminders() {
         Instant from = Instant.now().minus(72, ChronoUnit.HOURS);

@@ -20,7 +20,7 @@ public class TokenCleanupTask {
         this.tokenRepository = tokenRepository;
     }
 
-    @Scheduled(cron = "0 0 3 * * ?")
+    @Scheduled(cron = "${auth.token-cleanup-cron}")
     @Transactional
     public void deleteExpiredTokens() {
         Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);

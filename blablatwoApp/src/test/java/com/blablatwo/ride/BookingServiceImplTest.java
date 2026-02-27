@@ -318,17 +318,30 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("passenger cancels PENDING booking")
-        void passengerCancelsPendingBooking() {
+        @DisplayName("passenger cancels PENDING booking without reason")
+        void passengerCancelsPendingBookingWithoutReason() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
-            bookingService.cancelBooking(ID_100, 1L, 2L, "No longer need this ride");
+            bookingService.cancelBooking(ID_100, 1L, 2L, null);
 
             assertEquals(BookingStatus.CANCELLED_BY_PASSENGER, booking.getStatus());
+            assertNull(booking.getCancellationReason());
+        }
+
+        @Test
+        @DisplayName("throws IllegalArgumentException when cancelling CONFIRMED booking without reason")
+        void throwsWhenCancellingConfirmedWithoutReason() {
+            RideBooking booking = aBooking(ride, passenger)
+                    .status(BookingStatus.CONFIRMED).build();
+            when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
+            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> bookingService.cancelBooking(ID_100, 1L, 2L, null));
         }
 
         @Test

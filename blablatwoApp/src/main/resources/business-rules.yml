@@ -1,0 +1,22 @@
+# Business logic constants
+# Override via environment variables for per-environment tuning.
+
+ride:
+  auto-complete-buffer-minutes: ${RIDE_AUTO_COMPLETE_BUFFER_MINUTES:720}
+  no-booking-expiry-minutes: ${RIDE_NO_BOOKING_EXPIRY_MINUTES:60}
+  completion-check-interval-ms: ${RIDE_COMPLETION_CHECK_INTERVAL_MS:300000}
+
+booking:
+  pending-ttl-minutes: ${BOOKING_PENDING_TTL_MINUTES:60}
+  expiry-check-interval-ms: ${BOOKING_EXPIRY_CHECK_INTERVAL_MS:60000}
+
+auth:
+  token-cleanup-cron: ${AUTH_TOKEN_CLEANUP_CRON:0 0 3 * * ?}
+
+review:
+  reminder-cron: ${REVIEW_REMINDER_CRON:0 0 10 * * ?}
+  publish-cron: ${REVIEW_PUBLISH_CRON:0 0 * * * ?}
+
+notification:
+  cleanup-cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * ?}
+  cleanup-retention-days: ${NOTIFICATION_CLEANUP_RETENTION_DAYS:90}
