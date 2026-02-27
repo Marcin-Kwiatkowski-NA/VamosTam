@@ -12,6 +12,8 @@ import com.blablatwo.ride.dto.RideResponseDto;
 import com.blablatwo.ride.dto.RideSearchCriteriaDto;
 import com.blablatwo.ride.event.BookingCancelledEvent;
 import com.blablatwo.ride.event.RideCompletedEvent;
+import com.blablatwo.search.GeoUtils;
+import com.blablatwo.search.SearchProperties;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.capability.CapabilityService;
@@ -22,7 +24,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@EnableConfigurationProperties(SearchProperties.class)
 public class RideServiceImpl implements RideService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
@@ -45,7 +48,7 @@ public class RideServiceImpl implements RideService {
     private static final List<BookingStatus> ACTIVE_STATUSES =
             List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED);
 
-private final RideRepository rideRepository;
+    private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
     private final RideMapper rideMapper;
     private final LocationResolutionService locationResolutionService;
@@ -54,9 +57,7 @@ private final RideRepository rideRepository;
     private final CapabilityService capabilityService;
     private final ApplicationEventPublisher eventPublisher;
     private final RideArrivalEstimator arrivalEstimator;
-
-    @Value("${search.proximity.default-radius-km:50}")
-    private double defaultRadiusKm;
+    private final SearchProperties searchProperties;
 
     public RideServiceImpl(RideRepository rideRepository,
                            RideBookingRepository bookingRepository,
@@ -66,7 +67,8 @@ private final RideRepository rideRepository;
                            RideResponseEnricher rideResponseEnricher,
                            CapabilityService capabilityService,
                            ApplicationEventPublisher eventPublisher,
-                           RideArrivalEstimator arrivalEstimator) {
+                           RideArrivalEstimator arrivalEstimator,
+                           SearchProperties searchProperties) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -76,6 +78,7 @@ private final RideRepository rideRepository;
         this.capabilityService = capabilityService;
         this.eventPublisher = eventPublisher;
         this.arrivalEstimator = arrivalEstimator;
+        this.searchProperties = searchProperties;
     }
 
     @Override
@@ -243,7 +246,7 @@ private final RideRepository rideRepository;
     }
 
     private Page<RideResponseDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
-        double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
+        double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
@@ -318,6 +321,18 @@ private final RideRepository rideRepository;
                 .orElse(-1);
     }
 
+    private double resolveRadiusKm(RideSearchCriteriaDto criteria) {
+        if (criteria.radiusKm() != null) {
+            return criteria.radiusKm();
+        }
+        double distance = GeoUtils.haversineKm(
+                criteria.originLat(), criteria.originLon(),
+                criteria.destinationLat(), criteria.destinationLon());
+        return Math.max(
+                distance / searchProperties.proximity().radiusDivisor(),
+                searchProperties.proximity().minRadiusKm());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<RideResponseDto> getAllRides(Pageable pageable) {
@@ -337,7 +352,7 @@ private final RideRepository rideRepository;
             throw new NoSuchUserException(driverId);
         }
 
-        List<Ride> rides = rideRepository.findByDriverId(driverId);
+        List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(driverId);
         List<RideResponseDto> dtos = rides.stream()
                 .map(rideMapper::rideEntityToRideResponseDto)
                 .toList();

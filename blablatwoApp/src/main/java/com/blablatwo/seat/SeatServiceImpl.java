@@ -5,6 +5,8 @@ import com.blablatwo.exceptions.NoSuchSeatException;
 import com.blablatwo.exceptions.NotSeatPassengerException;
 import com.blablatwo.location.Location;
 import com.blablatwo.location.LocationResolutionService;
+import com.blablatwo.search.GeoUtils;
+import com.blablatwo.search.SearchProperties;
 import com.blablatwo.seat.dto.SeatCreationDto;
 import com.blablatwo.seat.dto.SeatResponseDto;
 import com.blablatwo.seat.dto.SeatSearchCriteriaDto;
@@ -14,7 +16,7 @@ import com.blablatwo.user.capability.CapabilityService;
 import com.blablatwo.user.exception.NoSuchUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@EnableConfigurationProperties(SearchProperties.class)
 public class SeatServiceImpl implements SeatService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SeatServiceImpl.class);
@@ -37,22 +40,22 @@ public class SeatServiceImpl implements SeatService {
     private final UserAccountRepository userAccountRepository;
     private final SeatResponseEnricher seatResponseEnricher;
     private final CapabilityService capabilityService;
-
-    @Value("${search.proximity.default-radius-km:50}")
-    private double defaultRadiusKm;
+    private final SearchProperties searchProperties;
 
     public SeatServiceImpl(SeatRepository seatRepository,
                             SeatMapper seatMapper,
                             LocationResolutionService locationResolutionService,
                             UserAccountRepository userAccountRepository,
                             SeatResponseEnricher seatResponseEnricher,
-                            CapabilityService capabilityService) {
+                            CapabilityService capabilityService,
+                            SearchProperties searchProperties) {
         this.seatRepository = seatRepository;
         this.seatMapper = seatMapper;
         this.locationResolutionService = locationResolutionService;
         this.userAccountRepository = userAccountRepository;
         this.seatResponseEnricher = seatResponseEnricher;
         this.capabilityService = capabilityService;
+        this.searchProperties = searchProperties;
     }
 
     @Override
@@ -117,7 +120,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatResponseDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
-        double radiusKm = criteria.radiusKm() != null ? criteria.radiusKm() : defaultRadiusKm;
+        double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
 
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
@@ -209,10 +212,22 @@ public class SeatServiceImpl implements SeatService {
             throw new NoSuchUserException(passengerId);
         }
 
-        List<Seat> seats = seatRepository.findByPassengerId(passengerId);
+        List<Seat> seats = seatRepository.findByPassengerIdOrderByDepartureTimeAsc(passengerId);
         List<SeatResponseDto> dtos = seats.stream()
                 .map(seatMapper::seatEntityToResponseDto)
                 .toList();
         return seatResponseEnricher.enrich(seats, dtos);
+    }
+
+    private double resolveRadiusKm(SeatSearchCriteriaDto criteria) {
+        if (criteria.radiusKm() != null) {
+            return criteria.radiusKm();
+        }
+        double distance = GeoUtils.haversineKm(
+                criteria.originLat(), criteria.originLon(),
+                criteria.destinationLat(), criteria.destinationLon());
+        return Math.max(
+                distance / searchProperties.proximity().radiusDivisor(),
+                searchProperties.proximity().minRadiusKm());
     }
 }

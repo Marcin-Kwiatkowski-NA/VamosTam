@@ -20,3 +20,12 @@ review:
 notification:
   cleanup-cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * ?}
   cleanup-retention-days: ${NOTIFICATION_CLEANUP_RETENTION_DAYS:90}
+
+search:
+  proximity:
+    radius-divisor: ${SEARCH_PROXIMITY_RADIUS_DIVISOR:3}
+    min-radius-km: ${SEARCH_PROXIMITY_MIN_RADIUS_KM:30}
+  smart-match:
+    radius-km: ${SEARCH_SMART_MATCH_RADIUS_KM:50}
+    max-segments: ${SEARCH_SMART_MATCH_MAX_SEGMENTS:5}
+    refresh-cooldown-seconds: ${SEARCH_SMART_MATCH_REFRESH_COOLDOWN_SECONDS:120}

@@ -178,14 +178,14 @@ public class UserAccountService {
         rideBookingRepository.deleteByPassengerId(userId);
 
         // 4. External meta for user's rides (shared PK = ride ID)
-        var userRides = rideRepository.findByDriverId(userId);
+        var userRides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(userId);
         if (!userRides.isEmpty()) {
             var rideIds = userRides.stream().map(r -> r.getId()).toList();
             rideExternalMetaRepository.deleteAllByIdIn(rideIds);
         }
 
         // 5. External meta for user's seats (shared PK = seat ID)
-        var userSeats = seatRepository.findByPassengerId(userId);
+        var userSeats = seatRepository.findByPassengerIdOrderByDepartureTimeAsc(userId);
         if (!userSeats.isEmpty()) {
             var seatIds = userSeats.stream().map(s -> s.getId()).toList();
             seatExternalMetaRepository.deleteAllByIdIn(seatIds);

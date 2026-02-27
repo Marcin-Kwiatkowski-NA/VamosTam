@@ -16,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificationExecutor<Ride> {
 
-    List<Ride> findByDriverId(Long driverId);
+    List<Ride> findByDriverIdOrderByDepartureTimeAsc(Long driverId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Ride r WHERE r.id = :id")
