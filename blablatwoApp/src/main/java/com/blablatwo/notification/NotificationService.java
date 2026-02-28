@@ -52,12 +52,24 @@ public class NotificationService {
                 return;
             }
 
-            // Chat messages: popup-only (STOMP alert without DB persistence)
+            // Chat messages: STOMP alert (no DB persistence) + FCM push
             if (request.type() == NotificationType.CHAT_MESSAGE_NEW) {
                 long unreadCount = notificationRepository.countByRecipientIdAndReadAtIsNull(request.recipientId());
                 var alert = NotificationAlertDto.fromRequest(request, unreadCount);
                 messagingTemplate.convertAndSendToUser(
                         request.recipientId().toString(), NOTIFICATION_QUEUE, alert);
+
+                pushNotificationService.sendToUser(
+                        request.recipientId(),
+                        request.type().pushTitle(),
+                        request.type().pushBody(),
+                        Map.of(
+                                "type", request.type().name(),
+                                "entityType", request.entityType().name(),
+                                "entityId", request.entityId(),
+                                "collapseKey", request.collapseKey() != null ? request.collapseKey() : ""
+                        )
+                );
                 return;
             }
 
