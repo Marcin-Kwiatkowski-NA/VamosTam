@@ -26,6 +26,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -34,9 +36,9 @@ import java.util.*;
 public class ReviewServiceImpl implements ReviewService {
 
     private static final Logger log = LoggerFactory.getLogger(ReviewServiceImpl.class);
-    private static final Duration REVEAL_DELAY = Duration.ofDays(3);
     private static final Duration REVIEW_WINDOW = Duration.ofDays(14);
 
+    private final Duration revealDelay;
     private final ReviewRepository reviewRepository;
     private final RideBookingRepository bookingRepository;
     private final UserProfileRepository userProfileRepository;
@@ -44,12 +46,14 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final ApplicationEventPublisher eventPublisher;
 
-    public ReviewServiceImpl(ReviewRepository reviewRepository,
+    public ReviewServiceImpl(@Value("${review.publish-delay-days}") int publishDelayDays,
+                             ReviewRepository reviewRepository,
                              RideBookingRepository bookingRepository,
                              UserProfileRepository userProfileRepository,
                              PersonDisplayNameResolver displayNameResolver,
                              ReviewMapper reviewMapper,
                              ApplicationEventPublisher eventPublisher) {
+        this.revealDelay = Duration.ofDays(publishDelayDays);
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
         this.userProfileRepository = userProfileRepository;
@@ -111,7 +115,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .comment(request.comment())
                 .tags(request.tags() != null ? new HashSet<>(request.tags()) : new HashSet<>())
                 .status(ReviewStatus.PENDING)
-                .publishedAt(Instant.now().plus(REVEAL_DELAY))
+                .publishedAt(Instant.now().plus(revealDelay))
                 .deadlineAt(deadline)
                 .build();
 

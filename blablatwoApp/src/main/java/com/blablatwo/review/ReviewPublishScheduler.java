@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Publishes pending reviews whose 3-day reveal delay has elapsed.
+ * Publishes pending reviews whose reveal delay has elapsed.
  * Also updates UserStats (ratingSum + ratingCount) for each subject.
  */
 @Component

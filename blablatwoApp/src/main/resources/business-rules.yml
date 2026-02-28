@@ -11,14 +11,15 @@ booking:
   expiry-check-interval-ms: ${BOOKING_EXPIRY_CHECK_INTERVAL_MS:60000}
 
 auth:
-  token-cleanup-cron: ${AUTH_TOKEN_CLEANUP_CRON:0 0 3 * * ?}
+  token-cleanup-cron: ${AUTH_TOKEN_CLEANUP_CRON:0 0 3 * * ?}  # daily at 3:00 AM
 
 review:
-  reminder-cron: ${REVIEW_REMINDER_CRON:0 0 10 * * ?}
-  publish-cron: ${REVIEW_PUBLISH_CRON:0 0 * * * ?}
+  reminder-cron: ${REVIEW_REMINDER_CRON:0 0 10 * * ?}  # daily at 10:00 AM
+  publish-cron: ${REVIEW_PUBLISH_CRON:0 0 * * * ?}  # every hour at :00
+  publish-delay-days: ${REVIEW_PUBLISH_DELAY_DAYS:0} // change in prod
 
 notification:
-  cleanup-cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * ?}
+  cleanup-cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * ?}  # daily at 3:00 AM
   cleanup-retention-days: ${NOTIFICATION_CLEANUP_RETENTION_DAYS:90}
 
 search:
