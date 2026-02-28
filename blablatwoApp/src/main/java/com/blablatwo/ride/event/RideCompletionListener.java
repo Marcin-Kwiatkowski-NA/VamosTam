@@ -2,6 +2,7 @@ package com.blablatwo.ride.event;
 
 import com.blablatwo.messaging.SystemMessageService;
 import com.blablatwo.notification.EntityType;
+import com.blablatwo.notification.NotificationParamsEnricher;
 import com.blablatwo.notification.NotificationRequest;
 import com.blablatwo.notification.NotificationService;
 import com.blablatwo.notification.NotificationType;
@@ -28,13 +29,16 @@ public class RideCompletionListener {
     private final RideBookingRepository bookingRepository;
     private final NotificationService notificationService;
     private final SystemMessageService systemMessageService;
+    private final NotificationParamsEnricher enricher;
 
     public RideCompletionListener(RideBookingRepository bookingRepository,
                                    NotificationService notificationService,
-                                   SystemMessageService systemMessageService) {
+                                   SystemMessageService systemMessageService,
+                                   NotificationParamsEnricher enricher) {
         this.bookingRepository = bookingRepository;
         this.notificationService = notificationService;
         this.systemMessageService = systemMessageService;
+        this.enricher = enricher;
     }
 
     @Async
@@ -49,6 +53,10 @@ public class RideCompletionListener {
                     event.rideId(), e.getMessage(), e);
         }
 
+        // Enrich ONCE, reuse for all notifications
+        var enriched = enricher.enrichRideCompleted(event.rideId());
+        Map<String, String> params = enriched.toMap();
+
         // Send RIDE_COMPLETED notification to each confirmed passenger
         for (Long bookingId : event.confirmedBookingIds()) {
             try {
@@ -60,7 +68,7 @@ public class RideCompletionListener {
                         .type(NotificationType.RIDE_COMPLETED)
                         .entityType(EntityType.RIDE)
                         .entityId(event.rideId().toString())
-                        .params(Map.of("offerKey", "r-" + event.rideId()))
+                        .params(params)
                         .collapseKey("ride-completed:" + event.rideId())
                         .build());
             } catch (Exception e) {
@@ -76,7 +84,7 @@ public class RideCompletionListener {
                     .type(NotificationType.RIDE_COMPLETED)
                     .entityType(EntityType.RIDE)
                     .entityId(event.rideId().toString())
-                    .params(Map.of("offerKey", "r-" + event.rideId()))
+                    .params(params)
                     .collapseKey("ride-completed:" + event.rideId())
                     .build());
         } catch (Exception e) {

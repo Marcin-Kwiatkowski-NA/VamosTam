@@ -34,6 +34,7 @@ class NotificationServiceTest {
     @Mock private UserAccountRepository userAccountRepository;
     @Mock private PushNotificationService pushNotificationService;
     @Mock private SimpMessagingTemplate messagingTemplate;
+    @Mock private PushMessageRenderer pushMessageRenderer;
     @InjectMocks private NotificationService notificationService;
 
     private UserAccount recipient;
@@ -49,14 +50,16 @@ class NotificationServiceTest {
     class Notify {
 
         @Test
-        @DisplayName("should persist new notification and broadcast STOMP alert")
+        @DisplayName("should persist new notification, broadcast STOMP, and push with deepLink")
         void persistsAndBroadcasts() {
+            var params = Map.of("offerKey", "r-42", "deepLink", "/my-offer/r-42",
+                    "origin", "Krakow", "destination", "Warsaw");
             var request = NotificationRequest.builder()
                     .recipientId(1L)
                     .type(NotificationType.BOOKING_REQUESTED)
                     .entityType(EntityType.RIDE)
                     .entityId("42")
-                    .params(Map.of("offerKey", "r-42"))
+                    .params(params)
                     .collapseKey("booking:99")
                     .build();
 
@@ -70,11 +73,14 @@ class NotificationServiceTest {
                         return n;
                     });
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(5L);
+            when(pushMessageRenderer.title(NotificationType.BOOKING_REQUESTED, params)).thenReturn("Krakow → Warsaw");
+            when(pushMessageRenderer.body(NotificationType.BOOKING_REQUESTED, params)).thenReturn("Jan wants to join your ride");
 
             notificationService.notify(request);
 
             verify(notificationRepository).save(any(Notification.class));
 
+            // Verify STOMP broadcast
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
             verify(messagingTemplate).convertAndSendToUser(
                     eq("1"), eq("/queue/notifications"), payloadCaptor.capture());
@@ -82,6 +88,12 @@ class NotificationServiceTest {
             var alert = (NotificationAlertDto) payloadCaptor.getValue();
             assertEquals(NotificationType.BOOKING_REQUESTED, alert.type());
             assertEquals(5L, alert.unreadCount());
+
+            // Verify push uses renderer and includes deepLink
+            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(pushNotificationService).sendToUser(eq(1L),
+                    eq("Krakow → Warsaw"), eq("Jan wants to join your ride"), dataCaptor.capture());
+            assertEquals("/my-offer/r-42", dataCaptor.getValue().get("deepLink"));
         }
 
         @Test
@@ -99,12 +111,13 @@ class NotificationServiceTest {
             existing.setId(UUID.randomUUID());
             existing.setCreatedAt(Instant.now().minusSeconds(60));
 
+            var params = Map.of("offerKey", "r-42");
             var request = NotificationRequest.builder()
                     .recipientId(1L)
                     .type(NotificationType.BOOKING_REQUESTED)
                     .entityType(EntityType.RIDE)
                     .entityId("42")
-                    .params(Map.of("offerKey", "r-42"))
+                    .params(params)
                     .collapseKey("booking:99")
                     .build();
 
@@ -112,6 +125,8 @@ class NotificationServiceTest {
                     .thenReturn(Optional.of(existing));
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(3L);
+            lenient().when(pushMessageRenderer.title(any(), any())).thenReturn("Booking update");
+            lenient().when(pushMessageRenderer.body(any(), any())).thenReturn("Someone wants to join your ride");
 
             notificationService.notify(request);
 
@@ -121,24 +136,37 @@ class NotificationServiceTest {
         }
 
         @Test
-        @DisplayName("should broadcast STOMP alert without DB persistence for CHAT_MESSAGE_NEW")
+        @DisplayName("should broadcast STOMP alert and push for CHAT_MESSAGE_NEW (no DB persistence)")
         void chatMessageBroadcastsWithoutPersistence() {
+            var params = Map.of("conversationId", "conv-uuid", "senderName", "Anna",
+                    "deepLink", "/chat/conv-uuid");
             var request = NotificationRequest.builder()
                     .recipientId(1L)
                     .type(NotificationType.CHAT_MESSAGE_NEW)
                     .entityType(EntityType.CONVERSATION)
                     .entityId("conv-uuid")
-                    .params(Map.of("conversationId", "conv-uuid"))
+                    .params(params)
                     .collapseKey("conv:conv-uuid")
                     .build();
 
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(2L);
+            when(pushMessageRenderer.title(NotificationType.CHAT_MESSAGE_NEW, params)).thenReturn("Anna");
+            when(pushMessageRenderer.body(NotificationType.CHAT_MESSAGE_NEW, params)).thenReturn("Message about Krakow → Warsaw");
 
             notificationService.notify(request);
 
             verify(notificationRepository, never()).save(any());
-            verify(pushNotificationService, never()).sendToUser(anyLong(), anyString(), anyString(), anyMap());
 
+            // Verify push is dispatched with rendered title/body
+            verify(pushNotificationService).sendToUser(eq(1L), eq("Anna"),
+                    eq("Message about Krakow → Warsaw"), anyMap());
+
+            // Verify deep link is included in FCM data
+            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(pushNotificationService).sendToUser(eq(1L), anyString(), anyString(), dataCaptor.capture());
+            assertEquals("/chat/conv-uuid", dataCaptor.getValue().get("deepLink"));
+
+            // Verify STOMP alert
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
             verify(messagingTemplate).convertAndSendToUser(
                     eq("1"), eq("/queue/notifications"), payloadCaptor.capture());

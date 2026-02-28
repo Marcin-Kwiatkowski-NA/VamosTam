@@ -1,6 +1,7 @@
 package com.blablatwo.review;
 
 import com.blablatwo.notification.EntityType;
+import com.blablatwo.notification.NotificationParamsEnricher;
 import com.blablatwo.notification.NotificationRequest;
 import com.blablatwo.notification.NotificationService;
 import com.blablatwo.notification.NotificationType;
@@ -28,13 +29,16 @@ public class ReviewPublishScheduler {
     private final ReviewRepository reviewRepository;
     private final UserProfileRepository userProfileRepository;
     private final NotificationService notificationService;
+    private final NotificationParamsEnricher enricher;
 
     public ReviewPublishScheduler(ReviewRepository reviewRepository,
                                    UserProfileRepository userProfileRepository,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   NotificationParamsEnricher enricher) {
         this.reviewRepository = reviewRepository;
         this.userProfileRepository = userProfileRepository;
         this.notificationService = notificationService;
+        this.enricher = enricher;
     }
 
     @Scheduled(cron = "${review.publish-cron}")
@@ -61,12 +65,16 @@ public class ReviewPublishScheduler {
 
             // Notify the subject that a review was published
             try {
+                var enriched = enricher.enrichReviewReceived(review.getId(), subjectId);
+                var params = new java.util.LinkedHashMap<>(enriched.toMap());
+                params.put("reviewId", review.getId().toString());
+
                 notificationService.notify(NotificationRequest.builder()
                         .recipientId(subjectId)
                         .type(NotificationType.REVIEW_RECEIVED)
                         .entityType(EntityType.REVIEW)
                         .entityId(review.getId().toString())
-                        .params(Map.of("reviewId", review.getId().toString()))
+                        .params(params)
                         .collapseKey("review-received:" + subjectId)
                         .build());
             } catch (Exception e) {

@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,15 +29,18 @@ public class NotificationService {
     private final UserAccountRepository userAccountRepository;
     private final PushNotificationService pushNotificationService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushMessageRenderer pushMessageRenderer;
 
     public NotificationService(NotificationRepository notificationRepository,
                                UserAccountRepository userAccountRepository,
                                PushNotificationService pushNotificationService,
-                               SimpMessagingTemplate messagingTemplate) {
+                               SimpMessagingTemplate messagingTemplate,
+                               PushMessageRenderer pushMessageRenderer) {
         this.notificationRepository = notificationRepository;
         this.userAccountRepository = userAccountRepository;
         this.pushNotificationService = pushNotificationService;
         this.messagingTemplate = messagingTemplate;
+        this.pushMessageRenderer = pushMessageRenderer;
     }
 
     /**
@@ -59,16 +63,12 @@ public class NotificationService {
                 messagingTemplate.convertAndSendToUser(
                         request.recipientId().toString(), NOTIFICATION_QUEUE, alert);
 
+                var chatData = buildFcmData(request, null);
                 pushNotificationService.sendToUser(
                         request.recipientId(),
-                        request.type().pushTitle(),
-                        request.type().pushBody(),
-                        Map.of(
-                                "type", request.type().name(),
-                                "entityType", request.entityType().name(),
-                                "entityId", request.entityId(),
-                                "collapseKey", request.collapseKey() != null ? request.collapseKey() : ""
-                        )
+                        pushMessageRenderer.title(request.type(), request.params()),
+                        pushMessageRenderer.body(request.type(), request.params()),
+                        chatData
                 );
                 return;
             }
@@ -160,18 +160,28 @@ public class NotificationService {
     }
 
     private void dispatchPush(NotificationRequest request, Notification notification) {
+        var data = buildFcmData(request, notification.getId().toString());
+        data.put("channel", request.channel().name());
+        data.put("notificationId", notification.getId().toString());
+
         pushNotificationService.sendToUser(
                 request.recipientId(),
-                request.type().pushTitle(),
-                request.type().pushBody(),
-                Map.of(
-                        "type", request.type().name(),
-                        "entityType", request.entityType().name(),
-                        "entityId", request.entityId(),
-                        "collapseKey", request.collapseKey() != null ? request.collapseKey() : "",
-                        "channel", request.channel().name(),
-                        "notificationId", notification.getId().toString()
-                )
+                pushMessageRenderer.title(request.type(), request.params()),
+                pushMessageRenderer.body(request.type(), request.params()),
+                data
         );
+    }
+
+    private Map<String, String> buildFcmData(NotificationRequest request, String notificationId) {
+        var data = new LinkedHashMap<String, String>();
+        data.put("type", request.type().name());
+        data.put("entityType", request.entityType().name());
+        data.put("entityId", request.entityId());
+        data.put("collapseKey", request.collapseKey() != null ? request.collapseKey() : "");
+        // Include deep link for push tap routing
+        if (request.params() != null && request.params().containsKey("deepLink")) {
+            data.put("deepLink", request.params().get("deepLink"));
+        }
+        return data;
     }
 }

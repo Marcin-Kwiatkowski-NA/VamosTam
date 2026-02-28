@@ -38,6 +38,9 @@ public class Conversation {
     @Column(name = "topic_key", nullable = false, length = 100)
     private String topicKey;
 
+    @Column(name = "offer_key", length = 20)
+    private String offerKey;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "participant_a_id", nullable = false)
     private UserAccount participantA;

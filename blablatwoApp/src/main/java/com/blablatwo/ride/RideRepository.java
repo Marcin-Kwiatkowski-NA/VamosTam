@@ -46,4 +46,13 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
         )
         """)
     List<Ride> findActiveRidesWithNoBookingsReadyForExpiry(@Param("cutoff") Instant cutoff);
+
+    @Query("""
+        SELECT r FROM Ride r
+        JOIN FETCH r.stops s
+        JOIN FETCH s.location
+        WHERE r.id = :id
+        ORDER BY s.stopOrder
+        """)
+    Optional<Ride> findByIdWithStopsAndLocations(@Param("id") Long id);
 }

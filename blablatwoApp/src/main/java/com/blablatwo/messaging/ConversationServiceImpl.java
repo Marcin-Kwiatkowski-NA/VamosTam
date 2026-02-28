@@ -81,6 +81,7 @@ public class ConversationServiceImpl implements ConversationService {
         try {
             Conversation conversation = Conversation.builder()
                     .topicKey(request.topicKey())
+                    .offerKey(extractOfferKey(request.topicKey()))
                     .participantA(participantA)
                     .participantB(participantB)
                     .build();
@@ -243,6 +244,13 @@ public class ConversationServiceImpl implements ConversationService {
         return conversation.getParticipantA().getId().equals(userId)
                 ? conversation.getParticipantB().getId()
                 : conversation.getParticipantA().getId();
+    }
+
+    private static String extractOfferKey(String topicKey) {
+        if (topicKey != null && topicKey.startsWith("offer:")) {
+            return topicKey.substring(6);
+        }
+        return null;
     }
 
     private MessageDto toMessageDto(Message message, Long viewerId) {

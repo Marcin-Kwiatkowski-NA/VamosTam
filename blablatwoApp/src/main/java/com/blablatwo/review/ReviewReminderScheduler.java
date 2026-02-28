@@ -3,6 +3,7 @@ package com.blablatwo.review;
 import com.blablatwo.domain.Status;
 import com.blablatwo.messaging.SystemMessageService;
 import com.blablatwo.notification.EntityType;
+import com.blablatwo.notification.NotificationParamsEnricher;
 import com.blablatwo.notification.NotificationRequest;
 import com.blablatwo.notification.NotificationService;
 import com.blablatwo.notification.NotificationType;
@@ -37,19 +38,22 @@ public class ReviewReminderScheduler {
     private final ReviewReminderTrackingRepository reminderTrackingRepository;
     private final NotificationService notificationService;
     private final SystemMessageService systemMessageService;
+    private final NotificationParamsEnricher enricher;
 
     public ReviewReminderScheduler(RideRepository rideRepository,
                                     RideBookingRepository bookingRepository,
                                     ReviewRepository reviewRepository,
                                     ReviewReminderTrackingRepository reminderTrackingRepository,
                                     NotificationService notificationService,
-                                    SystemMessageService systemMessageService) {
+                                    SystemMessageService systemMessageService,
+                                    NotificationParamsEnricher enricher) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.reviewRepository = reviewRepository;
         this.reminderTrackingRepository = reminderTrackingRepository;
         this.notificationService = notificationService;
         this.systemMessageService = systemMessageService;
+        this.enricher = enricher;
     }
 
     @Scheduled(cron = "${review.reminder-cron}")
@@ -105,15 +109,14 @@ public class ReviewReminderScheduler {
 
         // Send push notification
         try {
+            var enriched = enricher.enrichReviewReminder(
+                    ride.getId(), booking.getId(), String.valueOf(counterpartSubmitted));
             notificationService.notify(NotificationRequest.builder()
                     .recipientId(userId)
                     .type(NotificationType.REVIEW_REMINDER)
                     .entityType(EntityType.RIDE)
                     .entityId(ride.getId().toString())
-                    .params(Map.of(
-                            "offerKey", "r-" + ride.getId(),
-                            "bookingId", booking.getId().toString(),
-                            "counterpartSubmitted", String.valueOf(counterpartSubmitted)))
+                    .params(enriched.toMap())
                     .collapseKey("review-reminder:" + booking.getId() + ":" + userId)
                     .build());
         } catch (Exception e) {
