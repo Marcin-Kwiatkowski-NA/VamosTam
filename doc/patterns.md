@@ -41,9 +41,42 @@ GlobalExceptionHandler returns ProblemDetail (RFC 7807).
 ## Package Structure
 
 ```
-com.blablatwo.ride/       → Controller, Service, Repository, Mapper, DTOs
-com.blablatwo.city/       → ...
-com.blablatwo.traveler/   → ...
-com.blablatwo.config/     → Security, cross-cutting
-com.blablatwo.exceptions/ → GlobalExceptionHandler
+com.blablatwo
+├── auth/           → AuthController, AuthService, JWT, email verification, Google OAuth
+├── config/         → Security, JPA, Caching, Async, WebSocket (STOMP), Firebase
+├── domain/         → AbstractTrip base class, Status enums, shared utilities
+├── dto/            → Cross-domain DTOs (UserCardDto)
+├── email/          → Brevo transactional email service
+├── exceptions/     → GlobalExceptionHandler + custom exception types
+├── location/       → Location entity, PhotonClient, LocationResolutionService
+├── messaging/      → Conversation, Message entities, STOMP chat
+├── notification/   → Notification, DeviceToken, FCM push, schedulers
+├── report/         → Report entity, abuse reporting
+├── review/         → Review entity, rating/tags, lifecycle schedulers
+├── ride/           → Ride, RideStop, RideBooking, external rides (scraper API)
+├── search/         → SearchConfig, GeoUtils (spatial queries)
+├── seat/           → Seat (passenger search), external seats (scraper API)
+├── user/           → UserAccount, UserProfile, UserStats, capabilities
+├── vehicle/        → Vehicle entity
+└── utils/          → Helpers
 ```
+
+## Event-Driven Patterns
+
+```java
+// Publish domain events after state changes
+applicationEventPublisher.publishEvent(new BookingRequestedEvent(booking));
+
+// Listen cross-domain (runs after transaction commits)
+@TransactionalEventListener
+public void onBookingConfirmed(BookingConfirmedEvent event) { ... }
+```
+
+## Scheduler Patterns
+
+```java
+@Scheduled(fixedRateString = "${business-rules.booking.expiry-check-interval-seconds}000")
+public void expirePendingBookings() { ... }
+```
+
+Configuration in `business-rules.yml`.

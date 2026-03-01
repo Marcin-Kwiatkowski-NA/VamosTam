@@ -12,7 +12,8 @@ mvn test -Dtest=*RepositoryTest      # Pattern match
 
 | Layer | Annotation | Context |
 |-------|-----------|---------|
-| Repository | `@DataJpaTest` + `@ActiveProfiles("test")` | H2 in-memory, real JPA |
+| Repository | `@DataJpaTest` + `@ActiveProfiles("test")` + `extends AbstractIntegrationTest` | PostGIS Testcontainer, real JPA |
+| Integration | `@SpringBootTest` + `@ActiveProfiles("test")` + `extends AbstractIntegrationTest` | Full context, PostGIS Testcontainer |
 | Service | `@ExtendWith(MockitoExtension.class)` | No Spring context |
 | Controller | `@WebMvcTest(Controller.class)` | MVC + Security only |
 
@@ -31,7 +32,7 @@ mockMvc.perform(post(URL)
 
 ### Forcing Constraint Validation
 
-H2 validates constraints lazily. Force with `flush()`:
+PostGIS validates constraints lazily. Force with `flush()`:
 
 ```java
 assertThrows(ConstraintViolationException.class, () -> {
@@ -89,7 +90,8 @@ verify(repository, never()).delete(any());  // Negative verification
 ## Test Data Strategy
 
 - No SQL data loading; each test creates entities in `@BeforeEach`
-- H2 uses `create-drop` DDL mode (fresh schema per test class)
+- Database Rider 1.44.0 available for dataset-based tests
+- Testcontainers PostGIS (`imresamu/postgis:18-3.6`) via singleton container in `AbstractIntegrationTest`
 - Use builders: `Ride.builder().origin(city).build()`
 
 ## Common Assertions
@@ -118,4 +120,4 @@ assertThrows(NoSuchRideException.class,
 
 - Test config: `src/test/resources/application-test.properties`
 - Constants: `src/test/java/com/blablatwo/util/Constants.java`
-- Base class: `src/test/java/com/blablatwo/RepositoryTest.java`
+- Base class: `src/test/java/com/blablatwo/AbstractIntegrationTest.java`

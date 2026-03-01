@@ -97,8 +97,8 @@ app.jwt.refresh-expiration-ms=604800000 # 7 days
 
 ### Public Endpoints (No Token Required)
 - `POST /auth/**` - All auth endpoints
-- `GET /cities/**` - City data
 - `GET /rides/search` - Ride search
+- `GET /seats/search` - Seat search
 - `/h2-console/**` - Dev console
 
 ### Protected Endpoints (Token Required)
@@ -110,6 +110,8 @@ app.jwt.refresh-expiration-ms=604800000 # 7 days
 |-----------|---------|
 | `JwtAuthenticationFilter` | Validates JWT on every request (stateless - no DB hit) |
 | `JwtTokenProvider` | Generates and validates JWT tokens |
+| `AppJwtAuthenticationConverter` | Custom JWT claim extraction |
+| `ConversationAccessManager` | Chat access control |
 | `AuthService` | Business logic for auth operations (transactional) |
 | `AuthController` | REST endpoints (thin - delegates to service) |
 
@@ -150,9 +152,9 @@ BCrypt with strength 10 (`UserManagementConfig.java`)
 
 ## Roles
 
-Defined in `traveler/Role.java`:
-- `DRIVER` - Can create rides
-- `PASSENGER` - Can book rides
+Defined in `user/Role.java`:
+- `USER` - Default role (can create rides, seats, bookings)
 - `ADMIN` - Administrative access
+- `SYSTEM` - Internal operations
 
-All roles implement `GrantedAuthority` with prefix `ROLE_` (e.g., `ROLE_DRIVER`).
+All roles implement `GrantedAuthority` with prefix `ROLE_` (e.g., `ROLE_USER`).
