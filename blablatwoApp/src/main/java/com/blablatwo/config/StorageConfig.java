@@ -8,6 +8,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -16,6 +17,24 @@ import java.net.URI;
 @Configuration
 @EnableConfigurationProperties(StorageProperties.class)
 public class StorageConfig {
+
+    @Bean
+    S3Client s3Client(
+            @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.s3.endpoint}") String endpoint,
+            @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.access-key}") String accessKey,
+            @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.secret-key}") String secretKey,
+            @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.region.static}") String region
+    ) {
+        return S3Client.builder()
+                .endpointOverride(URI.create(endpoint))
+                .region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)))
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
+                .build();
+    }
 
     @Bean
     S3Presigner s3Presigner(
