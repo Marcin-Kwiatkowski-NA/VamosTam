@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ride")
 public record RideBusinessProperties(
         int autoCompleteBufferMinutes,
-        int noBookingExpiryMinutes
+        int noBookingExpiryMinutes,
+        int minDepartureNoticeMinutes
 ) {
 }

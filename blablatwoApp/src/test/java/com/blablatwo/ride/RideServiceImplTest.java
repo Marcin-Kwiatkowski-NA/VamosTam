@@ -68,6 +68,9 @@ class RideServiceImplTest {
     @Mock
     RideArrivalEstimator arrivalEstimator;
 
+    @Mock
+    RideBusinessProperties rideProperties;
+
     @InjectMocks
     private RideServiceImpl rideService;
 
@@ -83,6 +86,7 @@ class RideServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(1));
         lenient().when(rideResponseEnricher.enrich(anyList(), anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
+        lenient().when(rideProperties.minDepartureNoticeMinutes()).thenReturn(30);
 
         originLocation = anOriginLocation().build();
         destinationLocation = aDestinationLocation().build();

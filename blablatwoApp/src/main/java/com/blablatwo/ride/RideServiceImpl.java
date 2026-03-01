@@ -34,13 +34,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@EnableConfigurationProperties(SearchProperties.class)
+@EnableConfigurationProperties({SearchProperties.class, RideBusinessProperties.class})
 public class RideServiceImpl implements RideService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
@@ -58,6 +59,7 @@ public class RideServiceImpl implements RideService {
     private final ApplicationEventPublisher eventPublisher;
     private final RideArrivalEstimator arrivalEstimator;
     private final SearchProperties searchProperties;
+    private final RideBusinessProperties rideProperties;
 
     public RideServiceImpl(RideRepository rideRepository,
                            RideBookingRepository bookingRepository,
@@ -68,7 +70,8 @@ public class RideServiceImpl implements RideService {
                            CapabilityService capabilityService,
                            ApplicationEventPublisher eventPublisher,
                            RideArrivalEstimator arrivalEstimator,
-                           SearchProperties searchProperties) {
+                           SearchProperties searchProperties,
+                           RideBusinessProperties rideProperties) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -79,6 +82,7 @@ public class RideServiceImpl implements RideService {
         this.eventPublisher = eventPublisher;
         this.arrivalEstimator = arrivalEstimator;
         this.searchProperties = searchProperties;
+        this.rideProperties = rideProperties;
     }
 
     @Override
@@ -94,6 +98,7 @@ public class RideServiceImpl implements RideService {
         if (!capabilityService.canCreateRide(userId)) {
             throw new CannotCreateRideException(userId);
         }
+        validateMinDepartureNotice(dto.departureTime());
 
         UserAccount driver = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
@@ -126,6 +131,7 @@ public class RideServiceImpl implements RideService {
         if (!existingRide.getActiveBookings().isEmpty()) {
             throw new RideHasBookingsException(id);
         }
+        validateMinDepartureNotice(dto.departureTime());
 
         rideMapper.update(existingRide, dto);
         updateStops(existingRide, dto);
@@ -417,6 +423,14 @@ public class RideServiceImpl implements RideService {
         }
         ids.add(dto.destination().osmId());
         return ids;
+    }
+
+    private void validateMinDepartureNotice(Instant departureTime) {
+        Instant earliest = Instant.now().plus(rideProperties.minDepartureNoticeMinutes(), ChronoUnit.MINUTES);
+        if (departureTime.isBefore(earliest)) {
+            throw new IllegalArgumentException(
+                    "Departure must be at least " + rideProperties.minDepartureNoticeMinutes() + " minutes from now");
+        }
     }
 
     private void validateStopTimeOrdering(List<RideStop> stops) {
