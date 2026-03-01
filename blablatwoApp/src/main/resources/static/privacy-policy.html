@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — Vamigo</title>
+    <style>
+        :root {
+            --color-bg: #fafafa;
+            --color-surface: #ffffff;
+            --color-text: #1a1a1a;
+            --color-muted: #555;
+            --color-accent: #00796b;
+            --color-border: #e0e0e0;
+            --max-width: 720px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+        header {
+            background: var(--color-accent);
+            color: #fff;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+        header h1 { font-size: 1.75rem; font-weight: 700; }
+        header p { margin-top: .5rem; opacity: .85; font-size: .95rem; }
+        main {
+            max-width: var(--max-width);
+            margin: 2rem auto;
+            padding: 0 1.5rem 4rem;
+        }
+        section { margin-bottom: 2.5rem; }
+        h2 {
+            font-size: 1.25rem;
+            color: var(--color-accent);
+            margin-bottom: .75rem;
+            padding-bottom: .35rem;
+            border-bottom: 2px solid var(--color-border);
+        }
+        h3 { font-size: 1.05rem; margin: 1rem 0 .5rem; }
+        p, li { margin-bottom: .5rem; }
+        ul, ol { padding-left: 1.5rem; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: .92rem;
+        }
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: .55rem .75rem;
+            text-align: left;
+        }
+        th { background: #f0f0f0; font-weight: 600; }
+        a { color: var(--color-accent); }
+        .effective { font-weight: 600; }
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: .85rem;
+            color: var(--color-muted);
+            border-top: 1px solid var(--color-border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Privacy Policy</h1>
+    <p>Vamigo — Ride-Sharing App</p>
+</header>
+
+<main>
+
+<section>
+    <p class="effective">Effective date: 1 March 2026</p>
+    <p>
+        This Privacy Policy explains how Vamigo ("we", "us", "our") collects, uses, stores, and
+        protects your personal data when you use the Vamigo mobile application and related services
+        (collectively, the "Service"). It applies to all users of the Service, including drivers and passengers.
+    </p>
+    <p>
+        By using the Service you acknowledge that you have read and understood this Privacy Policy.
+        If you do not agree with it, please do not use the Service.
+    </p>
+</section>
+
+<section>
+    <h2>1. Data Controller</h2>
+    <p>
+        The data controller responsible for your personal data is:
+    </p>
+    <ul>
+        <li><strong>Operator:</strong> Marek Kwiatkowski</li>
+        <li><strong>Email:</strong> <a href="mailto:support@vamigo.app">support@vamigo.app</a></li>
+        <li><strong>Website:</strong> <a href="https://vamigo.app">https://vamigo.app</a></li>
+    </ul>
+</section>
+
+<section>
+    <h2>2. Personal Data We Collect</h2>
+
+    <h3>2.1 Account &amp; Profile Data</h3>
+    <p>When you register or sign in, we collect:</p>
+    <ul>
+        <li>Email address</li>
+        <li>Password (stored only as a bcrypt hash; we never store or see your plaintext password)</li>
+        <li>Display name</li>
+        <li>Phone number (optional, provided by you)</li>
+        <li>Profile photo / avatar (optional, uploaded by you)</li>
+        <li>Short biography (optional)</li>
+    </ul>
+
+    <h3>2.2 Google Sign-In Data</h3>
+    <p>
+        If you choose to sign in with Google, we receive the following from Google via OAuth:
+    </p>
+    <ul>
+        <li>Email address</li>
+        <li>Display name</li>
+        <li>Profile photo URL</li>
+        <li>Google account identifier (used solely to link your Google account to your Vamigo account)</li>
+    </ul>
+    <p>
+        We do not access your Google contacts, calendar, Drive, or any data beyond the basic
+        profile scopes (<code>email</code> and <code>profile</code>). We do not sell or share
+        Google-derived data with third parties for advertising or marketing purposes.
+    </p>
+
+    <h3>2.3 Ride &amp; Booking Data</h3>
+    <ul>
+        <li>Ride details: origin, destination, intermediate stops, departure times, available seats, price</li>
+        <li>Seat requests: origin, destination, departure time, number of seats needed, offered price</li>
+        <li>Booking records: which ride you booked, boarding and alighting stops, seat count, proposed price, booking status</li>
+    </ul>
+
+    <h3>2.4 Location Data</h3>
+    <p>
+        We process location data (city names and geographic coordinates) that you provide when creating
+        or searching for rides. This data comes from the <strong>Photon geocoding service</strong>
+        (based on OpenStreetMap) and is used to match riders with drivers.
+    </p>
+    <p>
+        We do <strong>not</strong> collect background location data from your device. Location data
+        is only processed when you actively search for or create a ride within the app.
+    </p>
+
+    <h3>2.5 Messages</h3>
+    <p>
+        When you use in-app messaging, we store the content of your messages, delivery status,
+        and read receipts to provide the chat functionality.
+    </p>
+
+    <h3>2.6 Reviews &amp; Reports</h3>
+    <ul>
+        <li><strong>Reviews:</strong> Star ratings (1–5), text comments, and descriptive tags you leave after a completed ride.</li>
+        <li><strong>Reports:</strong> If you report another user or content, we store the report reason, your comment, and the reference to the reported content.</li>
+    </ul>
+
+    <h3>2.7 Vehicle Data</h3>
+    <p>
+        If you offer rides as a driver, you may add vehicle information: make, model, production year,
+        color, and license plate number.
+    </p>
+
+    <h3>2.8 Device &amp; Technical Data</h3>
+    <ul>
+        <li><strong>Push notification token:</strong> A Firebase Cloud Messaging (FCM) device token used to deliver push notifications. We store the token and your device platform (Android/iOS).</li>
+        <li><strong>Authentication tokens:</strong> JWT access and refresh tokens stored securely on your device (Keychain / Keystore).</li>
+    </ul>
+</section>
+
+<section>
+    <h2>3. Purposes and Legal Bases for Processing</h2>
+    <p>We process your personal data for the following purposes:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Purpose</th>
+                <th>Data Used</th>
+                <th>Legal Basis (GDPR)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Account creation and authentication</td>
+                <td>Email, password hash, Google ID, name</td>
+                <td>Contract performance (Art. 6(1)(b))</td>
+            </tr>
+            <tr>
+                <td>Providing the ride-sharing service (ride matching, bookings)</td>
+                <td>Ride details, locations, booking data</td>
+                <td>Contract performance (Art. 6(1)(b))</td>
+            </tr>
+            <tr>
+                <td>In-app messaging between users</td>
+                <td>Message content, delivery/read status</td>
+                <td>Contract performance (Art. 6(1)(b))</td>
+            </tr>
+            <tr>
+                <td>Push notifications (booking updates, new messages, reminders)</td>
+                <td>FCM device token, notification content</td>
+                <td>Legitimate interest (Art. 6(1)(f))</td>
+            </tr>
+            <tr>
+                <td>Email notifications (email verification, ride reminders)</td>
+                <td>Email address, name</td>
+                <td>Contract performance / Legitimate interest</td>
+            </tr>
+            <tr>
+                <td>Trust and safety (reviews, ratings, reports)</td>
+                <td>Reviews, reports, user statistics</td>
+                <td>Legitimate interest (Art. 6(1)(f))</td>
+            </tr>
+            <tr>
+                <td>Fraud prevention and account security</td>
+                <td>Google ID, email, authentication logs</td>
+                <td>Legitimate interest (Art. 6(1)(f))</td>
+            </tr>
+            <tr>
+                <td>Legal compliance</td>
+                <td>Any data as required by law</td>
+                <td>Legal obligation (Art. 6(1)(c))</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section>
+    <h2>4. Third-Party Services &amp; Data Recipients</h2>
+    <p>We use the following third-party services to operate Vamigo:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Provider</th>
+                <th>Purpose</th>
+                <th>Data Shared</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Google Sign-In (OAuth)</td>
+                <td>Google LLC (USA)</td>
+                <td>User authentication</td>
+                <td>Google ID token (email, name, photo)</td>
+            </tr>
+            <tr>
+                <td>Firebase Cloud Messaging</td>
+                <td>Google LLC (USA)</td>
+                <td>Push notifications</td>
+                <td>Device token, notification payload</td>
+            </tr>
+            <tr>
+                <td>Brevo (formerly Sendinblue)</td>
+                <td>Brevo SAS (France)</td>
+                <td>Transactional email delivery</td>
+                <td>Email address, name</td>
+            </tr>
+            <tr>
+                <td>Photon Geocoding</td>
+                <td>Self-hosted (OpenStreetMap data)</td>
+                <td>Location search and geocoding</td>
+                <td>Search queries (city names, coordinates)</td>
+            </tr>
+            <tr>
+                <td>S3-compatible storage</td>
+                <td>Self-hosted</td>
+                <td>Avatar / profile photo storage</td>
+                <td>Uploaded image files</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>
+        We do <strong>not</strong> sell your personal data to any third party. We do not share your data
+        with third parties for their own marketing or advertising purposes.
+    </p>
+</section>
+
+<section>
+    <h2>5. International Data Transfers</h2>
+    <p>
+        Some of our third-party providers (Google LLC) are based in the United States. When your data
+        is transferred outside the European Economic Area (EEA), it is protected by appropriate safeguards,
+        including the EU-U.S. Data Privacy Framework and Standard Contractual Clauses (SCCs) as applicable.
+    </p>
+</section>
+
+<section>
+    <h2>6. Data Retention</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Data Category</th>
+                <th>Retention Period</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Account &amp; profile data</td>
+                <td>Until you delete your account</td>
+            </tr>
+            <tr>
+                <td>Ride, seat, and booking data</td>
+                <td>Until you delete your account</td>
+            </tr>
+            <tr>
+                <td>Messages</td>
+                <td>Until you delete your account</td>
+            </tr>
+            <tr>
+                <td>Reviews you authored</td>
+                <td>Retained after account deletion for community trust and safety</td>
+            </tr>
+            <tr>
+                <td>Reports</td>
+                <td>Retained for moderation and legal compliance</td>
+            </tr>
+            <tr>
+                <td>Read notifications</td>
+                <td>Automatically deleted 90 days after being read</td>
+            </tr>
+            <tr>
+                <td>Email verification tokens</td>
+                <td>Expire and are deleted after 24 hours</td>
+            </tr>
+            <tr>
+                <td>FCM device tokens</td>
+                <td>Deleted on logout or when the token becomes invalid</td>
+            </tr>
+            <tr>
+                <td>Vehicle data</td>
+                <td>Until you delete your account</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section>
+    <h2>7. Data Security</h2>
+    <p>We implement appropriate technical and organizational measures to protect your personal data, including:</p>
+    <ul>
+        <li><strong>Encryption in transit:</strong> All communication between the app and our servers is encrypted using TLS/SSL (HTTPS).</li>
+        <li><strong>Password hashing:</strong> Passwords are hashed with bcrypt before storage. We never store plaintext passwords.</li>
+        <li><strong>Token security:</strong> Authentication tokens are stored in your device's secure storage (Keychain on iOS, Keystore on Android).</li>
+        <li><strong>Access control:</strong> Role-based access controls limit who can access your data within our systems.</li>
+        <li><strong>Stateless authentication:</strong> We use short-lived JWT tokens to minimize the impact of token compromise.</li>
+    </ul>
+</section>
+
+<section>
+    <h2>8. Your Rights (GDPR)</h2>
+    <p>If you are located in the European Economic Area (EEA), you have the following rights under the GDPR:</p>
+    <ul>
+        <li><strong>Right of access</strong> — You can request a copy of the personal data we hold about you.</li>
+        <li><strong>Right to rectification</strong> — You can ask us to correct inaccurate or incomplete data. You can also update most of your data directly within the app.</li>
+        <li><strong>Right to erasure ("right to be forgotten")</strong> — You can request deletion of your account and associated data (see Section 9).</li>
+        <li><strong>Right to restriction of processing</strong> — You can ask us to temporarily limit how we use your data.</li>
+        <li><strong>Right to data portability</strong> — You can request your data in a structured, commonly used, machine-readable format.</li>
+        <li><strong>Right to object</strong> — You can object to processing based on legitimate interest.</li>
+        <li><strong>Right to withdraw consent</strong> — Where processing is based on consent, you can withdraw it at any time without affecting the lawfulness of prior processing.</li>
+    </ul>
+    <p>
+        To exercise any of these rights, contact us at
+        <a href="mailto:support@vamigo.app">support@vamigo.app</a>.
+        We will respond within 30 days.
+    </p>
+    <p>
+        You also have the right to lodge a complaint with your local data protection supervisory authority.
+    </p>
+</section>
+
+<section>
+    <h2>9. Account &amp; Data Deletion</h2>
+    <p>
+        You can delete your account at any time from within the app (Settings &rarr; Delete Account)
+        or by contacting us at <a href="mailto:support@vamigo.app">support@vamigo.app</a>.
+    </p>
+    <p>When you delete your account, we permanently delete:</p>
+    <ul>
+        <li>Your profile data (name, email, phone number, avatar, bio)</li>
+        <li>Your authentication credentials and linked Google account data</li>
+        <li>All rides and seat requests you created</li>
+        <li>All bookings where you were a passenger</li>
+        <li>All your conversations and messages</li>
+        <li>All your vehicles</li>
+        <li>All your notifications</li>
+        <li>All email verification tokens</li>
+        <li>All registered device tokens</li>
+    </ul>
+    <p>
+        <strong>Exceptions:</strong> Published reviews and moderation reports may be retained in anonymized
+        form for community safety and legal compliance purposes.
+    </p>
+</section>
+
+<section>
+    <h2>10. Children's Privacy</h2>
+    <p>
+        The Service is not intended for children under the age of 16. We do not knowingly collect
+        personal data from children under 16. If we become aware that we have collected data from a
+        child under 16, we will delete it promptly. If you believe a child has provided us with personal
+        data, please contact us at <a href="mailto:support@vamigo.app">support@vamigo.app</a>.
+    </p>
+</section>
+
+<section>
+    <h2>11. Changes to This Policy</h2>
+    <p>
+        We may update this Privacy Policy from time to time. If we make material changes, we will
+        notify you through the app or by email before the changes take effect. The "Effective date"
+        at the top of this page indicates when this policy was last revised.
+    </p>
+    <p>
+        We encourage you to review this page periodically to stay informed about how we protect your data.
+    </p>
+</section>
+
+<section>
+    <h2>12. Contact Us</h2>
+    <p>
+        If you have any questions about this Privacy Policy, your personal data, or wish to exercise
+        your rights, please contact us:
+    </p>
+    <ul>
+        <li><strong>Email:</strong> <a href="mailto:support@vamigo.app">support@vamigo.app</a></li>
+    </ul>
+</section>
+
+</main>
+
+<footer>
+    &copy; 2026 Vamigo. All rights reserved.
+</footer>
+
+</body>
+</html>

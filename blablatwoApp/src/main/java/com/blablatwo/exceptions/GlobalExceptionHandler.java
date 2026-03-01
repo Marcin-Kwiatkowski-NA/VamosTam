@@ -13,8 +13,12 @@ import com.blablatwo.review.exception.BookingNotReviewableException;
 import com.blablatwo.review.exception.ReviewAlreadySubmittedException;
 import com.blablatwo.review.exception.ReviewDeadlinePassedException;
 import com.blablatwo.review.exception.ReviewNotAllowedException;
+import com.blablatwo.user.exception.AvatarKeyMismatchException;
+import com.blablatwo.user.exception.AvatarNotUploadedException;
 import com.blablatwo.user.exception.DuplicateEmailException;
+import com.blablatwo.user.exception.InvalidAvatarContentTypeException;
 import com.blablatwo.user.exception.NoSuchUserException;
+import com.blablatwo.user.exception.StorageUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,5 +172,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AlreadyReportedException.class)
     public ProblemDetail handleAlreadyReportedException(HttpServletRequest request, AlreadyReportedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(AvatarKeyMismatchException.class)
+    public ProblemDetail handleAvatarKeyMismatchException(HttpServletRequest request, AvatarKeyMismatchException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidAvatarContentTypeException.class)
+    public ProblemDetail handleInvalidAvatarContentTypeException(HttpServletRequest request, InvalidAvatarContentTypeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage());
+    }
+
+    @ExceptionHandler(AvatarNotUploadedException.class)
+    public ProblemDetail handleAvatarNotUploadedException(HttpServletRequest request, AvatarNotUploadedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(StorageUnavailableException.class)
+    public ProblemDetail handleStorageUnavailableException(HttpServletRequest request, StorageUnavailableException ex) {
+        LOGGER.error("Storage service unavailable", ex);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Storage service is temporarily unavailable. Please try again later.");
     }
 }

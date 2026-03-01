@@ -1,25 +1,38 @@
 package com.blablatwo.user;
 
+import com.blablatwo.config.StorageProperties;
 import com.blablatwo.user.dto.UserProfileDto;
 import com.blablatwo.user.dto.UserStatsDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 @Mapper(componentModel = "spring")
-public interface UserProfileMapper {
+public abstract class UserProfileMapper {
+
+    @Autowired
+    private StorageProperties storageProperties;
 
     @Mapping(target = "id", source = "account.id")
     @Mapping(target = "email", source = "account.email")
     @Mapping(target = "status", source = "account.status")
     @Mapping(target = "stats", source = "profile.stats", qualifiedByName = "toStatsDto")
-    UserProfileDto toDto(UserAccount account, UserProfile profile);
+    @Mapping(target = "avatarUrl", expression = "java(deriveAvatarUrl(profile))")
+    public abstract UserProfileDto toDto(UserAccount account, UserProfile profile);
+
+    String deriveAvatarUrl(UserProfile profile) {
+        if (profile.getAvatarObjectKey() != null) {
+            return storageProperties.publicUrlBase() + "/" + profile.getAvatarObjectKey();
+        }
+        return profile.getAvatarUrl();
+    }
 
     @Named("toStatsDto")
-    default UserStatsDto toStatsDto(UserStats stats) {
+    UserStatsDto toStatsDto(UserStats stats) {
         if (stats == null) {
             return new UserStatsDto(0, 0, null, 0);
         }

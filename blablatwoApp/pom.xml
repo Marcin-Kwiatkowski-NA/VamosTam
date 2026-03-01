@@ -145,6 +145,12 @@
             <artifactId>firebase-admin</artifactId>
             <version>9.7.1</version>
         </dependency>
+
+        <!-- S3-compatible storage (Garage) -->
+        <dependency>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter-s3</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
