@@ -90,7 +90,7 @@ public class UserAccountService {
     }
 
     @Transactional
-    public UserAccount createOrUpdateGoogleUser(String email, String googleId, String name, String pictureUrl) {
+    public UserAccount createOrUpdateGoogleUser(String email, String googleId, String name) {
         String normalizedEmail = email.toLowerCase();
 
         // Check if user exists by googleId
@@ -98,13 +98,6 @@ public class UserAccountService {
         if (existingByGoogleId.isPresent()) {
             UserAccount account = existingByGoogleId.get();
             account.setEmailVerifiedAt(Instant.now());
-
-            // Update profile picture if changed
-            userProfileRepository.findById(account.getId()).ifPresent(profile -> {
-                if (pictureUrl != null && !pictureUrl.equals(profile.getAvatarUrl())) {
-                    profile.setAvatarUrl(pictureUrl);
-                }
-            });
 
             return userAccountRepository.save(account);
         }
@@ -117,13 +110,6 @@ public class UserAccountService {
             account.addProvider(AuthProvider.GOOGLE);
             account.setGoogleId(googleId);
             account.setEmailVerifiedAt(Instant.now());
-
-            // Update profile picture if not set
-            userProfileRepository.findById(account.getId()).ifPresent(profile -> {
-                if (profile.getAvatarUrl() == null && pictureUrl != null) {
-                    profile.setAvatarUrl(pictureUrl);
-                }
-            });
 
             return userAccountRepository.save(account);
         }
@@ -149,7 +135,6 @@ public class UserAccountService {
         UserProfile profile = UserProfile.builder()
                 .account(savedAccount)
                 .displayName(name)
-                .avatarUrl(pictureUrl)
                 .stats(new UserStats())
                 .build();
 

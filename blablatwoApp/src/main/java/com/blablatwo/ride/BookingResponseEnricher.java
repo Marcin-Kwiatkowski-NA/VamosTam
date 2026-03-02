@@ -5,6 +5,7 @@ import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.location.LocationMapper;
 import com.blablatwo.ride.dto.BookingResponseDto;
 import com.blablatwo.ride.dto.RideSummaryDto;
+import com.blablatwo.user.AvatarUrlResolver;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfile;
@@ -34,19 +35,22 @@ public class BookingResponseEnricher {
     private final VehicleMapper vehicleMapper;
     private final PersonDisplayNameResolver displayNameResolver;
     private final LocationMapper locationMapper;
+    private final AvatarUrlResolver avatarUrlResolver;
 
     public BookingResponseEnricher(UserProfileRepository userProfileRepository,
                                     UserAccountRepository userAccountRepository,
                                     VehicleRepository vehicleRepository,
                                     VehicleMapper vehicleMapper,
                                     PersonDisplayNameResolver displayNameResolver,
-                                    LocationMapper locationMapper) {
+                                    LocationMapper locationMapper,
+                                    AvatarUrlResolver avatarUrlResolver) {
         this.userProfileRepository = userProfileRepository;
         this.userAccountRepository = userAccountRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.displayNameResolver = displayNameResolver;
         this.locationMapper = locationMapper;
+        this.avatarUrlResolver = avatarUrlResolver;
     }
 
     public BookingResponseDto enrich(RideBooking booking, BookingResponseDto dto) {
@@ -148,7 +152,7 @@ public class BookingResponseEnricher {
                                        List<VehicleResponseDto> vehicles) {
         String name = displayNameResolver.resolveInternal(profile, id);
 
-        String avatarUrl = null;
+        String avatarUrl = avatarUrlResolver.resolve(profile);
         String bio = null;
         boolean emailVerified = false;
         boolean phoneVerified = false;
@@ -158,7 +162,6 @@ public class BookingResponseEnricher {
         Double rating = null;
 
         if (profile != null) {
-            avatarUrl = profile.getAvatarUrl();
             bio = profile.getBio();
             UserStats stats = profile.getStats();
             if (stats != null) {

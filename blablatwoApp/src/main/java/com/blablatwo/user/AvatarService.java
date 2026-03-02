@@ -127,7 +127,6 @@ public class AvatarService {
         String oldKey = profile.getAvatarObjectKey();
 
         profile.setAvatarObjectKey(objectKey);
-        profile.setAvatarUrl(null); // clear legacy Google OAuth URL
         userProfileRepository.save(profile);
 
         // Async-delete old avatar if it existed
@@ -147,7 +146,6 @@ public class AvatarService {
         String oldKey = profile.getAvatarObjectKey();
 
         profile.setAvatarObjectKey(null);
-        profile.setAvatarUrl(null);
         userProfileRepository.save(profile);
 
         if (oldKey != null) {

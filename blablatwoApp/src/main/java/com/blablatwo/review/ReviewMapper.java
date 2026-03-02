@@ -1,6 +1,7 @@
 package com.blablatwo.review;
 
 import com.blablatwo.review.dto.ReviewResponseDto;
+import com.blablatwo.user.AvatarUrlResolver;
 import com.blablatwo.user.UserProfile;
 import com.blablatwo.user.UserProfileRepository;
 import org.springframework.stereotype.Component;
@@ -9,9 +10,12 @@ import org.springframework.stereotype.Component;
 public class ReviewMapper {
 
     private final UserProfileRepository userProfileRepository;
+    private final AvatarUrlResolver avatarUrlResolver;
 
-    public ReviewMapper(UserProfileRepository userProfileRepository) {
+    public ReviewMapper(UserProfileRepository userProfileRepository,
+                        AvatarUrlResolver avatarUrlResolver) {
         this.userProfileRepository = userProfileRepository;
+        this.avatarUrlResolver = avatarUrlResolver;
     }
 
     public ReviewResponseDto toDto(Review review) {
@@ -19,7 +23,7 @@ public class ReviewMapper {
                 .orElse(null);
 
         String authorName = authorProfile != null ? authorProfile.getDisplayName() : "User";
-        String authorAvatarUrl = authorProfile != null ? authorProfile.getAvatarUrl() : null;
+        String authorAvatarUrl = avatarUrlResolver.resolve(authorProfile);
 
         return ReviewResponseDto.builder()
                 .id(review.getId())

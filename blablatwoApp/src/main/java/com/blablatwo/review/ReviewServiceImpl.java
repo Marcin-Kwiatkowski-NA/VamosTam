@@ -15,6 +15,7 @@ import com.blablatwo.ride.BookingStatus;
 import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideBooking;
 import com.blablatwo.ride.RideBookingRepository;
+import com.blablatwo.user.AvatarUrlResolver;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserProfile;
 import com.blablatwo.user.UserProfileRepository;
@@ -45,6 +46,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final PersonDisplayNameResolver displayNameResolver;
     private final ReviewMapper reviewMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final AvatarUrlResolver avatarUrlResolver;
 
     public ReviewServiceImpl(@Value("${review.publish-delay-days}") int publishDelayDays,
                              ReviewRepository reviewRepository,
@@ -52,7 +54,8 @@ public class ReviewServiceImpl implements ReviewService {
                              UserProfileRepository userProfileRepository,
                              PersonDisplayNameResolver displayNameResolver,
                              ReviewMapper reviewMapper,
-                             ApplicationEventPublisher eventPublisher) {
+                             ApplicationEventPublisher eventPublisher,
+                             AvatarUrlResolver avatarUrlResolver) {
         this.revealDelay = Duration.ofDays(publishDelayDays);
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
@@ -60,6 +63,7 @@ public class ReviewServiceImpl implements ReviewService {
         this.displayNameResolver = displayNameResolver;
         this.reviewMapper = reviewMapper;
         this.eventPublisher = eventPublisher;
+        this.avatarUrlResolver = avatarUrlResolver;
     }
 
     @Override
@@ -192,7 +196,7 @@ public class ReviewServiceImpl implements ReviewService {
 
             UserProfile peerProfile = userProfileRepository.findById(peerId).orElse(null);
             String peerName = peerProfile != null ? peerProfile.getDisplayName() : "User";
-            String peerAvatarUrl = peerProfile != null ? peerProfile.getAvatarUrl() : null;
+            String peerAvatarUrl = avatarUrlResolver.resolve(peerProfile);
 
             result.add(PendingReviewDto.builder()
                     .bookingId(booking.getId())

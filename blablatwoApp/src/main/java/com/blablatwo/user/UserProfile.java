@@ -30,9 +30,6 @@ public class UserProfile {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    @Column(name = "avatar_url", length = 500)
-    private String avatarUrl;
-
     @Column(name = "avatar_object_key", length = 300)
     private String avatarObjectKey;
 

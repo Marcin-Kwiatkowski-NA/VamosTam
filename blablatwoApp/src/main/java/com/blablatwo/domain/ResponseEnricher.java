@@ -5,6 +5,7 @@ import com.blablatwo.dto.ContactMethodFactory;
 import com.blablatwo.dto.UserCardDto;
 import com.blablatwo.ride.RideSource;
 import com.blablatwo.user.UserAccount;
+import com.blablatwo.user.AvatarUrlResolver;
 import com.blablatwo.user.UserAccountRepository;
 import com.blablatwo.user.UserProfile;
 import com.blablatwo.user.UserProfileRepository;
@@ -35,19 +36,22 @@ public class ResponseEnricher {
     private final VehicleMapper vehicleMapper;
     private final ContactMethodFactory contactMethodFactory;
     private final PersonDisplayNameResolver displayNameResolver;
+    private final AvatarUrlResolver avatarUrlResolver;
 
     public ResponseEnricher(UserProfileRepository userProfileRepository,
                             UserAccountRepository userAccountRepository,
                             VehicleRepository vehicleRepository,
                             VehicleMapper vehicleMapper,
                             ContactMethodFactory contactMethodFactory,
-                            PersonDisplayNameResolver displayNameResolver) {
+                            PersonDisplayNameResolver displayNameResolver,
+                            AvatarUrlResolver avatarUrlResolver) {
         this.userProfileRepository = userProfileRepository;
         this.userAccountRepository = userAccountRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.contactMethodFactory = contactMethodFactory;
         this.displayNameResolver = displayNameResolver;
+        this.avatarUrlResolver = avatarUrlResolver;
     }
 
     @FunctionalInterface
@@ -170,7 +174,7 @@ public class ResponseEnricher {
 
         name = displayNameResolver.resolveInternal(profile, id);
 
-        String avatarUrl = null;
+        String avatarUrl = avatarUrlResolver.resolve(profile);
         String bio = null;
         boolean emailVerified = false;
         boolean phoneVerified = false;
@@ -180,7 +184,6 @@ public class ResponseEnricher {
         Double rating = null;
 
         if (profile != null) {
-            avatarUrl = profile.getAvatarUrl();
             bio = profile.getBio();
 
             UserStats stats = profile.getStats();

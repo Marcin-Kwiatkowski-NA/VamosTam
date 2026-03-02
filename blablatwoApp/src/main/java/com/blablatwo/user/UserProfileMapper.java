@@ -28,7 +28,7 @@ public abstract class UserProfileMapper {
         if (profile.getAvatarObjectKey() != null) {
             return storageProperties.publicUrlBase() + "/" + profile.getAvatarObjectKey();
         }
-        return profile.getAvatarUrl();
+        return null;
     }
 
     @Named("toStatsDto")

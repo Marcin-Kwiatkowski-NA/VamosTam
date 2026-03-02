@@ -112,9 +112,8 @@ public class AuthService {
         String email = payload.getEmail();
         String googleId = payload.getSubject();
         String name = (String) payload.get("name");
-        String pictureUrl = (String) payload.get("picture");
 
-        UserAccount account = userAccountService.createOrUpdateGoogleUser(email, googleId, name, pictureUrl);
+        UserAccount account = userAccountService.createOrUpdateGoogleUser(email, googleId, name);
         return buildAuthResponse(account);
     }
 

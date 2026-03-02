@@ -10,6 +10,7 @@ import com.blablatwo.ride.Ride;
 import com.blablatwo.ride.RideRepository;
 import com.blablatwo.seat.Seat;
 import com.blablatwo.seat.SeatRepository;
+import com.blablatwo.user.AvatarUrlResolver;
 import com.blablatwo.user.UserAccount;
 import com.blablatwo.user.UserProfile;
 import com.blablatwo.user.UserProfileRepository;
@@ -29,13 +30,16 @@ public class ConversationDtoBuilder {
     private final UserProfileRepository userProfileRepository;
     private final RideRepository rideRepository;
     private final SeatRepository seatRepository;
+    private final AvatarUrlResolver avatarUrlResolver;
 
     public ConversationDtoBuilder(UserProfileRepository userProfileRepository,
                                    RideRepository rideRepository,
-                                   SeatRepository seatRepository) {
+                                   SeatRepository seatRepository,
+                                   AvatarUrlResolver avatarUrlResolver) {
         this.userProfileRepository = userProfileRepository;
         this.rideRepository = rideRepository;
         this.seatRepository = seatRepository;
+        this.avatarUrlResolver = avatarUrlResolver;
     }
 
     public ConversationResponseDto toResponseDto(Conversation conversation, Long viewerId) {
@@ -136,17 +140,14 @@ public class ConversationDtoBuilder {
         UserProfile profile = userProfileRepository.findById(user.getId()).orElse(null);
 
         String displayName;
-        String avatarUrl = null;
-
         if (profile != null) {
             displayName = (profile.getDisplayName() != null && !profile.getDisplayName().isBlank())
                     ? profile.getDisplayName()
                     : user.getEmail().split("@")[0];
-            avatarUrl = profile.getAvatarUrl();
         } else {
             displayName = user.getEmail().split("@")[0];
         }
 
-        return new PeerUserDto(user.getId(), displayName, avatarUrl);
+        return new PeerUserDto(user.getId(), displayName, avatarUrlResolver.resolve(profile));
     }
 }
