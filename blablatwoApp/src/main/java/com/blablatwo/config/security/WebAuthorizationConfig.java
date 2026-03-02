@@ -114,7 +114,8 @@ public class WebAuthorizationConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("https://vamigo.app", "https://ac.vamigo.app", "http://localhost:*"));
+        configuration.setAllowedOriginPatterns(List.of("https://vamigo.app", "https://ac.vamigo.app",
+                "https://s3.vamigo.app", "https://storage.vamigo.app", "http://localhost:*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
