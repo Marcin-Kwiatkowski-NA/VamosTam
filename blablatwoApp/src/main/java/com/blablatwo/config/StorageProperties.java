@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record StorageProperties(
         String bucket,
         String publicUrlBase,
-        String internalS3Endpoint,
         int avatarPresignTtlMinutes,
         long avatarMaxSizeBytes
 ) {}

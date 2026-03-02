@@ -20,13 +20,13 @@ public class StorageConfig {
 
     @Bean
     S3Client s3Client(
-            StorageProperties storageProperties,
+            @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.s3.endpoint}") String endpoint,
             @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.access-key}") String accessKey,
             @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.secret-key}") String secretKey,
             @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.region.static}") String region
     ) {
         return S3Client.builder()
-                .endpointOverride(URI.create(storageProperties.internalS3Endpoint()))
+                .endpointOverride(URI.create(endpoint))
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
