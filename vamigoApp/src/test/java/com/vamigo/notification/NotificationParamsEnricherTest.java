@@ -1,0 +1,264 @@
+package com.vamigo.notification;
+
+import com.vamigo.domain.PersonDisplayNameResolver;
+import com.vamigo.location.Location;
+import com.vamigo.messaging.Conversation;
+import com.vamigo.ride.Ride;
+import com.vamigo.ride.RideBooking;
+import com.vamigo.ride.RideBookingRepository;
+import com.vamigo.ride.RideRepository;
+import com.vamigo.ride.RideStop;
+import com.vamigo.user.UserProfile;
+import com.vamigo.user.UserProfileRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class NotificationParamsEnricherTest {
+
+    @Mock private RideBookingRepository bookingRepository;
+    @Mock private RideRepository rideRepository;
+    @Mock private UserProfileRepository userProfileRepository;
+    @Mock private PersonDisplayNameResolver displayNameResolver;
+    @InjectMocks private NotificationParamsEnricher enricher;
+
+    private Location krakowLocation;
+    private Location warsawLocation;
+
+    @BeforeEach
+    void setUp() {
+        krakowLocation = Location.builder().namePl("Kraków").nameEn("Krakow").build();
+        warsawLocation = Location.builder().namePl("Warszawa").nameEn("Warsaw").build();
+    }
+
+    private Ride rideWithStops(Long rideId) {
+        var originStop = RideStop.builder().stopOrder(0).location(krakowLocation).build();
+        var destStop = RideStop.builder().stopOrder(1).location(warsawLocation).build();
+        var ride = Ride.builder().stops(List.of(originStop, destStop)).build();
+        ride.setId(rideId);
+        return ride;
+    }
+
+    private RideBooking bookingWithRide(Long bookingId, Ride ride) {
+        var booking = RideBooking.builder().ride(ride).build();
+        booking.setId(bookingId);
+        return booking;
+    }
+
+    private void mockCounterpartyName(Long userId, String name) {
+        var profile = UserProfile.builder().displayName(name).build();
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(profile));
+        when(displayNameResolver.resolveInternal(profile, userId)).thenReturn(name);
+    }
+
+    @Nested
+    @DisplayName("enrichBooking()")
+    class EnrichBooking {
+
+        @Test
+        @DisplayName("should include route, counterparty name, and deep link for driver")
+        void enrichesBookingForDriver() {
+            Ride ride = rideWithStops(42L);
+            RideBooking booking = bookingWithRide(10L, ride);
+            when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.of(booking));
+            mockCounterpartyName(2L, "Jan");
+
+            var result = enricher.enrichBooking(10L, 42L, 2L,
+                    NotificationType.BOOKING_REQUESTED, 1L, 1L, null);
+
+            assertEquals("r-42", result.offerKey());
+            assertEquals("Krakow", result.origin());
+            assertEquals("Warsaw", result.destination());
+            assertEquals("Jan", result.counterpartyName());
+            assertEquals("/my-offer/r-42", result.deepLink());
+            assertEquals("10", result.bookingId());
+            assertNull(result.reason());
+        }
+
+        @Test
+        @DisplayName("should use /offer deep link for passenger")
+        void deepLinkForPassenger() {
+            Ride ride = rideWithStops(42L);
+            RideBooking booking = bookingWithRide(10L, ride);
+            when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.of(booking));
+            mockCounterpartyName(1L, "Driver");
+
+            var result = enricher.enrichBooking(10L, 42L, 1L,
+                    NotificationType.BOOKING_CONFIRMED, 2L, 1L, null);
+
+            assertEquals("/offer/r-42", result.deepLink());
+        }
+
+        @Test
+        @DisplayName("should truncate long reason")
+        void truncatesReason() {
+            when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.empty());
+
+            String longReason = "a".repeat(150);
+            var result = enricher.enrichBooking(10L, 42L, 2L,
+                    NotificationType.BOOKING_CANCELLED, 1L, 1L, longReason);
+
+            assertNotNull(result.reason());
+            assertTrue(result.reason().length() <= 100);
+            assertTrue(result.reason().endsWith("..."));
+        }
+
+        @Test
+        @DisplayName("toMap() should only include non-null fields")
+        void toMapExcludesNulls() {
+            when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.empty());
+
+            var result = enricher.enrichBooking(10L, 42L, 2L,
+                    NotificationType.BOOKING_REQUESTED, 1L, 1L, null);
+            Map<String, String> map = result.toMap();
+
+            assertTrue(map.containsKey("offerKey"));
+            assertTrue(map.containsKey("deepLink"));
+            assertFalse(map.containsKey("reason"));
+            assertFalse(map.containsKey("conversationId"));
+        }
+    }
+
+    @Nested
+    @DisplayName("enrichRideCompleted()")
+    class EnrichRideCompleted {
+
+        @Test
+        @DisplayName("should include route and deep link")
+        void enrichesRideCompleted() {
+            Ride ride = rideWithStops(42L);
+            when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));
+
+            var result = enricher.enrichRideCompleted(42L);
+
+            assertEquals("r-42", result.offerKey());
+            assertEquals("Krakow", result.origin());
+            assertEquals("Warsaw", result.destination());
+            assertEquals("/offer/r-42", result.deepLink());
+        }
+
+        @Test
+        @DisplayName("should fall back gracefully when ride not found")
+        void fallsBackWhenRideNotFound() {
+            when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.empty());
+
+            var result = enricher.enrichRideCompleted(42L);
+
+            assertEquals("r-42", result.offerKey());
+            assertNull(result.origin());
+            assertNull(result.destination());
+            assertEquals("/offer/r-42", result.deepLink());
+        }
+    }
+
+    @Nested
+    @DisplayName("enrichChat()")
+    class EnrichChat {
+
+        @Test
+        @DisplayName("should include sender name, route from offerKey, and conversation deep link")
+        void enrichesChat() {
+            var conversation = Conversation.builder()
+                    .topicKey("offer:r-42")
+                    .offerKey("r-42")
+                    .build();
+            conversation.setId(UUID.randomUUID());
+
+            Ride ride = rideWithStops(42L);
+            when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));
+            mockCounterpartyName(5L, "Anna");
+
+            var result = enricher.enrichChat(conversation, 5L);
+
+            assertEquals("r-42", result.offerKey());
+            assertEquals("Krakow", result.origin());
+            assertEquals("Warsaw", result.destination());
+            assertEquals("Anna", result.senderName());
+            assertEquals("/chat/" + conversation.getId(), result.deepLink());
+            assertEquals(conversation.getId().toString(), result.conversationId());
+        }
+    }
+
+    @Nested
+    @DisplayName("enrichReviewReminder()")
+    class EnrichReviewReminder {
+
+        @Test
+        @DisplayName("should include route and counterpartSubmitted flag")
+        void enrichesReviewReminder() {
+            Ride ride = rideWithStops(42L);
+            when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));
+
+            var result = enricher.enrichReviewReminder(42L, 10L, "true");
+
+            assertEquals("r-42", result.offerKey());
+            assertEquals("Krakow", result.origin());
+            assertEquals("Warsaw", result.destination());
+            assertEquals("/offer/r-42", result.deepLink());
+            assertEquals("10", result.bookingId());
+            assertEquals("true", result.counterpartSubmitted());
+        }
+    }
+
+    @Nested
+    @DisplayName("enrichReviewReceived()")
+    class EnrichReviewReceived {
+
+        @Test
+        @DisplayName("should deep link to subject's reviews page")
+        void enrichesReviewReceived() {
+            var result = enricher.enrichReviewReceived(99L, 5L);
+
+            assertEquals("/user/5/reviews", result.deepLink());
+            assertNull(result.offerKey());
+        }
+    }
+
+    @Nested
+    @DisplayName("Static helpers")
+    class StaticHelpers {
+
+        @Test
+        @DisplayName("truncateCity should truncate names over 25 chars")
+        void truncatesLongCity() {
+            String longCity = "a".repeat(30);
+            String result = NotificationParamsEnricher.truncateCity(longCity);
+            assertEquals(25, result.length());
+            assertTrue(result.endsWith("..."));
+        }
+
+        @Test
+        @DisplayName("truncateCity should not truncate short names")
+        void keepsShortCity() {
+            assertEquals("Kraków", NotificationParamsEnricher.truncateCity("Kraków"));
+        }
+
+        @Test
+        @DisplayName("routeLabel should format origin → destination")
+        void routeLabel() {
+            assertEquals("Krakow \u2192 Warsaw",
+                    NotificationParamsEnricher.routeLabel("Krakow", "Warsaw"));
+        }
+
+        @Test
+        @DisplayName("routeLabel should return null when either city is null")
+        void routeLabelNullWhenIncomplete() {
+            assertNull(NotificationParamsEnricher.routeLabel(null, "Warsaw"));
+            assertNull(NotificationParamsEnricher.routeLabel("Krakow", null));
+        }
+    }
+}

@@ -1,0 +1,80 @@
+package com.vamigo.seat;
+
+import com.vamigo.domain.SpatialSpecifications;
+import com.vamigo.domain.Status;
+import com.vamigo.location.Location;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.time.Instant;
+
+public class SeatSpecifications {
+
+    private SeatSpecifications() {
+    }
+
+    public static Specification<Seat> hasStatus(Status status) {
+        return (root, query, cb) ->
+                status == null ? null : cb.equal(root.get("status"), status);
+    }
+
+    public static Specification<Seat> originOsmIdEquals(Long osmId) {
+        return (root, query, cb) ->
+                osmId == null ? null :
+                        cb.equal(root.get("origin").get("osmId"), osmId);
+    }
+
+    public static Specification<Seat> destinationOsmIdEquals(Long osmId) {
+        return (root, query, cb) ->
+                osmId == null ? null :
+                        cb.equal(root.get("destination").get("osmId"), osmId);
+    }
+
+    public static Specification<Seat> departsOnOrAfter(Instant from) {
+        return (root, query, cb) ->
+                from == null ? null : cb.greaterThanOrEqualTo(root.get("departureTime"), from);
+    }
+
+    public static Specification<Seat> departsBefore(Instant to) {
+        return (root, query, cb) ->
+                to == null ? null : cb.lessThan(root.get("departureTime"), to);
+    }
+
+    public static Specification<Seat> countAtMost(Integer maxCount) {
+        return (root, query, cb) ->
+                maxCount == null ? null : cb.lessThanOrEqualTo(root.get("count"), maxCount);
+    }
+
+    public static Specification<Seat> originWithinRadius(Double lat, Double lon, double radiusMeters) {
+        return (root, query, cb) -> {
+            if (lat == null || lon == null) return null;
+            Join<Seat, Location> originJoin = root.join("origin");
+            return SpatialSpecifications.withinRadius(cb, originJoin.get("coordinates"), lon, lat, radiusMeters);
+        };
+    }
+
+    public static Specification<Seat> destinationWithinRadius(Double lat, Double lon, double radiusMeters) {
+        return (root, query, cb) -> {
+            if (lat == null || lon == null) return null;
+            Join<Seat, Location> destJoin = root.join("destination");
+            return SpatialSpecifications.withinRadius(cb, destJoin.get("coordinates"), lon, lat, radiusMeters);
+        };
+    }
+
+    public static Specification<Seat> orderByCombinedDistance(
+            double originLat, double originLon,
+            double destLat, double destLon) {
+        return (root, query, cb) -> {
+            Join<Seat, Location> originJoin = root.join("origin");
+            Join<Seat, Location> destJoin = root.join("destination");
+            Expression<Double> originDist = SpatialSpecifications.stDistance(
+                    cb, originJoin.get("coordinates"), originLon, originLat);
+            Expression<Double> destDist = SpatialSpecifications.stDistance(
+                    cb, destJoin.get("coordinates"), destLon, destLat);
+            query.orderBy(cb.asc(cb.sum(originDist, destDist)));
+            return null;
+        };
+    }
+
+}

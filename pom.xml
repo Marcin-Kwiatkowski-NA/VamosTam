@@ -8,11 +8,11 @@
 		<version>4.0.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.blablatwo</groupId>
-	<artifactId>blablatwo</artifactId>
+	<groupId>com.vamigo</groupId>
+	<artifactId>vamigo</artifactId>
 	<version>0.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>blablatwo</name>
+    <name>vamigo</name>
 	<description>Ride sharing app</description>
 	<url/>
 	<licenses>
@@ -22,7 +22,7 @@
 		<developer/>
 	</developers>
     <modules>
-        <module>blablatwoApp</module>
+        <module>vamigoApp</module>
     </modules>
     <scm>
 		<connection/>

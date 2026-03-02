@@ -41,7 +41,7 @@ GlobalExceptionHandler returns ProblemDetail (RFC 7807).
 ## Package Structure
 
 ```
-com.blablatwo
+com.vamigo
 ├── auth/           → AuthController, AuthService, JWT, email verification, Google OAuth
 ├── config/         → Security, JPA, Caching, Async, WebSocket (STOMP), Firebase
 ├── domain/         → AbstractTrip base class, Status enums, shared utilities

@@ -61,7 +61,7 @@ private RideService rideService;
 
 ### Test Data Constants
 
-Import shared constants: `import static com.blablatwo.util.Constants.*;`
+Import shared constants: `import static com.vamigo.util.Constants.*;`
 
 Provides: `ID_ONE`, `NON_EXISTENT_ID`, city names, test users, etc.
 
@@ -119,5 +119,5 @@ assertThrows(NoSuchRideException.class,
 ## File Locations
 
 - Test config: `src/test/resources/application-test.properties`
-- Constants: `src/test/java/com/blablatwo/util/Constants.java`
-- Base class: `src/test/java/com/blablatwo/AbstractIntegrationTest.java`
+- Constants: `src/test/java/com/vamigo/util/Constants.java`
+- Base class: `src/test/java/com/vamigo/AbstractIntegrationTest.java`

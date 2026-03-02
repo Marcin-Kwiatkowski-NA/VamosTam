@@ -13,6 +13,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl wget && rm -rf /var/lib/apt/lists/*
 
 # Copy the built jar from the build stage
-COPY --from=build /app/blablatwoApp/target/*.jar app.jar
+COPY --from=build /app/vamigoApp/target/*.jar app.jar
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
