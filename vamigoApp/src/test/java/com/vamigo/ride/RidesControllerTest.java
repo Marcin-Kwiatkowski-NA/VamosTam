@@ -146,7 +146,8 @@ class RidesControllerTest {
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId
                 "",      // description
-                true     // autoApprove
+                true,    // autoApprove
+                null     // contactPhone
         );
 
         // Act & Assert
@@ -238,7 +239,8 @@ class RidesControllerTest {
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId
                 "",      // description
-                true     // autoApprove
+                true,    // autoApprove
+                null     // contactPhone
         );
 
         // Act & Assert

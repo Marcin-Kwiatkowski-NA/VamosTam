@@ -151,7 +151,9 @@ public class ResponseEnricher {
             DtoAssembler<D> assembler) {
 
         UserCardDto userCard = buildUserCard(entity, personId, meta, profile, account, vehicles);
-        String phoneNumber = profile != null ? profile.getPhoneNumber() : null;
+        String phoneNumber = entity.getContactPhone() != null
+                ? entity.getContactPhone()
+                : (profile != null ? profile.getPhoneNumber() : null);
         List<ContactMethodDto> contactMethods = contactMethodFactory.buildContactMethods(
                 entity, meta, phoneNumber);
         return assembler.assemble(dto, userCard, contactMethods);

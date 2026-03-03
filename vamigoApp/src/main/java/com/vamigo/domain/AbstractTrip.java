@@ -42,6 +42,10 @@ public abstract class AbstractTrip {
     @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
 
+    @Size(max = 32)
+    @Column(name = "contact_phone", length = 32)
+    private String contactPhone;
+
     @Column(name = "last_modified")
     private Instant lastModified;
 

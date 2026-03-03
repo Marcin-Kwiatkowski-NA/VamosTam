@@ -27,6 +27,7 @@ public record RideResponseDto(
         int totalSeats,
         boolean autoApprove,
         String description,
+        String contactPhone,
         UserCardDto driver,
         List<ContactMethodDto> contactMethods,
         VehicleResponseDto vehicle,

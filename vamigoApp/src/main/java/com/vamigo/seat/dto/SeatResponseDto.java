@@ -22,6 +22,7 @@ public record SeatResponseDto(
         int count,
         BigDecimal priceWillingToPay,
         String description,
+        String contactPhone,
         UserCardDto passenger,
         List<ContactMethodDto> contactMethods,
         SeatStatus seatStatus

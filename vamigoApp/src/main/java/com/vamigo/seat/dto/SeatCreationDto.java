@@ -29,6 +29,9 @@ public record SeatCreationDto(
         BigDecimal priceWillingToPay,
 
         @Size(max = 500, message = "Description cannot exceed 500 characters")
-        String description
+        String description,
+
+        @Size(max = 32, message = "Contact phone cannot exceed 32 characters")
+        String contactPhone
 ) {
 }

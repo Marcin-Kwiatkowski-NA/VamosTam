@@ -41,7 +41,10 @@ public record RideCreationDto(
         @Size(max = 500, message = "Description cannot exceed 500 characters")
         String description,
 
-        boolean autoApprove
+        boolean autoApprove,
+
+        @Size(max = 32, message = "Contact phone cannot exceed 32 characters")
+        String contactPhone
 ) {
     public RideCreationDto {
         // Default autoApprove to true if not explicitly set
