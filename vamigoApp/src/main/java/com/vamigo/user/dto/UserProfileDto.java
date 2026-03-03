@@ -10,5 +10,7 @@ public record UserProfileDto(
     String phoneNumber,
     String avatarUrl,
     String bio,
+    boolean isEmailVerified,
+    boolean isPhoneVerified,
     UserStatsDto stats
 ) {}
