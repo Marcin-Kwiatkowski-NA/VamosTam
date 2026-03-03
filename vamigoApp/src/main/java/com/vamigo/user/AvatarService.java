@@ -13,18 +13,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import software.amazon.awssdk.services.s3.S3Client;
+import org.springframework.web.client.RestClient;
 import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,12 +40,18 @@ public class AvatarService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AvatarService.class);
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final Map<String, String> CONTENT_TYPE_EXTENSIONS = Map.of(
+            "image/jpeg", "jpg",
+            "image/png", "png",
+            "image/webp", "webp"
+    );
 
     private final S3Presigner s3Presigner;
     private final S3Client s3Client;
     private final StorageProperties storageProperties;
     private final UserProfileRepository userProfileRepository;
     private final TaskExecutor avatarCleanupExecutor;
+    private final RestClient avatarDownloadClient;
 
     public AvatarService(
             S3Presigner s3Presigner,
@@ -52,6 +65,61 @@ public class AvatarService {
         this.storageProperties = storageProperties;
         this.userProfileRepository = userProfileRepository;
         this.avatarCleanupExecutor = avatarCleanupExecutor;
+        var requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+        this.avatarDownloadClient = RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
+    }
+
+    @Async
+    public void importAvatarFromUrl(Long userId, String imageUrl) {
+        try {
+            String upscaledUrl = imageUrl.replace("=s96-c", "=s400-c");
+
+            var response = avatarDownloadClient.get()
+                    .uri(upscaledUrl)
+                    .retrieve()
+                    .toEntity(byte[].class);
+
+            byte[] imageBytes = response.getBody();
+            if (imageBytes == null || imageBytes.length == 0) {
+                LOGGER.warn("Empty response downloading avatar for user {}", userId);
+                return;
+            }
+
+            MediaType contentType = response.getHeaders().getContentType();
+            String mimeType = contentType != null ? contentType.getType() + "/" + contentType.getSubtype() : "image/jpeg";
+            String extension = CONTENT_TYPE_EXTENSIONS.getOrDefault(mimeType, "jpg");
+
+            String objectKey = "users/%d/avatar/%s.%s".formatted(userId, UUID.randomUUID(), extension);
+
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(storageProperties.bucket())
+                            .key(objectKey)
+                            .contentType(mimeType)
+                            .build(),
+                    RequestBody.fromBytes(imageBytes)
+            );
+
+            UserProfile profile = userProfileRepository.findById(userId).orElse(null);
+            if (profile == null) {
+                LOGGER.warn("User profile {} not found during avatar import", userId);
+                return;
+            }
+            if (profile.getAvatarObjectKey() != null) {
+                LOGGER.debug("User {} already has avatar, skipping import", userId);
+                return;
+            }
+
+            profile.setAvatarObjectKey(objectKey);
+            userProfileRepository.save(profile);
+            LOGGER.info("Imported Google avatar for user {}: {}", userId, objectKey);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to import avatar from URL for user {}: {}", userId, e.getMessage());
+        }
     }
 
     public AvatarPresignResponse generatePresignedUrl(Long userId, String contentType) {

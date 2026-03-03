@@ -8,6 +8,7 @@ import com.vamigo.auth.event.OnRegistrationCompleteEvent;
 import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
 import com.vamigo.auth.exception.InvalidTokenException;
 import com.vamigo.auth.verification.EmailVerificationService;
+import com.vamigo.user.AvatarService;
 import com.vamigo.user.SecurityUser;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
@@ -42,6 +43,7 @@ public class AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final ApplicationEventPublisher eventPublisher;
     private final EmailVerificationService emailVerificationService;
+    private final AvatarService avatarService;
 
     public AuthService(UserAccountRepository userAccountRepository,
                        UserProfileRepository userProfileRepository,
@@ -50,7 +52,8 @@ public class AuthService {
                        UserProfileMapper userProfileMapper,
                        GoogleTokenVerifier googleTokenVerifier,
                        ApplicationEventPublisher eventPublisher,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       AvatarService avatarService) {
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
         this.userAccountService = userAccountService;
@@ -59,6 +62,7 @@ public class AuthService {
         this.googleTokenVerifier = googleTokenVerifier;
         this.eventPublisher = eventPublisher;
         this.emailVerificationService = emailVerificationService;
+        this.avatarService = avatarService;
     }
 
     public AuthResponse login(LoginRequest request, AuthenticationManager authenticationManager) {
@@ -111,8 +115,17 @@ public class AuthService {
         String email = payload.getEmail();
         String googleId = payload.getSubject();
         String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
 
         UserAccount account = userAccountService.createOrUpdateGoogleUser(email, googleId, name);
+
+        if (pictureUrl != null) {
+            UserProfile profile = userProfileRepository.findById(account.getId()).orElse(null);
+            if (profile != null && profile.getAvatarObjectKey() == null) {
+                avatarService.importAvatarFromUrl(account.getId(), pictureUrl);
+            }
+        }
+
         return buildAuthResponse(account);
     }
 
