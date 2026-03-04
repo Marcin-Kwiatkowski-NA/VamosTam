@@ -1,6 +1,7 @@
 package com.vamigo.exceptions;
 
 import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
+import com.vamigo.contact.ContactRateLimitException;
 import com.vamigo.auth.exception.InvalidTokenException;
 import com.vamigo.auth.exception.VerificationCooldownException;
 import com.vamigo.email.EmailSendException;
@@ -97,6 +98,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(VerificationCooldownException.class)
     public ProblemDetail handleVerificationCooldown(HttpServletRequest request, VerificationCooldownException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(ContactRateLimitException.class)
+    public ProblemDetail handleContactRateLimitException(HttpServletRequest request, ContactRateLimitException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 

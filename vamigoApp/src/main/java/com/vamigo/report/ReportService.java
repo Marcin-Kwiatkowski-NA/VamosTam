@@ -4,5 +4,5 @@ import com.vamigo.report.dto.SubmitReportRequest;
 
 public interface ReportService {
 
-    void submitReport(Long authorId, SubmitReportRequest request);
+    void submitReport(Long authorId, String authorEmail, SubmitReportRequest request);
 }

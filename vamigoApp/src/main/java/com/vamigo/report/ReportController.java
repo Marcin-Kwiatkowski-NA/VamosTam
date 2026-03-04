@@ -23,7 +23,7 @@ public class ReportController {
     public ResponseEntity<Void> submitReport(
             @Valid @RequestBody SubmitReportRequest request,
             @AuthenticationPrincipal AppPrincipal principal) {
-        reportService.submitReport(principal.userId(), request);
+        reportService.submitReport(principal.userId(), principal.email(), request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
