@@ -10,13 +10,16 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
+import java.util.List;
 
 @Service
 public class GoogleTokenVerifier {
 
-    @Value("${app.google.client-id}")
-    private String googleClientId;
+    @Value("${app.google.web-client-id}")
+    private String webClientId;
+
+    @Value("${app.google.android-client-id}")
+    private String androidClientId;
 
     private GoogleIdTokenVerifier verifier;
 
@@ -26,7 +29,7 @@ public class GoogleTokenVerifier {
                 new NetHttpTransport(),
                 GsonFactory.getDefaultInstance()
         )
-                .setAudience(Collections.singletonList(googleClientId))
+                .setAudience(List.of(webClientId, androidClientId))
                 .build();
     }
 
