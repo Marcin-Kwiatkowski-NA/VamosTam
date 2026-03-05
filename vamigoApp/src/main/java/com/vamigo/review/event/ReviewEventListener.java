@@ -48,17 +48,8 @@ public class ReviewEventListener {
             var enriched = enricher.enrichReviewReminder(event.rideId(), event.bookingId(), "true");
             Map<String, String> baseParams = enriched.toMap();
 
-            notificationService.notify(NotificationRequest.builder()
-                    .recipientId(event.subjectId())
-                    .type(NotificationType.REVIEW_REMINDER)
-                    .entityType(EntityType.RIDE)
-                    .entityId(event.rideId().toString())
-                    .params(baseParams)
-                    .collapseKey("review-nudge:" + event.bookingId() + ":" + event.subjectId())
-                    .build());
-
-            // If counterpart also submitted, notify the author that both are in
             if (counterpartAlsoSubmitted) {
+                // Both submitted — notify the author that both reviews are in
                 var bothParams = new LinkedHashMap<>(baseParams);
                 bothParams.remove("counterpartSubmitted");
                 bothParams.put("bothSubmitted", "true");
@@ -70,6 +61,16 @@ public class ReviewEventListener {
                         .entityId(event.rideId().toString())
                         .params(bothParams)
                         .collapseKey("review-both:" + event.bookingId() + ":" + event.authorId())
+                        .build());
+            } else {
+                // Counterpart hasn't reviewed yet — nudge them
+                notificationService.notify(NotificationRequest.builder()
+                        .recipientId(event.subjectId())
+                        .type(NotificationType.REVIEW_REMINDER)
+                        .entityType(EntityType.RIDE)
+                        .entityId(event.rideId().toString())
+                        .params(baseParams)
+                        .collapseKey("review-nudge:" + event.bookingId() + ":" + event.subjectId())
                         .build());
             }
         } catch (Exception e) {
