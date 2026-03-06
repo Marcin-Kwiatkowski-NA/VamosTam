@@ -9,6 +9,6 @@ import java.time.Instant;
 
 public record IntermediateStopDto(
         @NotNull @Valid LocationRef location,
-        @NotNull @Future Instant departureTime
+        @Future Instant departureTime
 ) {
 }
