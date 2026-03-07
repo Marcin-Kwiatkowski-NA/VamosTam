@@ -33,7 +33,7 @@ public class Ride extends AbstractTrip {
 
     private int totalSeats;
 
-    @Column(name = "price_per_seat", precision = 10, scale = 2)
+    @Column(name = "price_per_seat", precision = 6, scale = 2)
     private BigDecimal pricePerSeat;
 
     @ManyToOne

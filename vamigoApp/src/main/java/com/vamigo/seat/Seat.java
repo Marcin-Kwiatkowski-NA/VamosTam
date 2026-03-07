@@ -44,7 +44,7 @@ public class Seat extends AbstractTrip {
 
     private int count;
 
-    @Column(name = "price_willing_to_pay", precision = 10, scale = 2)
+    @Column(name = "price_willing_to_pay", precision = 6, scale = 2)
     private BigDecimal priceWillingToPay;
 
     public SeatStatus computeSeatStatus() {

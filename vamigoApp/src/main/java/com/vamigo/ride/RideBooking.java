@@ -68,7 +68,7 @@ public class RideBooking {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
-    @Column(name = "proposed_price", precision = 10, scale = 2)
+    @Column(name = "proposed_price", precision = 6, scale = 2)
     private BigDecimal proposedPrice;
 
     @Column(name = "cancellation_reason", length = 500)

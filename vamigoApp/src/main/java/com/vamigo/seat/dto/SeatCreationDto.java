@@ -2,6 +2,8 @@ package com.vamigo.seat.dto;
 
 import com.vamigo.location.LocationRef;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -26,6 +28,8 @@ public record SeatCreationDto(
         @Min(value = 1, message = "Count must be at least 1")
         int count,
 
+        @DecimalMin(value = "0.0", inclusive = true, message = "Price cannot be negative")
+        @DecimalMax(value = "9999.99", inclusive = true, message = "Price cannot exceed 9999.99")
         BigDecimal priceWillingToPay,
 
         @Size(max = 500, message = "Description cannot exceed 500 characters")

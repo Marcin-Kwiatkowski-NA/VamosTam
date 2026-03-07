@@ -1,5 +1,6 @@
 package com.vamigo.ride.dto;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +20,7 @@ public record BookRideRequest(
         int seatCount,
 
         @DecimalMin(value = "0.0", inclusive = false, message = "Proposed price must be positive")
+        @DecimalMax(value = "9999.99", inclusive = true, message = "Proposed price cannot exceed 9999.99")
         BigDecimal proposedPrice
 ) {
     public BookRideRequest {
