@@ -40,7 +40,7 @@ class EmailVerificationServiceTest {
     void setUp() {
         service = new EmailVerificationService(
                 tokenRepository, userAccountRepository, brevoClient,
-                24, 60, "https://localhost:8443", 2L, 1L
+                24, 60, "http://localhost:8080", 2L, 1L
         );
     }
 
@@ -84,7 +84,7 @@ class EmailVerificationServiceTest {
             Map<String, String> params = paramsCaptor.getValue();
             assertThat(params).containsKey("VERIFICATION_URL");
             assertThat(params).containsKey("USER_NAME");
-            assertThat(params.get("VERIFICATION_URL")).startsWith("https://localhost:8443/auth/verify-email?token=");
+            assertThat(params.get("VERIFICATION_URL")).startsWith("http://localhost:8080/auth/verify-email?token=");
         }
 
         @Test
