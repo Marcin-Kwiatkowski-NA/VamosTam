@@ -55,7 +55,9 @@ public class BrevoClient {
         var body = new HashMap<String, Object>();
         body.put("to", List.of(Map.of("email", toEmail, "name", toName)));
         body.put("sender", Map.of("email", senderEmail, "name", senderName));
-        body.put("replyTo", Map.of("email", replyToEmail));
+        if (replyToEmail != null) {
+            body.put("replyTo", Map.of("email", replyToEmail));
+        }
         body.put("subject", subject);
         body.put("htmlContent", htmlContent);
         body.put("textContent", textContent);
