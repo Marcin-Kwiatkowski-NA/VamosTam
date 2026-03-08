@@ -2,6 +2,7 @@ package com.vamigo.ride.dto;
 
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
+import com.vamigo.ride.RideStatus;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public record RideSummaryDto(
         Instant departureTime,
         BigDecimal pricePerSeat,
         int totalSeats,
-        UserCardDto driver
+        UserCardDto driver,
+        RideStatus rideStatus
 ) {
 }
