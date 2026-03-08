@@ -1,6 +1,8 @@
 package com.vamigo.config.security;
 
+import com.vamigo.auth.AuthSecurityProperties;
 import com.vamigo.auth.filter.ApiKeyAuthenticationFilter;
+import com.vamigo.auth.filter.IpRateLimitFilter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,15 +22,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-@EnableConfigurationProperties(ApiKeyProperties.class)
+@EnableConfigurationProperties({ApiKeyProperties.class, AuthSecurityProperties.class})
 public class WebAuthorizationConfig {
 
     private final ApiKeyProperties apiKeyProperties;
+    private final AuthSecurityProperties authSecurityProperties;
     private final AppJwtAuthenticationConverter appJwtAuthenticationConverter;
 
     public WebAuthorizationConfig(ApiKeyProperties apiKeyProperties,
+                                  AuthSecurityProperties authSecurityProperties,
                                   AppJwtAuthenticationConverter appJwtAuthenticationConverter) {
         this.apiKeyProperties = apiKeyProperties;
+        this.authSecurityProperties = authSecurityProperties;
         this.appJwtAuthenticationConverter = appJwtAuthenticationConverter;
     }
 
@@ -77,6 +82,9 @@ public class WebAuthorizationConfig {
     @Bean
     @Order(3)
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        var ipRateLimitFilter = new IpRateLimitFilter(
+                authSecurityProperties.rateLimit().requestsPerMinute());
+
         http.formLogin(AbstractHttpConfigurer::disable);
 
         http
@@ -107,7 +115,8 @@ public class WebAuthorizationConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             )
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+            .addFilterBefore(ipRateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

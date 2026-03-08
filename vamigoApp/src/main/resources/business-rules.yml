@@ -13,6 +13,11 @@ booking:
 
 auth:
   token-cleanup-cron: ${AUTH_TOKEN_CLEANUP_CRON:0 0 3 * * ?}  # daily at 3:00 AM
+  rate-limit:
+    requests-per-minute: ${AUTH_RATE_LIMIT_RPM:20}
+  account-lock:
+    max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
+    lock-duration-minutes: ${AUTH_LOCK_DURATION_MINUTES:15}
 
 review:
   reminder-cron: ${REVIEW_REMINDER_CRON:0 0 10 * * ?}  # daily at 10:00 AM

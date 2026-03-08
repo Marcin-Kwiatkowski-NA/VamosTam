@@ -27,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -84,6 +85,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ProblemDetail handleBadCredentialsException(HttpServletRequest request, BadCredentialsException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ProblemDetail handleLockedException(HttpServletRequest request, LockedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+                "Account is temporarily locked due to too many failed login attempts. Please try again later.");
+        problem.setProperty("errorCode", "ACCOUNT_TEMPORARILY_LOCKED");
+        return problem;
     }
 
     @ExceptionHandler(DuplicateEmailException.class)

@@ -11,6 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,6 +58,13 @@ public class UserAccount {
     @Column(name = "google_id", unique = true)
     private String googleId;
 
+    @Column(name = "failed_login_attempts")
+    @Builder.Default
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
@@ -88,5 +96,21 @@ public class UserAccount {
 
     public boolean hasProvider(AuthProvider provider) {
         return providers.contains(provider);
+    }
+
+    public boolean isTemporarilyLocked() {
+        return lockedUntil != null && Instant.now().isBefore(lockedUntil);
+    }
+
+    public void recordFailedLogin(int maxAttempts, int lockDurationMinutes) {
+        failedLoginAttempts++;
+        if (failedLoginAttempts >= maxAttempts) {
+            lockedUntil = Instant.now().plus(Duration.ofMinutes(lockDurationMinutes));
+        }
+    }
+
+    public void resetFailedLoginAttempts() {
+        failedLoginAttempts = 0;
+        lockedUntil = null;
     }
 }

@@ -136,15 +136,46 @@ Before going to production, address the following:
 
 - [ ] **Google OAuth**: Configure Google Cloud credentials for OAuth
 - [ ] **Token Revocation**: Implement token blacklist for logout/password change
-- [ ] **Rate Limiting**: Add rate limiting on auth endpoints
+- [x] **Rate Limiting**: IP-based rate limiting on `/auth/**` via Bucket4j (see below)
 - [ ] **Audit Logging**: Log authentication attempts
-- [ ] **Account Lockout**: Lock accounts after failed login attempts
+- [x] **Account Lockout**: Temporary lock after failed login attempts (see below)
 - [ ] **Password Policy**: Enforce password complexity rules
 - [ ] **HTTPS Only**: Enforce HTTPS in production
 - [ ] **Secure Headers**: Add security headers (HSTS, CSP, etc.)
 - [ ] **Secret Rotation**: Plan for JWT secret rotation
 - [ ] **Refresh Token Rotation**: Rotate refresh token on use (one-time use)
 - [ ] **Device/Session Management**: Allow users to see/revoke sessions
+
+## Brute-Force Protection
+
+Two-layered defense on authentication endpoints:
+
+### Layer 1: IP Rate Limiting
+
+`IpRateLimitFilter` (Bucket4j token-bucket, Caffeine-backed) intercepts all `/auth/**` requests.
+Returns HTTP 429 with `Retry-After` header when limit exceeded.
+
+| Setting | Property | Default |
+|---------|----------|---------|
+| Requests per minute per IP | `auth.rate-limit.requests-per-minute` | 20 |
+
+Client IP resolved via `request.getRemoteAddr()` — requires `server.forward-headers-strategy=framework` behind a reverse proxy.
+
+### Layer 2: Account Locking
+
+Failed password attempts tracked on `UserAccount` (`failedLoginAttempts`, `lockedUntil`).
+Driven by Spring Security events (`AuthenticationFailureBadCredentialsEvent` / `AuthenticationSuccessEvent`).
+
+| Setting | Property | Default |
+|---------|----------|---------|
+| Max failed attempts before lock | `auth.account-lock.max-failed-attempts` | 5 |
+| Lock duration | `auth.account-lock.lock-duration-minutes` | 15 |
+
+**HTTP responses:**
+- IP rate limit exceeded: **429** Too Many Requests
+- Account locked: **403** Forbidden with `errorCode: ACCOUNT_TEMPORARILY_LOCKED`
+
+Successful login resets the failure counter. Lock expires automatically after the configured duration.
 
 ## Password Hashing
 

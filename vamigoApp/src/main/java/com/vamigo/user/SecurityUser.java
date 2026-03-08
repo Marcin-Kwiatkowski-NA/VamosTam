@@ -46,7 +46,7 @@ public class SecurityUser implements UserDetails, CredentialsContainer {
 
     @Override
     public boolean isAccountNonLocked() {
-        return account.getStatus() != AccountStatus.BANNED;
+        return account.getStatus() != AccountStatus.BANNED && !account.isTemporarilyLocked();
     }
 
     @Override
