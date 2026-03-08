@@ -95,44 +95,54 @@ public class RideSpecifications {
     public static Specification<Ride> hasStopNearOrigin(Double lat, Double lon, double radiusMeters) {
         return (root, query, cb) -> {
             if (lat == null || lon == null) return null;
-            query.distinct(true);
-            Join<Ride, RideStop> stopJoin = root.join("stops");
-            Join<RideStop, Location> locJoin = stopJoin.join("location");
+
+            Subquery<Long> stopExists = query.subquery(Long.class);
+            Root<RideStop> stopRoot = stopExists.from(RideStop.class);
+            Join<RideStop, Location> locJoin = stopRoot.join("location");
 
             Subquery<Long> hasLaterStop = query.subquery(Long.class);
             Root<RideStop> laterRoot = hasLaterStop.from(RideStop.class);
             hasLaterStop.select(cb.literal(1L))
                     .where(
                             cb.equal(laterRoot.get("ride"), root),
-                            cb.greaterThan(laterRoot.get("stopOrder"), stopJoin.get("stopOrder"))
+                            cb.greaterThan(laterRoot.get("stopOrder"), stopRoot.get("stopOrder"))
                     );
 
-            return cb.and(
-                    SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
-                    cb.exists(hasLaterStop)
-            );
+            stopExists.select(cb.literal(1L))
+                    .where(
+                            cb.equal(stopRoot.get("ride"), root),
+                            SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
+                            cb.exists(hasLaterStop)
+                    );
+
+            return cb.exists(stopExists);
         };
     }
 
     public static Specification<Ride> hasStopNearDestination(Double lat, Double lon, double radiusMeters) {
         return (root, query, cb) -> {
             if (lat == null || lon == null) return null;
-            query.distinct(true);
-            Join<Ride, RideStop> stopJoin = root.join("stops");
-            Join<RideStop, Location> locJoin = stopJoin.join("location");
+
+            Subquery<Long> stopExists = query.subquery(Long.class);
+            Root<RideStop> stopRoot = stopExists.from(RideStop.class);
+            Join<RideStop, Location> locJoin = stopRoot.join("location");
 
             Subquery<Long> hasEarlierStop = query.subquery(Long.class);
             Root<RideStop> earlierRoot = hasEarlierStop.from(RideStop.class);
             hasEarlierStop.select(cb.literal(1L))
                     .where(
                             cb.equal(earlierRoot.get("ride"), root),
-                            cb.lessThan(earlierRoot.get("stopOrder"), stopJoin.get("stopOrder"))
+                            cb.lessThan(earlierRoot.get("stopOrder"), stopRoot.get("stopOrder"))
                     );
 
-            return cb.and(
-                    SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
-                    cb.exists(hasEarlierStop)
-            );
+            stopExists.select(cb.literal(1L))
+                    .where(
+                            cb.equal(stopRoot.get("ride"), root),
+                            SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
+                            cb.exists(hasEarlierStop)
+                    );
+
+            return cb.exists(stopExists);
         };
     }
 
