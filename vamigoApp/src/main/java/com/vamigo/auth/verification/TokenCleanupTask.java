@@ -14,17 +14,21 @@ public class TokenCleanupTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TokenCleanupTask.class);
 
-    private final EmailVerificationTokenRepository tokenRepository;
+    private final EmailVerificationTokenRepository emailTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
-    public TokenCleanupTask(EmailVerificationTokenRepository tokenRepository) {
-        this.tokenRepository = tokenRepository;
+    public TokenCleanupTask(EmailVerificationTokenRepository emailTokenRepository,
+                            PasswordResetTokenRepository passwordResetTokenRepository) {
+        this.emailTokenRepository = emailTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
     }
 
     @Scheduled(cron = "${auth.token-cleanup-cron}")
     @Transactional
     public void deleteExpiredTokens() {
         Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
-        tokenRepository.deleteByExpiresAtBefore(cutoff);
-        LOGGER.info("Cleaned up expired verification tokens older than {}", cutoff);
+        emailTokenRepository.deleteByExpiresAtBefore(cutoff);
+        passwordResetTokenRepository.deleteByExpiresAtBefore(cutoff);
+        LOGGER.info("Cleaned up expired tokens older than {}", cutoff);
     }
 }

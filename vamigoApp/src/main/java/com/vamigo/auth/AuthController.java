@@ -1,10 +1,13 @@
 package com.vamigo.auth;
 
 import com.vamigo.auth.dto.AuthResponse;
+import com.vamigo.auth.dto.ChangePasswordRequest;
+import com.vamigo.auth.dto.ForgotPasswordRequest;
 import com.vamigo.auth.dto.GoogleTokenRequest;
 import com.vamigo.auth.dto.LoginRequest;
 import com.vamigo.auth.dto.RefreshTokenRequest;
 import com.vamigo.auth.dto.RegisterRequest;
+import com.vamigo.auth.dto.ResetPasswordRequest;
 import com.vamigo.auth.exception.InvalidTokenException;
 import com.vamigo.auth.service.AuthService;
 import com.vamigo.user.dto.UserProfileDto;
@@ -132,6 +135,27 @@ public class AuthController {
                 </body>
                 </html>
                 """.formatted(title, color, deepLink, icon, title, message, deepLink);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.email(), org.springframework.context.i18n.LocaleContextHolder.getLocale());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AuthResponse> changePassword(
+            @AuthenticationPrincipal AppPrincipal principal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        return ResponseEntity.ok(authService.changePassword(
+                principal.userId(), request.currentPassword(), request.newPassword()));
     }
 
     @PostMapping("/resend-verification")

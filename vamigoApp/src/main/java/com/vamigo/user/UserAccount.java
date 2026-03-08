@@ -80,7 +80,8 @@ public class UserAccount {
     private Instant updatedAt;
 
     @Version
-    private int version;
+    @Column(name = "token_version", nullable = false, columnDefinition = "integer default 0")
+    private int tokenVersion;
 
     public boolean hasRole(Role role) {
         return roles.contains(role);

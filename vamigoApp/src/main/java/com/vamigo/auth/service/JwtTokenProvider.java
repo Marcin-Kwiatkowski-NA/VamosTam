@@ -18,6 +18,7 @@ public class JwtTokenProvider {
     private static final String TOKEN_TYPE_CLAIM = "type";
     private static final String TOKEN_TYPE_ACCESS = "access";
     private static final String TOKEN_TYPE_REFRESH = "refresh";
+    private static final String TOKEN_VERSION_CLAIM = "tv";
 
     private final SecretKey key;
     private final long jwtExpirationMs;
@@ -45,6 +46,7 @@ public class JwtTokenProvider {
                 .claim("email", user.getEmail())
                 .claim("roles", roleNames)
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS)
+                .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key, Jwts.SIG.HS256)
@@ -58,6 +60,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .claim("userId", user.getId())
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_REFRESH)
+                .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key, Jwts.SIG.HS256)
@@ -107,6 +110,12 @@ public class JwtTokenProvider {
     public List<String> getRolesFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("roles", List.class);
+    }
+
+    public int getTokenVersionFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        Integer v = claims.get(TOKEN_VERSION_CLAIM, Integer.class);
+        return v != null ? v : 0;
     }
 
     private Claims getClaimsFromToken(String token) {

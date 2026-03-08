@@ -4,6 +4,7 @@ import com.vamigo.auth.dto.AuthResponse;
 import com.vamigo.auth.dto.LoginRequest;
 import com.vamigo.auth.dto.RefreshTokenRequest;
 import com.vamigo.auth.dto.RegisterRequest;
+import com.vamigo.auth.verification.PasswordResetService;
 import com.vamigo.auth.event.OnRegistrationCompleteEvent;
 import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
 import com.vamigo.auth.exception.InvalidTokenException;
@@ -21,8 +22,10 @@ import com.vamigo.user.exception.NoSuchUserException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +46,8 @@ public class AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final ApplicationEventPublisher eventPublisher;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
+    private final PasswordEncoder passwordEncoder;
     private final AvatarService avatarService;
 
     public AuthService(UserAccountRepository userAccountRepository,
@@ -53,6 +58,8 @@ public class AuthService {
                        GoogleTokenVerifier googleTokenVerifier,
                        ApplicationEventPublisher eventPublisher,
                        EmailVerificationService emailVerificationService,
+                       PasswordResetService passwordResetService,
+                       PasswordEncoder passwordEncoder,
                        AvatarService avatarService) {
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
@@ -62,6 +69,8 @@ public class AuthService {
         this.googleTokenVerifier = googleTokenVerifier;
         this.eventPublisher = eventPublisher;
         this.emailVerificationService = emailVerificationService;
+        this.passwordResetService = passwordResetService;
+        this.passwordEncoder = passwordEncoder;
         this.avatarService = avatarService;
     }
 
@@ -144,6 +153,11 @@ public class AuthService {
         UserAccount account = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException("User not found"));
 
+        int tokenVersion = jwtTokenProvider.getTokenVersionFromToken(refreshToken);
+        if (tokenVersion != account.getTokenVersion()) {
+            throw new InvalidTokenException("Token has been revoked");
+        }
+
         return buildAuthResponse(account);
     }
 
@@ -154,6 +168,32 @@ public class AuthService {
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
         return userProfileMapper.toDto(account, profile);
+    }
+
+    public void forgotPassword(String email, java.util.Locale locale) {
+        passwordResetService.sendResetEmail(email, locale);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        passwordResetService.resetPassword(token, newPassword);
+    }
+
+    public AuthResponse changePassword(Long userId, String currentPassword, String newPassword) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchUserException(userId));
+
+        if (account.getPasswordHash() == null) {
+            throw new BadCredentialsException("Account does not have a password");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, account.getPasswordHash())) {
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+
+        account.setPasswordHash(passwordEncoder.encode(newPassword));
+        userAccountRepository.save(account);
+
+        return buildAuthResponse(account);
     }
 
     private AuthResponse buildAuthResponse(UserAccount account) {

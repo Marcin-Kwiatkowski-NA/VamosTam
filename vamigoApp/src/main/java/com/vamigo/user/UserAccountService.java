@@ -2,6 +2,7 @@ package com.vamigo.user;
 
 import com.vamigo.auth.AuthProvider;
 import com.vamigo.auth.verification.EmailVerificationTokenRepository;
+import com.vamigo.auth.verification.PasswordResetTokenRepository;
 import com.vamigo.messaging.ConversationRepository;
 import com.vamigo.messaging.MessageRepository;
 import com.vamigo.ride.RideBookingRepository;
@@ -30,6 +31,7 @@ public class UserAccountService {
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final RideBookingRepository rideBookingRepository;
@@ -148,7 +150,8 @@ public class UserAccountService {
         UserAccount account = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 
-        // 1. Email verification tokens
+        // 1. Auth tokens
+        passwordResetTokenRepository.deleteByUserId(userId);
         emailVerificationTokenRepository.deleteByUserId(userId);
 
         // 2. Messages in user's conversations, then conversations

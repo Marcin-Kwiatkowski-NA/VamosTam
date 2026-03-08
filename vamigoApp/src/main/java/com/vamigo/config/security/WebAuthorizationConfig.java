@@ -102,6 +102,8 @@ public class WebAuthorizationConfig {
                 .requestMatchers("/auth/google").permitAll()
                 .requestMatchers("/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
+                .requestMatchers("/auth/forgot-password").permitAll()
+                .requestMatchers("/auth/reset-password").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/privacy-policy.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/terms.html").permitAll()
