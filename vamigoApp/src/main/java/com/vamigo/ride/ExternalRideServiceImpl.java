@@ -4,10 +4,12 @@ import com.vamigo.domain.ExternalImportSupport;
 import com.vamigo.domain.Status;
 import com.vamigo.location.Location;
 import com.vamigo.ride.dto.RideResponseDto;
+import com.vamigo.ride.event.ExternalRideCreatedEvent;
 import com.vamigo.ride.external.ExternalRideService;
 import com.vamigo.user.UserAccount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +27,20 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     private final ExternalImportSupport importSupport;
     private final RideMapper rideMapper;
     private final RideResponseEnricher rideResponseEnricher;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ExternalRideServiceImpl(RideRepository rideRepository,
                                    RideExternalMetaRepository metaRepository,
                                    ExternalImportSupport importSupport,
                                    RideMapper rideMapper,
-                                   RideResponseEnricher rideResponseEnricher) {
+                                   RideResponseEnricher rideResponseEnricher,
+                                   ApplicationEventPublisher eventPublisher) {
         this.rideRepository = rideRepository;
         this.metaRepository = metaRepository;
         this.importSupport = importSupport;
         this.rideMapper = rideMapper;
         this.rideResponseEnricher = rideResponseEnricher;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -102,7 +107,9 @@ public class ExternalRideServiceImpl implements ExternalRideService {
         LOGGER.info("Created external ride with ID: {} from external source: {}",
                 saved.getId(), dto.externalId());
 
-        return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
+        RideResponseDto response = rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
+        eventPublisher.publishEvent(new ExternalRideCreatedEvent(response, dto.sourceUrl()));
+        return response;
     }
 
     @Override

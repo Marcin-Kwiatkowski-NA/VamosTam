@@ -11,9 +11,11 @@ import com.vamigo.seat.SeatRepository;
 import com.vamigo.seat.SeatResponseEnricher;
 import com.vamigo.seat.dto.ExternalSeatCreationDto;
 import com.vamigo.seat.dto.SeatResponseDto;
+import com.vamigo.seat.event.ExternalSeatCreatedEvent;
 import com.vamigo.user.UserAccount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,17 +32,20 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
     private final ExternalImportSupport importSupport;
     private final SeatMapper seatMapper;
     private final SeatResponseEnricher seatResponseEnricher;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ExternalSeatServiceImpl(SeatRepository seatRepository,
                                     SeatExternalMetaRepository metaRepository,
                                     ExternalImportSupport importSupport,
                                     SeatMapper seatMapper,
-                                    SeatResponseEnricher seatResponseEnricher) {
+                                    SeatResponseEnricher seatResponseEnricher,
+                                    ApplicationEventPublisher eventPublisher) {
         this.seatRepository = seatRepository;
         this.metaRepository = metaRepository;
         this.importSupport = importSupport;
         this.seatMapper = seatMapper;
         this.seatResponseEnricher = seatResponseEnricher;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -81,7 +86,9 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
         LOGGER.info("Created external seat with ID: {} from external source: {}",
                 saved.getId(), dto.externalId());
 
-        return seatResponseEnricher.enrich(saved, seatMapper.seatEntityToResponseDto(saved));
+        SeatResponseDto response = seatResponseEnricher.enrich(saved, seatMapper.seatEntityToResponseDto(saved));
+        eventPublisher.publishEvent(new ExternalSeatCreatedEvent(response, dto.sourceUrl()));
+        return response;
     }
 
     @Override
