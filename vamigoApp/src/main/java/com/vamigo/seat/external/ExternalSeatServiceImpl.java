@@ -52,6 +52,7 @@ public class ExternalSeatServiceImpl implements ExternalSeatService {
     @Transactional
     public SeatResponseDto createExternalSeat(ExternalSeatCreationDto dto) {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
+        importSupport.validateDepartureInFuture(dto.departureTime());
 
         var locations = importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName());
         UserAccount proxy = importSupport.resolveProxyUser();

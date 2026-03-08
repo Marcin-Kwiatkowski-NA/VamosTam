@@ -47,6 +47,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
     @Transactional
     public RideResponseDto createExternalRide(com.vamigo.ride.dto.ExternalRideCreationDto dto) {
         importSupport.validateNotDuplicate(dto.externalId(), metaRepository::existsByExternalId);
+        importSupport.validateDepartureInFuture(dto.departureTime());
 
         var locations = importSupport.resolveLocations(dto.originLocationName(), dto.destinationLocationName());
         UserAccount proxy = importSupport.resolveProxyUser();

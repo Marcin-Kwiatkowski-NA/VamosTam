@@ -1,6 +1,7 @@
 package com.vamigo.domain;
 
 import com.vamigo.config.DataInitializer;
+import com.vamigo.exceptions.DepartureTooSoonException;
 import com.vamigo.exceptions.DuplicateExternalEntityException;
 import com.vamigo.exceptions.FacebookBotMissingException;
 import com.vamigo.location.Location;
@@ -9,6 +10,8 @@ import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -48,6 +51,16 @@ public class ExternalImportSupport {
 
     public Optional<Location> tryResolveLocationByName(String locationName) {
         return locationResolutionService.tryResolveByName(locationName);
+    }
+
+    private static final int MIN_DEPARTURE_NOTICE_MINUTES = 30;
+
+    public void validateDepartureInFuture(Instant departureTime) {
+        Instant earliest = Instant.now().plus(MIN_DEPARTURE_NOTICE_MINUTES, ChronoUnit.MINUTES);
+        if (departureTime.isBefore(earliest)) {
+            throw new DepartureTooSoonException(
+                    "Departure must be at least " + MIN_DEPARTURE_NOTICE_MINUTES + " minutes from now");
+        }
     }
 
     public UserAccount resolveProxyUser() {
