@@ -23,11 +23,14 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.context.i18n.LocaleContextHolder;
+
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class ExternalImportMatchListener {
@@ -65,6 +68,7 @@ public class ExternalImportMatchListener {
     @Async("emailExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onExternalRideCreated(ExternalRideCreatedEvent event) {
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("pl"));
         RideResponseDto ride = event.ride();
         LocationDto origin = ride.origin();
         LocationDto destination = ride.destination();
@@ -109,6 +113,7 @@ public class ExternalImportMatchListener {
     @Async("emailExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onExternalSeatCreated(ExternalSeatCreatedEvent event) {
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("pl"));
         SeatResponseDto seat = event.seat();
         LocationDto origin = seat.origin();
         LocationDto destination = seat.destination();
@@ -156,8 +161,12 @@ public class ExternalImportMatchListener {
                 .path(path)
                 .queryParam("originOsmId", origin.osmId())
                 .queryParam("originName", origin.name())
+                .queryParam("originLat", origin.latitude())
+                .queryParam("originLon", origin.longitude())
                 .queryParam("destinationOsmId", destination.osmId())
                 .queryParam("destinationName", destination.name())
+                .queryParam("destinationLat", destination.latitude())
+                .queryParam("destinationLon", destination.longitude())
                 .queryParam("earliestDeparture", earliestDeparture.toString())
                 .queryParam("latestDeparture", latestDeparture.toString())
                 .build()
