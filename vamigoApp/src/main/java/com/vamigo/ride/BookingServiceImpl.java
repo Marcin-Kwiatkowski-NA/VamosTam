@@ -136,8 +136,15 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public BookingResponseDto getBooking(Long rideId, Long bookingId) {
+    public BookingResponseDto getBooking(Long rideId, Long bookingId, Long userId) {
         RideBooking booking = findBookingForRide(rideId, bookingId);
+
+        Long driverId = booking.getRide().getDriver().getId();
+        Long passengerId = booking.getPassenger().getId();
+        if (!userId.equals(driverId) && !userId.equals(passengerId)) {
+            throw new NotRideDriverException(rideId, userId);
+        }
+
         BookingResponseDto dto = bookingMapper.toResponseDto(booking);
         return bookingResponseEnricher.enrich(booking, dto);
     }

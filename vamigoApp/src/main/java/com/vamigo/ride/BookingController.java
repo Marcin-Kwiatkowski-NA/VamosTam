@@ -6,6 +6,7 @@ import com.vamigo.ride.dto.BookRideRequest;
 import com.vamigo.ride.dto.BookingResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasRole('USER')")
 public class BookingController {
 
     private final BookingService bookingService;
@@ -36,6 +38,7 @@ public class BookingController {
     }
 
     @GetMapping("/rides/{rideId}/bookings")
+    @PreAuthorize("@bookingSecurity.isRideDriver(principal, #rideId)")
     public ResponseEntity<List<BookingResponseDto>> getBookingsForRide(
             @PathVariable Long rideId,
             @AuthenticationPrincipal AppPrincipal principal) {
@@ -43,13 +46,16 @@ public class BookingController {
     }
 
     @GetMapping("/rides/{rideId}/bookings/{bookingId}")
+    @PreAuthorize("@bookingSecurity.isBookingParticipant(principal, #rideId, #bookingId)")
     public ResponseEntity<BookingResponseDto> getBooking(
             @PathVariable Long rideId,
-            @PathVariable Long bookingId) {
-        return ResponseEntity.ok(bookingService.getBooking(rideId, bookingId));
+            @PathVariable Long bookingId,
+            @AuthenticationPrincipal AppPrincipal principal) {
+        return ResponseEntity.ok(bookingService.getBooking(rideId, bookingId, principal.userId()));
     }
 
     @PostMapping("/rides/{rideId}/bookings/{bookingId}/confirm")
+    @PreAuthorize("@bookingSecurity.isRideDriver(principal, #rideId)")
     public ResponseEntity<BookingResponseDto> confirmBooking(
             @PathVariable Long rideId,
             @PathVariable Long bookingId,
@@ -58,6 +64,7 @@ public class BookingController {
     }
 
     @PostMapping("/rides/{rideId}/bookings/{bookingId}/reject")
+    @PreAuthorize("@bookingSecurity.isRideDriver(principal, #rideId)")
     public ResponseEntity<BookingResponseDto> rejectBooking(
             @PathVariable Long rideId,
             @PathVariable Long bookingId,
@@ -66,6 +73,7 @@ public class BookingController {
     }
 
     @PostMapping("/rides/{rideId}/bookings/{bookingId}/cancel")
+    @PreAuthorize("@bookingSecurity.isBookingParticipant(principal, #rideId, #bookingId)")
     public ResponseEntity<BookingResponseDto> cancelBooking(
             @PathVariable Long rideId,
             @PathVariable Long bookingId,

@@ -39,6 +39,15 @@ public interface RideBookingRepository extends JpaRepository<RideBooking, Long> 
     Optional<RideBooking> findByIdWithRideAndLocations(@Param("id") Long id);
 
     @Query("""
+        SELECT COUNT(b) > 0 FROM RideBooking b
+        WHERE b.id = :bookingId AND b.ride.id = :rideId
+        AND (b.ride.driver.id = :userId OR b.passenger.id = :userId)
+        """)
+    boolean isUserParticipant(@Param("rideId") Long rideId,
+                              @Param("bookingId") Long bookingId,
+                              @Param("userId") Long userId);
+
+    @Query("""
         SELECT b FROM RideBooking b
         JOIN FETCH b.ride r
         JOIN FETCH r.driver

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -26,6 +27,7 @@ import java.util.List;
 import static com.vamigo.utils.ControllersUtil.getUriFromId;
 
 @RestController
+@PreAuthorize("hasRole('USER')")
 public class SeatController {
 
     private final SeatService seatService;
@@ -50,6 +52,7 @@ public class SeatController {
     }
 
     @GetMapping("/seats/search")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<SeatResponseDto>> searchSeats(
             @Valid @ModelAttribute SeatSearchCriteriaDto criteria,
             @PageableDefault(size = 10, sort = "departureTime", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -57,6 +60,7 @@ public class SeatController {
     }
 
     @PutMapping("/seats/{id}")
+    @PreAuthorize("@seatSecurity.isPassenger(principal, #id)")
     public ResponseEntity<SeatResponseDto> updateSeat(@Valid @RequestBody SeatCreationDto dto,
                                                        @PathVariable Long id,
                                                        @AuthenticationPrincipal AppPrincipal principal) {
@@ -65,6 +69,7 @@ public class SeatController {
     }
 
     @PostMapping("/seats/{id}/cancel")
+    @PreAuthorize("@seatSecurity.isPassenger(principal, #id)")
     public ResponseEntity<SeatResponseDto> cancelSeat(@PathVariable Long id,
                                                        @AuthenticationPrincipal AppPrincipal principal) {
         var cancelled = seatService.cancelSeat(id, principal.userId());
@@ -72,8 +77,10 @@ public class SeatController {
     }
 
     @DeleteMapping("/seats/{id}")
-    public ResponseEntity<Void> deleteSeat(@PathVariable Long id) {
-        seatService.delete(id);
+    @PreAuthorize("@seatSecurity.isPassenger(principal, #id)")
+    public ResponseEntity<Void> deleteSeat(@PathVariable Long id,
+                                            @AuthenticationPrincipal AppPrincipal principal) {
+        seatService.delete(id, principal.userId());
         return ResponseEntity.noContent().build();
     }
 

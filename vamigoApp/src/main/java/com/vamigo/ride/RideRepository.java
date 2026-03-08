@@ -18,6 +18,8 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
 
     List<Ride> findByDriverIdOrderByDepartureTimeAsc(Long driverId);
 
+    boolean existsByIdAndDriverId(Long id, Long driverId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Ride r WHERE r.id = :id")
     Optional<Ride> findByIdForUpdate(@Param("id") Long id);

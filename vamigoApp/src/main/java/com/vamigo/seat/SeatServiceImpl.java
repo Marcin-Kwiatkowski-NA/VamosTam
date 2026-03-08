@@ -197,12 +197,15 @@ public class SeatServiceImpl implements SeatService {
 
     @Override
     @Transactional
-    public void delete(Long id) {
-        if (seatRepository.existsById(id)) {
-            seatRepository.deleteById(id);
-        } else {
-            throw new NoSuchSeatException(id);
+    public void delete(Long id, Long userId) {
+        Seat seat = seatRepository.findById(id)
+                .orElseThrow(() -> new NoSuchSeatException(id));
+
+        if (!seat.getPassenger().getId().equals(userId)) {
+            throw new NotSeatPassengerException(id, userId);
         }
+
+        seatRepository.delete(seat);
     }
 
     @Override

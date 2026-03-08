@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -64,6 +65,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileDto> getCurrentUser(
             @AuthenticationPrincipal AppPrincipal principal) {
         return ResponseEntity.ok(authService.getCurrentUserById(principal.userId()));
@@ -133,6 +135,7 @@ public class AuthController {
     }
 
     @PostMapping("/resend-verification")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> resendVerification(
             @AuthenticationPrincipal AppPrincipal principal) {
         authService.resendVerificationEmail(principal.userId());

@@ -3,6 +3,7 @@ package com.vamigo.ride;
 import com.vamigo.auth.AppPrincipal;
 import com.vamigo.auth.service.JwtTokenProvider;
 import com.vamigo.exceptions.NoSuchRideException;
+import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
@@ -162,30 +163,64 @@ class RidesControllerTest {
 
     @Test
     @DisplayName("DELETE /rides/{id} - Delete ride - Success")
-    @WithMockUser
     void testDeleteRide_Success() throws Exception {
         // Arrange
-        doNothing().when(rideService).delete(ID_100);
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
+        doNothing().when(rideService).delete(eq(ID_100), any());
 
         // Act & Assert
         mockMvc.perform(delete(BASE_URL + "/" + ID_100)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("DELETE /rides/{id} - Delete ride - Not Found")
-    @WithMockUser
     void testDeleteRide_NotFound() throws Exception {
         // Arrange
-        doThrow(new NoSuchRideException(NON_EXISTENT_ID)).when(rideService).delete(NON_EXISTENT_ID);
+        AppPrincipal principal = new AppPrincipal(ID_ONE, TRAVELER_EMAIL_USER1, Set.of(Role.USER));
+        doThrow(new NoSuchRideException(NON_EXISTENT_ID)).when(rideService).delete(eq(NON_EXISTENT_ID), any());
 
         // Act & Assert
         mockMvc.perform(delete(BASE_URL + "/" + NON_EXISTENT_ID)
                         .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /rides/{id} - Not Owner - 403")
+    void testDeleteRide_NotOwner() throws Exception {
+        // Arrange - service throws NotRideDriverException
+        AppPrincipal principal = new AppPrincipal(2L, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+        doThrow(new NotRideDriverException(ID_100, 2L)).when(rideService).delete(eq(ID_100), any());
+
+        // Act & Assert
+        mockMvc.perform(delete(BASE_URL + "/" + ID_100)
+                        .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /rides/{id} - Not Owner - 403")
+    void updateRide_NotOwner() throws Exception {
+        // Arrange - service throws NotRideDriverException
+        AppPrincipal principal = new AppPrincipal(2L, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
+        when(rideService.update(any(RideCreationDto.class), eq(ID_100), any()))
+                .thenThrow(new NotRideDriverException(ID_100, 2L));
+
+        // Act & Assert
+        mockMvc.perform(put(BASE_URL + "/" + ID_100)
+                        .with(csrf())
+                        .with(authentication(new UsernamePasswordAuthenticationToken(principal, null, principal.roles())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(rideCreationDTO)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

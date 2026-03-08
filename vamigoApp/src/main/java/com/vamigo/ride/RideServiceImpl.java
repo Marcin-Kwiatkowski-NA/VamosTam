@@ -144,12 +144,15 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
-    public void delete(Long id) {
-        if (rideRepository.existsById(id)) {
-            rideRepository.deleteById(id);
-        } else {
-            throw new NoSuchRideException(id);
+    public void delete(Long id, Long driverId) {
+        Ride ride = rideRepository.findById(id)
+                .orElseThrow(() -> new NoSuchRideException(id));
+
+        if (!ride.getDriver().getId().equals(driverId)) {
+            throw new NotRideDriverException(id, driverId);
         }
+
+        rideRepository.delete(ride);
     }
 
     @Override

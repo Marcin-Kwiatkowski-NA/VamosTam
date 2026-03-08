@@ -37,11 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Note: In Spring Boot 4.0 / Spring Security 7.0, {@code @AuthenticationPrincipal AppPrincipal}
- * resolves via model attribute data binding in @WebMvcTest, yielding null record fields.
- * Service mocks use {@code any()} for principal-derived userId arguments.
- */
 @WebMvcTest(controllers = BookingController.class)
 class BookingControllerTest {
 
@@ -215,6 +210,34 @@ class BookingControllerTest {
                     .thenThrow(new NotRideDriverException(ID_100, 2L));
 
             mockMvc.perform(get("/rides/" + ID_100 + "/bookings")
+                            .with(authentication(userAuth())))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /rides/{rideId}/bookings/{bookingId}")
+    class GetBookingTests {
+
+        @Test
+        @DisplayName("200 OK for participant")
+        void getBooking_Success() throws Exception {
+            when(bookingService.getBooking(eq(ID_100), eq(1L), any()))
+                    .thenReturn(bookingResponseDto);
+
+            mockMvc.perform(get("/rides/" + ID_100 + "/bookings/1")
+                            .with(authentication(userAuth())))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(1));
+        }
+
+        @Test
+        @DisplayName("403 when not participant")
+        void getBooking_NotParticipant() throws Exception {
+            when(bookingService.getBooking(eq(ID_100), eq(1L), any()))
+                    .thenThrow(new NotRideDriverException(ID_100, 2L));
+
+            mockMvc.perform(get("/rides/" + ID_100 + "/bookings/1")
                             .with(authentication(userAuth())))
                     .andExpect(status().isForbidden());
         }

@@ -158,23 +158,31 @@ class RideServiceImplTest {
     @Test
     @DisplayName("Delete an existing ride successfully")
     void deleteRideSuccessfully() {
-        when(rideRepository.existsById(ID_100)).thenReturn(true);
-        doNothing().when(rideRepository).deleteById(ID_100);
+        when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
 
-        rideService.delete(ID_100);
+        rideService.delete(ID_100, ID_ONE);
 
-        verify(rideRepository).existsById(ID_100);
-        verify(rideRepository).deleteById(ID_100);
+        verify(rideRepository).findById(ID_100);
+        verify(rideRepository).delete(ride);
     }
 
     @Test
     @DisplayName("Throw NoSuchRideException when deleting a non-existent ride")
     void throwExceptionWhenDeletingNonExistentRide() {
-        when(rideRepository.existsById(NON_EXISTENT_ID)).thenReturn(false);
+        when(rideRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchRideException.class, () -> rideService.delete(NON_EXISTENT_ID));
-        verify(rideRepository).existsById(NON_EXISTENT_ID);
-        verify(rideRepository, never()).deleteById(anyLong());
+        assertThrows(NoSuchRideException.class, () -> rideService.delete(NON_EXISTENT_ID, ID_ONE));
+        verify(rideRepository).findById(NON_EXISTENT_ID);
+        verify(rideRepository, never()).delete(any(Ride.class));
+    }
+
+    @Test
+    @DisplayName("Throw NotRideDriverException when deleting ride as non-driver")
+    void throwExceptionWhenDeletingRideAsNonDriver() {
+        when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
+
+        assertThrows(NotRideDriverException.class, () -> rideService.delete(ID_100, 999L));
+        verify(rideRepository, never()).delete(any(Ride.class));
     }
 
     @Nested

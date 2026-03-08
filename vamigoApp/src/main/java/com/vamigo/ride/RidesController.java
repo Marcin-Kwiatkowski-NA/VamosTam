@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -34,6 +35,7 @@ import static com.vamigo.utils.ControllersUtil.getUriFromId;
 import static com.vamigo.utils.SortMappingUtil.translateSort;
 
 @RestController
+@PreAuthorize("hasRole('USER')")
 public class RidesController {
     private static final Logger LOGGER = LoggerFactory.getLogger(RidesController.class);
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -62,6 +64,7 @@ public class RidesController {
     }
 
     @PutMapping("/rides/{id}")
+    @PreAuthorize("@rideSecurity.isDriver(principal, #id)")
     public ResponseEntity<RideResponseDto> updateRide(@Valid @RequestBody RideCreationDto rideDTO,
                                                       @PathVariable Long id,
                                                       @AuthenticationPrincipal AppPrincipal principal) {
@@ -72,12 +75,15 @@ public class RidesController {
     }
 
     @DeleteMapping("/rides/{id}")
-    public ResponseEntity<Void> deleteRide(@PathVariable Long id) {
-        rideService.delete(id);
+    @PreAuthorize("@rideSecurity.isDriver(principal, #id)")
+    public ResponseEntity<Void> deleteRide(@PathVariable Long id,
+                                            @AuthenticationPrincipal AppPrincipal principal) {
+        rideService.delete(id, principal.userId());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/rides/{id}/cancel")
+    @PreAuthorize("@rideSecurity.isDriver(principal, #id)")
     public ResponseEntity<Void> cancelRide(@PathVariable Long id,
                                             @AuthenticationPrincipal AppPrincipal principal) {
         rideService.cancelRide(id, principal.userId());
@@ -85,6 +91,7 @@ public class RidesController {
     }
 
     @PostMapping("/rides/{id}/complete")
+    @PreAuthorize("@rideSecurity.isDriver(principal, #id)")
     public ResponseEntity<RideResponseDto> completeRide(@PathVariable Long id,
                                                          @AuthenticationPrincipal AppPrincipal principal) {
         return ResponseEntity.ok(rideService.completeRide(id, principal.userId()));
@@ -104,6 +111,7 @@ public class RidesController {
     }
 
     @GetMapping("/rides/search")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<RideResponseDto>> searchRides(
             @Valid @ModelAttribute RideSearchCriteriaDto criteria,
             @PageableDefault(size = 10, sort = "departureTime", direction = Sort.Direction.ASC) Pageable pageable) {

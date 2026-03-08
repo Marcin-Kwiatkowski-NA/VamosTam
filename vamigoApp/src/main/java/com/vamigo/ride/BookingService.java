@@ -9,7 +9,7 @@ public interface BookingService {
 
     BookingResponseDto createBooking(Long rideId, Long passengerId, BookRideRequest request);
 
-    BookingResponseDto getBooking(Long rideId, Long bookingId);
+    BookingResponseDto getBooking(Long rideId, Long bookingId, Long userId);
 
     BookingResponseDto confirmBooking(Long rideId, Long bookingId, Long driverId);
 

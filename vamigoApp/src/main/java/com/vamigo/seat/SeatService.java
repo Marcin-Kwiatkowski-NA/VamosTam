@@ -19,7 +19,7 @@ public interface SeatService {
 
     Page<SeatResponseDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable);
 
-    void delete(Long id);
+    void delete(Long id, Long userId);
 
     SeatResponseDto cancelSeat(Long id, Long userId);
 
