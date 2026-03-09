@@ -118,6 +118,7 @@ public class PasswordResetService {
 
         UserAccount user = token.getUser();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.incrementTokenVersion();
         return userAccountRepository.save(user);
     }
 

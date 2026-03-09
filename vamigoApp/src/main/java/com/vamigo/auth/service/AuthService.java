@@ -191,6 +191,7 @@ public class AuthService {
         }
 
         account.setPasswordHash(passwordEncoder.encode(newPassword));
+        account.incrementTokenVersion();
         userAccountRepository.save(account);
 
         return buildAuthResponse(account);

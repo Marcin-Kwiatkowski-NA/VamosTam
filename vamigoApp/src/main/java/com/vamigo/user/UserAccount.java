@@ -80,6 +80,9 @@ public class UserAccount {
     private Instant updatedAt;
 
     @Version
+    @Column(name = "version", nullable = false, columnDefinition = "integer default 0")
+    private int version;
+
     @Column(name = "token_version", nullable = false, columnDefinition = "integer default 0")
     private int tokenVersion;
 
@@ -101,6 +104,10 @@ public class UserAccount {
 
     public boolean isTemporarilyLocked() {
         return lockedUntil != null && Instant.now().isBefore(lockedUntil);
+    }
+
+    public void incrementTokenVersion() {
+        tokenVersion++;
     }
 
     public void recordFailedLogin(int maxAttempts, int lockDurationMinutes) {
