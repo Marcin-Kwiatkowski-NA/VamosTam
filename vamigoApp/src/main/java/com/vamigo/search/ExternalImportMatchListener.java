@@ -5,6 +5,7 @@ import com.vamigo.email.EmailSendException;
 import com.vamigo.location.LocationDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
+import com.vamigo.ride.dto.RideStopDto;
 import com.vamigo.ride.event.ExternalRideCreatedEvent;
 import com.vamigo.ride.RideService;
 import com.vamigo.seat.SeatService;
@@ -29,8 +30,13 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class ExternalImportMatchListener {
@@ -70,43 +76,69 @@ public class ExternalImportMatchListener {
     public void onExternalRideCreated(ExternalRideCreatedEvent event) {
         LocaleContextHolder.setLocale(Locale.forLanguageTag("pl"));
         RideResponseDto ride = event.ride();
-        LocationDto origin = ride.origin();
-        LocationDto destination = ride.destination();
+        List<RideStopDto> stops = ride.stops();
 
-        if (origin == null || destination == null
-                || origin.latitude() == null || origin.longitude() == null
-                || destination.latitude() == null || destination.longitude() == null) {
-            LOGGER.warn("Skipping match notification for ride {} — missing coordinates", ride.id());
+        if (stops == null || stops.size() < 2) {
+            LOGGER.warn("Skipping match notification for ride {} — insufficient stops", ride.id());
+            return;
+        }
+
+        boolean allValid = stops.stream().allMatch(s ->
+                s.location() != null && s.location().latitude() != null && s.location().longitude() != null);
+        if (!allValid) {
+            LOGGER.warn("Skipping match notification for ride {} — stops missing coordinates", ride.id());
             return;
         }
 
         Instant dayStart = ride.departureTime().truncatedTo(ChronoUnit.DAYS);
         Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS);
 
-        var criteria = new SeatSearchCriteriaDto(
-                null, null,
-                origin.latitude(), origin.longitude(),
-                destination.latitude(), destination.longitude(),
-                RADIUS_KM,
-                dayStart, dayEnd,
-                null
-        );
+        // Search for matching seats across all stop pairs (board before alight)
+        Map<Long, SeatResponseDto> matchMap = new LinkedHashMap<>();
+        for (int i = 0; i < stops.size(); i++) {
+            for (int j = i + 1; j < stops.size(); j++) {
+                LocationDto boardLoc = stops.get(i).location();
+                LocationDto alightLoc = stops.get(j).location();
 
-        Page<SeatResponseDto> matches = seatService.searchSeats(criteria, PageRequest.of(0, MAX_RESULTS));
+                var criteria = new SeatSearchCriteriaDto(
+                        null, null,
+                        boardLoc.latitude(), boardLoc.longitude(),
+                        alightLoc.latitude(), alightLoc.longitude(),
+                        RADIUS_KM,
+                        dayStart, dayEnd,
+                        null
+                );
 
-        if (matches.isEmpty()) {
+                Page<SeatResponseDto> page = seatService.searchSeats(criteria, PageRequest.of(0, MAX_RESULTS));
+                for (SeatResponseDto seat : page.getContent()) {
+                    matchMap.putIfAbsent(seat.id(), seat);
+                }
+            }
+        }
+
+        if (matchMap.isEmpty()) {
             LOGGER.debug("No matching seats found for external ride {}", ride.id());
             return;
         }
 
+        // Sort by combined nearest-stop distance (exact matches naturally first)
+        List<SeatResponseDto> allMatches = new ArrayList<>(matchMap.values());
+        allMatches.sort(Comparator.comparingDouble(seat ->
+                nearestStopDistance(stops, seat.origin().latitude(), seat.origin().longitude())
+                        + nearestStopDistance(stops, seat.destination().latitude(), seat.destination().longitude())));
+
+        if (allMatches.size() > MAX_RESULTS) {
+            allMatches = allMatches.subList(0, MAX_RESULTS);
+        }
+
         String searchUrl = buildSearchUrl("/rides/seats",
-                origin, destination, dayStart, dayEnd);
+                ride.origin(), ride.destination(), dayStart, dayEnd);
 
         sendEmail(
                 "External ride: %s → %s — %d matching seat requests".formatted(
-                        origin.name(), destination.name(), matches.getTotalElements()),
-                buildRideMatchHtml(ride, event.sourceUrl(), matches.getContent(), searchUrl),
-                buildRideMatchText(ride, event.sourceUrl(), matches.getContent(), searchUrl)
+                        ride.origin().name(), ride.destination().name(), allMatches.size()),
+                buildRideMatchHtml(ride, event.sourceUrl(), allMatches, searchUrl),
+                buildRideMatchText(ride, event.sourceUrl(), allMatches, searchUrl)
         );
     }
 
@@ -176,10 +208,12 @@ public class ExternalImportMatchListener {
     private String buildRideMatchHtml(RideResponseDto ride, String sourceUrl,
                                       List<SeatResponseDto> matches, String searchUrl) {
         var sb = new StringBuilder();
+        List<RideStopDto> stops = ride.stops();
+
         sb.append("<h2>New External Ride</h2>");
         sb.append("<table style=\"border-collapse:collapse;width:100%%;\">");
-        sb.append("<tr><td><strong>Origin:</strong></td><td>%s</td></tr>".formatted(esc(ride.origin().name())));
-        sb.append("<tr><td><strong>Destination:</strong></td><td>%s</td></tr>".formatted(esc(ride.destination().name())));
+        sb.append("<tr><td><strong>Route:</strong></td><td>%s</td></tr>".formatted(
+                esc(stops.stream().map(s -> s.location().name()).collect(Collectors.joining(" → ")))));
         sb.append("<tr><td><strong>Departure:</strong></td><td>%s</td></tr>".formatted(DATE_FMT.format(ride.departureTime())));
         sb.append("<tr><td><strong>External URL:</strong></td><td><a href=\"%s\">%s</a></td></tr>".formatted(esc(sourceUrl), esc(sourceUrl)));
         sb.append("</table>");
@@ -190,27 +224,23 @@ public class ExternalImportMatchListener {
         sb.append("<table style=\"border-collapse:collapse;width:100%%;border:1px solid #ccc;\">");
         sb.append("<tr style=\"background:#f0f0f0;\">");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Origin</th>");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Dist (km)</th>");
+        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Board @</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Destination</th>");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Dist (km)</th>");
+        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Alight @</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Departure</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Price</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Description</th>");
         sb.append("</tr>");
 
         for (SeatResponseDto seat : matches) {
-            double originDist = GeoUtils.haversineKm(
-                    ride.origin().latitude(), ride.origin().longitude(),
-                    seat.origin().latitude(), seat.origin().longitude());
-            double destDist = GeoUtils.haversineKm(
-                    ride.destination().latitude(), ride.destination().longitude(),
-                    seat.destination().latitude(), seat.destination().longitude());
+            String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
+            String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
 
             sb.append("<tr>");
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(seat.origin().name())));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%.1f</td>".formatted(originDist));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(boardLabel)));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(seat.destination().name())));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%.1f</td>".formatted(destDist));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(alightLabel)));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(DATE_FMT.format(seat.departureTime())));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(seat.priceWillingToPay() != null ? seat.priceWillingToPay() : "-"));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(truncate(esc(seat.description()), 80)));
@@ -223,25 +253,23 @@ public class ExternalImportMatchListener {
     private String buildRideMatchText(RideResponseDto ride, String sourceUrl,
                                       List<SeatResponseDto> matches, String searchUrl) {
         var sb = new StringBuilder();
+        List<RideStopDto> stops = ride.stops();
+
         sb.append("New External Ride\n\n");
-        sb.append("Origin: %s\n".formatted(ride.origin().name()));
-        sb.append("Destination: %s\n".formatted(ride.destination().name()));
+        sb.append("Route: %s\n".formatted(
+                stops.stream().map(s -> s.location().name()).collect(Collectors.joining(" → "))));
         sb.append("Departure: %s\n".formatted(DATE_FMT.format(ride.departureTime())));
         sb.append("External URL: %s\n\n".formatted(sourceUrl));
         sb.append("Search results: %s\n\n".formatted(searchUrl));
         sb.append("Matching Seat Requests (%d):\n".formatted(matches.size()));
 
         for (SeatResponseDto seat : matches) {
-            double originDist = GeoUtils.haversineKm(
-                    ride.origin().latitude(), ride.origin().longitude(),
-                    seat.origin().latitude(), seat.origin().longitude());
-            double destDist = GeoUtils.haversineKm(
-                    ride.destination().latitude(), ride.destination().longitude(),
-                    seat.destination().latitude(), seat.destination().longitude());
+            String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
+            String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
 
-            sb.append("  %s (%.1f km) → %s (%.1f km) | %s | %s\n".formatted(
-                    seat.origin().name(), originDist,
-                    seat.destination().name(), destDist,
+            sb.append("  %s [board @ %s] → %s [alight @ %s] | %s | %s\n".formatted(
+                    seat.origin().name(), boardLabel,
+                    seat.destination().name(), alightLabel,
                     DATE_FMT.format(seat.departureTime()),
                     seat.priceWillingToPay() != null ? seat.priceWillingToPay() : "-"));
         }
@@ -264,28 +292,24 @@ public class ExternalImportMatchListener {
         sb.append("<h3>Matching Ride Offers (%d)</h3>".formatted(matches.size()));
         sb.append("<table style=\"border-collapse:collapse;width:100%%;border:1px solid #ccc;\">");
         sb.append("<tr style=\"background:#f0f0f0;\">");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Origin</th>");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Dist (km)</th>");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Destination</th>");
-        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Dist (km)</th>");
+        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Ride</th>");
+        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Board @</th>");
+        sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Alight @</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Departure</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Price</th>");
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Description</th>");
         sb.append("</tr>");
 
         for (RideResponseDto ride : matches) {
-            double originDist = GeoUtils.haversineKm(
-                    seat.origin().latitude(), seat.origin().longitude(),
-                    ride.origin().latitude(), ride.origin().longitude());
-            double destDist = GeoUtils.haversineKm(
-                    seat.destination().latitude(), seat.destination().longitude(),
-                    ride.destination().latitude(), ride.destination().longitude());
+            List<RideStopDto> stops = ride.stops();
+            String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
+            String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
+            String route = stops.stream().map(s -> s.location().name()).collect(Collectors.joining(" → "));
 
             sb.append("<tr>");
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(ride.origin().name())));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%.1f</td>".formatted(originDist));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(ride.destination().name())));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%.1f</td>".formatted(destDist));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(route)));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(boardLabel)));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(alightLabel)));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(DATE_FMT.format(ride.departureTime())));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(ride.pricePerSeat() != null ? ride.pricePerSeat() : "-"));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(truncate(esc(ride.description()), 80)));
@@ -307,20 +331,43 @@ public class ExternalImportMatchListener {
         sb.append("Matching Ride Offers (%d):\n".formatted(matches.size()));
 
         for (RideResponseDto ride : matches) {
-            double originDist = GeoUtils.haversineKm(
-                    seat.origin().latitude(), seat.origin().longitude(),
-                    ride.origin().latitude(), ride.origin().longitude());
-            double destDist = GeoUtils.haversineKm(
-                    seat.destination().latitude(), seat.destination().longitude(),
-                    ride.destination().latitude(), ride.destination().longitude());
+            List<RideStopDto> stops = ride.stops();
+            String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
+            String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
+            String route = stops.stream().map(s -> s.location().name()).collect(Collectors.joining(" → "));
 
-            sb.append("  %s (%.1f km) → %s (%.1f km) | %s | %s\n".formatted(
-                    ride.origin().name(), originDist,
-                    ride.destination().name(), destDist,
+            sb.append("  %s [board @ %s, alight @ %s] | %s | %s\n".formatted(
+                    route, boardLabel, alightLabel,
                     DATE_FMT.format(ride.departureTime()),
                     ride.pricePerSeat() != null ? ride.pricePerSeat() : "-"));
         }
         return sb.toString();
+    }
+
+    private String nearestStopLabel(List<RideStopDto> stops, double lat, double lon) {
+        String bestName = null;
+        double bestDist = Double.MAX_VALUE;
+        for (RideStopDto stop : stops) {
+            LocationDto loc = stop.location();
+            if (loc == null || loc.latitude() == null) continue;
+            double dist = GeoUtils.haversineKm(lat, lon, loc.latitude(), loc.longitude());
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestName = loc.name();
+            }
+        }
+        return bestDist < 1.0 ? bestName + " (exact)" : "%s (%.0f km)".formatted(bestName, bestDist);
+    }
+
+    private double nearestStopDistance(List<RideStopDto> stops, double lat, double lon) {
+        double bestDist = Double.MAX_VALUE;
+        for (RideStopDto stop : stops) {
+            LocationDto loc = stop.location();
+            if (loc == null || loc.latitude() == null) continue;
+            double dist = GeoUtils.haversineKm(lat, lon, loc.latitude(), loc.longitude());
+            if (dist < bestDist) bestDist = dist;
+        }
+        return bestDist;
     }
 
     private void sendEmail(String subject, String html, String text) {
