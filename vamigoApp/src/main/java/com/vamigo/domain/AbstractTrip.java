@@ -46,6 +46,10 @@ public abstract class AbstractTrip {
     @Column(name = "contact_phone", length = 32)
     private String contactPhone;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", nullable = false, length = 3)
+    private Currency currency;
+
     @Column(name = "last_modified")
     private Instant lastModified;
 

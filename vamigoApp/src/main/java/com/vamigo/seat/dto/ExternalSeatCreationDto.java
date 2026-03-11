@@ -1,5 +1,6 @@
 package com.vamigo.seat.dto;
 
+import com.vamigo.domain.Currency;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -46,6 +47,9 @@ public record ExternalSeatCreationDto(
         String authorName,
 
         @NotBlank(message = "Source URL is required")
-        String sourceUrl
+        String sourceUrl,
+
+        @NotNull(message = "Currency is required")
+        Currency currency
 ) {
 }

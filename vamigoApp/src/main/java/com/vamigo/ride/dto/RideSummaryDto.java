@@ -1,5 +1,6 @@
 package com.vamigo.ride.dto;
 
+import com.vamigo.domain.Currency;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
 import com.vamigo.ride.RideStatus;
@@ -17,6 +18,7 @@ public record RideSummaryDto(
         BigDecimal pricePerSeat,
         int totalSeats,
         UserCardDto driver,
-        RideStatus rideStatus
+        RideStatus rideStatus,
+        Currency currency
 ) {
 }

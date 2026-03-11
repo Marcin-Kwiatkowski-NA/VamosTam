@@ -1,5 +1,6 @@
 package com.vamigo.ride.dto;
 
+import com.vamigo.domain.Currency;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
@@ -32,6 +33,7 @@ public record RideResponseDto(
         List<ContactMethodDto> contactMethods,
         VehicleResponseDto vehicle,
         RideStatus rideStatus,
-        List<BookingResponseDto> bookings
+        List<BookingResponseDto> bookings,
+        Currency currency
 ) {
 }

@@ -133,6 +133,7 @@ public class BookingResponseEnricher {
                     .totalSeats(ride.getTotalSeats())
                     .driver(driverCard)
                     .rideStatus(ride.getRideStatus())
+                    .currency(ride.getCurrency())
                     .build();
 
             result.add(dtos.get(i).toBuilder().ride(rideSummary).build());

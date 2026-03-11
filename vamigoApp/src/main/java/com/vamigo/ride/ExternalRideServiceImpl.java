@@ -59,6 +59,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .source(RideSource.FACEBOOK)
                 .totalSeats(dto.availableSeats())
                 .pricePerSeat(dto.pricePerSeat())
+                .currency(dto.currency())
                 .status(Status.ACTIVE)
                 .description(dto.description())
                 .lastModified(Instant.now())

@@ -1,5 +1,6 @@
 package com.vamigo.seat.dto;
 
+import com.vamigo.domain.Currency;
 import com.vamigo.location.LocationRef;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -36,6 +37,9 @@ public record SeatCreationDto(
         String description,
 
         @Size(max = 32, message = "Contact phone cannot exceed 32 characters")
-        String contactPhone
+        String contactPhone,
+
+        @NotNull(message = "Currency is required")
+        Currency currency
 ) {
 }

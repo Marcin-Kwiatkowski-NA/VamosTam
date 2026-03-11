@@ -83,7 +83,7 @@ class ExternalSeatControllerTest {
         ExternalSeatCreationDto invalidDto = new ExternalSeatCreationDto(
                 null, null, null,
                 false, 0, null, null,
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
 
         mockMvc.perform(post(BASE_URL)

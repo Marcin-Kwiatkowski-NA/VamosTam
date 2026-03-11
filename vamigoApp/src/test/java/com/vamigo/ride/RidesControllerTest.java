@@ -148,7 +148,8 @@ class RidesControllerTest {
                 null,    // vehicleId
                 "",      // description
                 true,    // autoApprove
-                null     // contactPhone
+                null,    // contactPhone
+                null     // currency
         );
 
         // Act & Assert
@@ -275,7 +276,8 @@ class RidesControllerTest {
                 null,    // vehicleId
                 "",      // description
                 true,    // autoApprove
-                null     // contactPhone
+                null,    // contactPhone
+                null     // currency
         );
 
         // Act & Assert

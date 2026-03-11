@@ -1,5 +1,6 @@
 package com.vamigo.ride.dto;
 
+import com.vamigo.domain.Currency;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -47,6 +48,9 @@ public record ExternalRideCreationDto(
         String authorName,
 
         @NotBlank(message = "Source URL is required")
-        String sourceUrl
+        String sourceUrl,
+
+        @NotNull(message = "Currency is required")
+        Currency currency
 ) {
 }

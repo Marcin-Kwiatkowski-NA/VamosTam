@@ -14,6 +14,7 @@ public abstract class BookingMapper {
     @Mapping(target = "alightStop", source = "alightStop")
     @Mapping(target = "passenger", ignore = true)
     @Mapping(target = "ride", ignore = true)
+    @Mapping(target = "currency", expression = "java(booking.getRide().getCurrency())")
     public abstract BookingResponseDto toResponseDto(RideBooking booking);
 
     public abstract List<BookingResponseDto> toResponseDtos(List<RideBooking> bookings);

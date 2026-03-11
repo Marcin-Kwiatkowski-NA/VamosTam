@@ -1,5 +1,6 @@
 package com.vamigo.util;
 
+import com.vamigo.domain.Currency;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.ContactType;
 import com.vamigo.dto.UserCardDto;
@@ -219,7 +220,8 @@ public final class TestFixtures {
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicleId(ID_ONE)
-                .description(RIDE_DESCRIPTION);
+                .description(RIDE_DESCRIPTION)
+                .currency(Currency.PLN);
     }
 
     public static Ride.RideBuilder<?, ?> aRide(Location origin, Location destination) {
@@ -233,7 +235,8 @@ public final class TestFixtures {
                 .vehicle(aTesla().build())
                 .lastModified(INSTANT)
                 .autoApprove(true)
-                .description(RIDE_DESCRIPTION);
+                .description(RIDE_DESCRIPTION)
+                .currency(Currency.PLN);
     }
 
     public static List<RideStop> buildStops(Ride ride, Location origin, Location destination) {
@@ -349,7 +352,8 @@ public final class TestFixtures {
                 .rawContent("raw content")
                 .phoneNumber(TELEPHONE)
                 .authorName(CRISTIANO)
-                .sourceUrl("https://facebook.com/post/12345");
+                .sourceUrl("https://facebook.com/post/12345")
+                .currency(Currency.PLN);
     }
 
     public static ExternalRideCreationDto.ExternalRideCreationDtoBuilder anExternalRideWithStops() {
@@ -384,7 +388,8 @@ public final class TestFixtures {
                 .rawContent("raw content")
                 .phoneNumber(TELEPHONE)
                 .authorName(CRISTIANO)
-                .sourceUrl("https://facebook.com/post/12345");
+                .sourceUrl("https://facebook.com/post/12345")
+                .currency(Currency.PLN);
     }
 
     // ──────────────── Seat ────────────────

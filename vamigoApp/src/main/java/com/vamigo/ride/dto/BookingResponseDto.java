@@ -1,5 +1,6 @@
 package com.vamigo.ride.dto;
 
+import com.vamigo.domain.Currency;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.ride.BookingStatus;
 import lombok.Builder;
@@ -20,6 +21,7 @@ public record BookingResponseDto(
         Instant bookedAt,
         Instant resolvedAt,
         BigDecimal proposedPrice,
-        String cancellationReason
+        String cancellationReason,
+        Currency currency
 ) {
 }
