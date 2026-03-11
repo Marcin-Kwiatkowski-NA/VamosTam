@@ -7,6 +7,9 @@ ride:
   completion-check-interval-ms: ${RIDE_COMPLETION_CHECK_INTERVAL_MS:300000}
   min-departure-notice-minutes: ${RIDE_MIN_DEPARTURE_NOTICE_MINUTES:30}
 
+seat:
+  expiry-check-interval-ms: ${SEAT_EXPIRY_CHECK_INTERVAL_MS:300000}
+
 booking:
   pending-ttl-minutes: ${BOOKING_PENDING_TTL_MINUTES:60}
   expiry-check-interval-ms: ${BOOKING_EXPIRY_CHECK_INTERVAL_MS:60000}

@@ -99,11 +99,13 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatResponseDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
                 .and(SeatSpecifications.originOsmIdEquals(criteria.originOsmId()))
                 .and(SeatSpecifications.destinationOsmIdEquals(criteria.destinationOsmId()))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(criteria.earliestDeparture()));
+                .and(SeatSpecifications.departsOnOrAfter(effectiveEarliest));
 
         if (criteria.latestDeparture() != null) {
             spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
@@ -120,6 +122,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatResponseDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
         double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
 
@@ -127,7 +130,7 @@ public class SeatServiceImpl implements SeatService {
                 .and(SeatSpecifications.originWithinRadius(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(SeatSpecifications.destinationWithinRadius(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(criteria.earliestDeparture()))
+                .and(SeatSpecifications.departsOnOrAfter(effectiveEarliest))
                 .and(SeatSpecifications.orderByCombinedDistance(
                         criteria.originLat(), criteria.originLon(),
                         criteria.destinationLat(), criteria.destinationLon()));
@@ -220,6 +223,11 @@ public class SeatServiceImpl implements SeatService {
                 .map(seatMapper::seatEntityToResponseDto)
                 .toList();
         return seatResponseEnricher.enrich(seats, dtos);
+    }
+
+    private static Instant clampToNow(Instant earliest) {
+        Instant now = Instant.now();
+        return earliest.isBefore(now) ? now : earliest;
     }
 
     private double resolveRadiusKm(SeatSearchCriteriaDto criteria) {
