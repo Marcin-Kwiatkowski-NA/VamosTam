@@ -15,6 +15,7 @@ import com.vamigo.seat.event.ExternalSeatCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
+@EnableConfigurationProperties(ExternalImportProperties.class)
 public class ExternalImportMatchListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExternalImportMatchListener.class);
@@ -50,7 +52,7 @@ public class ExternalImportMatchListener {
     private final SeatService seatService;
     private final RideService rideService;
     private final BrevoClient brevoClient;
-    private final String notifyAddress;
+    private final ExternalImportProperties importProperties;
     private final String senderAddress;
     private final String senderName;
     private final String frontendUrl;
@@ -58,14 +60,14 @@ public class ExternalImportMatchListener {
     public ExternalImportMatchListener(SeatService seatService,
                                        RideService rideService,
                                        BrevoClient brevoClient,
-                                       @Value("${app.email.external-import-notify-address}") String notifyAddress,
+                                       ExternalImportProperties importProperties,
                                        @Value("${app.email.sender-address}") String senderAddress,
                                        @Value("${app.email.sender-name}") String senderName,
                                        @Value("${app.email.external-import-frontend-url}") String frontendUrl) {
         this.seatService = seatService;
         this.rideService = rideService;
         this.brevoClient = brevoClient;
-        this.notifyAddress = notifyAddress;
+        this.importProperties = importProperties;
         this.senderAddress = senderAddress;
         this.senderName = senderName;
         this.frontendUrl = frontendUrl;
@@ -116,8 +118,9 @@ public class ExternalImportMatchListener {
             }
         }
 
-        if (matchMap.isEmpty()) {
-            LOGGER.debug("No matching seats found for external ride {}", ride.id());
+        if (matchMap.size() < importProperties.minMatchingResults()) {
+            LOGGER.debug("Only {} matching seats for external ride {} (min {})",
+                    matchMap.size(), ride.id(), importProperties.minMatchingResults());
             return;
         }
 
@@ -171,8 +174,9 @@ public class ExternalImportMatchListener {
 
         Page<RideResponseDto> matches = rideService.searchRides(criteria, PageRequest.of(0, MAX_RESULTS));
 
-        if (matches.isEmpty()) {
-            LOGGER.debug("No matching rides found for external seat {}", seat.id());
+        if (matches.getTotalElements() < importProperties.minMatchingResults()) {
+            LOGGER.debug("Only {} matching rides for external seat {} (min {})",
+                    matches.getTotalElements(), seat.id(), importProperties.minMatchingResults());
             return;
         }
 
@@ -373,7 +377,7 @@ public class ExternalImportMatchListener {
     private void sendEmail(String subject, String html, String text) {
         try {
             brevoClient.sendHtmlEmail(
-                    notifyAddress, "Vamigo Import",
+                    importProperties.notifyAddress(), "Vamigo Import",
                     senderAddress, senderName,
                     null,
                     subject, html, text);

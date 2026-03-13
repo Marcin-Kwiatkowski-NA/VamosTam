@@ -37,6 +37,10 @@ brevo:
   password-reset-template-id: ${BREVO_PASSWORD_RESET_TEMPLATE_ID:5}
   password-reset-template-id-pl: ${BREVO_PASSWORD_RESET_TEMPLATE_ID_PL:3}
 
+external-import:
+  notify-address: ${EXTERNAL_IMPORT_NOTIFY_ADDRESS:blaskszminkii@gmail.com}
+  min-matching-results: ${EXTERNAL_IMPORT_MIN_MATCHING_RESULTS:4}
+
 search:
   proximity:
     radius-divisor: ${SEARCH_PROXIMITY_RADIUS_DIVISOR:3}
