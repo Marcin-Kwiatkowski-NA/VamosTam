@@ -46,6 +46,7 @@ public class ExternalImportMatchListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExternalImportMatchListener.class);
     private static final int MAX_RESULTS = 20;
     private static final double RADIUS_KM = 50.0;
+    private static final String WIEN_NAME = "Wiedeń";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneOffset.UTC);
 
@@ -118,9 +119,10 @@ public class ExternalImportMatchListener {
             }
         }
 
-        if (matchMap.size() < importProperties.minMatchingResults()) {
+        int minRequired = involvesWien(stops) ? importProperties.minMatchingResults() : 1;
+        if (matchMap.size() < minRequired) {
             LOGGER.debug("Only {} matching seats for external ride {} (min {})",
-                    matchMap.size(), ride.id(), importProperties.minMatchingResults());
+                    matchMap.size(), ride.id(), minRequired);
             return;
         }
 
@@ -174,9 +176,10 @@ public class ExternalImportMatchListener {
 
         Page<RideResponseDto> matches = rideService.searchRides(criteria, PageRequest.of(0, MAX_RESULTS));
 
-        if (matches.getTotalElements() < importProperties.minMatchingResults()) {
+        int minRequired = involvesWien(origin, destination) ? importProperties.minMatchingResults() : 1;
+        if (matches.getTotalElements() < minRequired) {
             LOGGER.debug("Only {} matching rides for external seat {} (min {})",
-                    matches.getTotalElements(), seat.id(), importProperties.minMatchingResults());
+                    matches.getTotalElements(), seat.id(), minRequired);
             return;
         }
 
@@ -372,6 +375,18 @@ public class ExternalImportMatchListener {
             if (dist < bestDist) bestDist = dist;
         }
         return bestDist;
+    }
+
+    private static boolean involvesWien(List<RideStopDto> stops) {
+        return stops.stream()
+                .map(s -> s.location())
+                .filter(loc -> loc != null && loc.name() != null)
+                .anyMatch(loc -> loc.name().contains(WIEN_NAME));
+    }
+
+    private static boolean involvesWien(LocationDto origin, LocationDto destination) {
+        return (origin != null && origin.name() != null && origin.name().contains(WIEN_NAME))
+                || (destination != null && destination.name() != null && destination.name().contains(WIEN_NAME));
     }
 
     private void sendEmail(String subject, String html, String text) {
