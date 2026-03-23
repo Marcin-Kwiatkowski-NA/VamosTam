@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -139,7 +140,9 @@ public class SeatServiceImpl implements SeatService {
             spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
-        Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
+        // Strip pageable sort so the Specification's distance-based orderBy is not overwritten
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<Seat> seatPage = seatRepository.findAll(spec, unsorted);
         List<Seat> seats = seatPage.getContent();
 
         LOGGER.info("Proximity seat search: radiusKm={}, found={}",

@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -271,7 +272,9 @@ public class RideServiceImpl implements RideService {
             spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
-        Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
+        // Strip pageable sort so the Specification's distance-based orderBy is not overwritten
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<Ride> ridePage = rideRepository.findAll(spec, unsorted);
 
         List<Ride> filtered = ridePage.getContent().stream()
                 .filter(ride -> hasAvailableSeatsForNearbySearch(ride, criteria))
