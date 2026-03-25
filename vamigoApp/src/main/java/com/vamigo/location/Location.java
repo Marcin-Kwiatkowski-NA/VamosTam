@@ -43,7 +43,8 @@ public class Location {
     @Column(length = 2)
     private String countryCode;
 
-    private String state;
+    private String statePl;
+    private String stateEn;
     private String county;
     private String city;
     private String postCode;
@@ -57,6 +58,10 @@ public class Location {
 
     public String getName(LocationLang lang) {
         return lang == LocationLang.pl ? namePl : nameEn;
+    }
+
+    public String getState(LocationLang lang) {
+        return lang == LocationLang.pl ? statePl : stateEn;
     }
 
     public Double getLatitude() {

@@ -39,11 +39,13 @@ public class LocationResolutionService {
         LOGGER.info("Creating new location from ref: osmId={}, name={}, lang={}", ref.osmId(), ref.name(), ref.lang());
 
         LocationLang otherLang = ref.lang() == LocationLang.pl ? LocationLang.en : LocationLang.pl;
-        String otherName = reverseNameByOsmId(ref.latitude(), ref.longitude(), ref.osmId(), otherLang)
-                .orElse(ref.name());
+        ReversedFields otherFields = reverseByOsmId(ref.latitude(), ref.longitude(), ref.osmId(), otherLang)
+                .orElse(new ReversedFields(ref.name(), ref.state()));
 
-        String namePl = ref.lang() == LocationLang.pl ? ref.name() : otherName;
-        String nameEn = ref.lang() == LocationLang.en ? ref.name() : otherName;
+        String namePl = ref.lang() == LocationLang.pl ? ref.name() : otherFields.name();
+        String nameEn = ref.lang() == LocationLang.en ? ref.name() : otherFields.name();
+        String statePl = ref.lang() == LocationLang.pl ? ref.state() : otherFields.state();
+        String stateEn = ref.lang() == LocationLang.en ? ref.state() : otherFields.state();
 
         Location location = Location.builder()
                 .osmId(ref.osmId())
@@ -51,7 +53,8 @@ public class LocationResolutionService {
                 .nameEn(nameEn)
                 .country(ref.country())
                 .countryCode(ref.countryCode())
-                .state(ref.state())
+                .statePl(statePl)
+                .stateEn(stateEn)
                 .county(ref.county())
                 .city(ref.city())
                 .postCode(ref.postCode())
@@ -94,36 +97,36 @@ public class LocationResolutionService {
         }
 
         String namePl = feature.properties().name();
+        String statePl = feature.properties().state();
 
         var coords = feature.geometry().coordinates();
         double lon = coords.get(0);
         double lat = coords.get(1);
 
-        String nameEn = reverseNameByOsmId(lat, lon, osmId, LocationLang.en)
-                .orElse(namePl);
+        ReversedFields enFields = reverseByOsmId(lat, lon, osmId, LocationLang.en)
+                .orElse(new ReversedFields(namePl, statePl));
 
-        Location location = buildLocationFromFeature(feature, namePl, nameEn);
+        Location location = buildLocationFromFeature(feature, namePl, enFields.name(), statePl, enFields.state());
         return Optional.of(locationRepository.save(location));
     }
 
-    private Optional<String> reverseNameByOsmId(double lat, double lon, Long osmId, LocationLang lang) {
+    record ReversedFields(String name, String state) {}
+
+    Optional<ReversedFields> reverseByOsmId(double lat, double lon, Long osmId, LocationLang lang) {
         try {
             List<PhotonFeature> features = photonClient.reverse(lat, lon, lang);
-            return findNameByOsmId(features, osmId);
+            return features.stream()
+                    .filter(f -> osmId.equals(f.properties().osmId()))
+                    .map(f -> new ReversedFields(f.properties().name(), f.properties().state()))
+                    .findFirst();
         } catch (Exception e) {
             LOGGER.warn("Reverse geocode failed for lang={}: {}", lang, e.getMessage());
             return Optional.empty();
         }
     }
 
-    private Optional<String> findNameByOsmId(List<PhotonFeature> features, Long osmId) {
-        return features.stream()
-                .filter(f -> osmId.equals(f.properties().osmId()))
-                .map(f -> f.properties().name())
-                .findFirst();
-    }
-
-    private Location buildLocationFromFeature(PhotonFeature feature, String namePl, String nameEn) {
+    private Location buildLocationFromFeature(PhotonFeature feature, String namePl, String nameEn,
+                                               String statePl, String stateEn) {
         var props = feature.properties();
         var coords = feature.geometry().coordinates();
         double lon = coords.get(0);
@@ -135,7 +138,8 @@ public class LocationResolutionService {
                 .nameEn(nameEn)
                 .country(props.country())
                 .countryCode(props.countrycode())
-                .state(props.state())
+                .statePl(statePl)
+                .stateEn(stateEn)
                 .county(props.county())
                 .city(props.city())
                 .postCode(props.postcode())
