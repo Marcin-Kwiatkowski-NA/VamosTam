@@ -24,7 +24,8 @@ public class SearchConfigController {
         var dto = new SearchConfigDto(
                 sm.radiusKm(),
                 sm.maxSegments(),
-                sm.refreshCooldownSeconds()
+                sm.refreshCooldownSeconds(),
+                sm.defaultNearbyLimit()
         );
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())

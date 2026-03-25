@@ -17,7 +17,8 @@ public record SearchProperties(
     public record SmartMatch(
             double radiusKm,
             int maxSegments,
-            int refreshCooldownSeconds
+            int refreshCooldownSeconds,
+            int defaultNearbyLimit
     ) {
     }
 }

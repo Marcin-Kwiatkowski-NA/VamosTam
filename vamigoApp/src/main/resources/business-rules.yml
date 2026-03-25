@@ -49,3 +49,4 @@ search:
     radius-km: ${SEARCH_SMART_MATCH_RADIUS_KM:50}
     max-segments: ${SEARCH_SMART_MATCH_MAX_SEGMENTS:5}
     refresh-cooldown-seconds: ${SEARCH_SMART_MATCH_REFRESH_COOLDOWN_SECONDS:120}
+    default-nearby-limit: ${SEARCH_DEFAULT_NEARBY_LIMIT:5}
