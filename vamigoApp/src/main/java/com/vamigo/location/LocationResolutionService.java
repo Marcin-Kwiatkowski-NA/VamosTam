@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@EnableConfigurationProperties(LocationProperties.class)
 public class LocationResolutionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LocationResolutionService.class);
@@ -21,11 +23,14 @@ public class LocationResolutionService {
 
     private final LocationRepository locationRepository;
     private final PhotonClient photonClient;
+    private final LocationProperties locationProperties;
 
     public LocationResolutionService(LocationRepository locationRepository,
-                                      PhotonClient photonClient) {
+                                      PhotonClient photonClient,
+                                      LocationProperties locationProperties) {
         this.locationRepository = locationRepository;
         this.photonClient = photonClient;
+        this.locationProperties = locationProperties;
     }
 
     @Transactional
@@ -80,6 +85,11 @@ public class LocationResolutionService {
             return Optional.empty();
         }
 
+        Optional<Location> overridden = resolveOverride(name);
+        if (overridden.isPresent()) {
+            return overridden;
+        }
+
         // External import sends Polish city names
         List<PhotonFeature> results = photonClient.search(name, 1, LocationLang.pl);
         if (results.isEmpty()) {
@@ -108,6 +118,20 @@ public class LocationResolutionService {
 
         Location location = buildLocationFromFeature(feature, namePl, enFields.name(), statePl, enFields.state());
         return Optional.of(locationRepository.save(location));
+    }
+
+    private Optional<Location> resolveOverride(String name) {
+        Long osmId = locationProperties.overrides().get(name.trim().toLowerCase());
+        if (osmId == null) {
+            return Optional.empty();
+        }
+        Optional<Location> pinned = locationRepository.findByOsmId(osmId);
+        if (pinned.isPresent()) {
+            LOGGER.info("Resolved '{}' via pinned override to osmId={}", name, osmId);
+        } else {
+            LOGGER.warn("Pinned override for '{}' → osmId={} not found in database, falling back to Photon", name, osmId);
+        }
+        return pinned;
     }
 
     record ReversedFields(String name, String state) {}

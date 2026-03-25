@@ -41,6 +41,11 @@ external-import:
   notify-address: ${EXTERNAL_IMPORT_NOTIFY_ADDRESS:blaskszminkii@gmail.com}
   min-matching-results: ${EXTERNAL_IMPORT_MIN_MATCHING_RESULTS:4}
 
+location:
+  overrides:
+    "jabłonka": 4585196
+    "jablonka": 4585196
+
 search:
   proximity:
     radius-divisor: ${SEARCH_PROXIMITY_RADIUS_DIVISOR:3}
