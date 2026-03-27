@@ -72,6 +72,22 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
         """)
     Optional<Conversation> findByIdWithParticipants(@Param("id") UUID id);
 
+    @Query("""
+        SELECT c FROM Conversation c
+        JOIN FETCH c.participantA
+        JOIN FETCH c.participantB
+        WHERE c.lastMessageCreatedAt IS NOT NULL
+          AND c.lastMessageCreatedAt < :cutoff
+          AND (
+              (c.participantAUnreadCount > 0
+               AND (c.participantAEmailNotifiedAt IS NULL OR c.participantAEmailNotifiedAt < c.lastMessageCreatedAt))
+              OR
+              (c.participantBUnreadCount > 0
+               AND (c.participantBEmailNotifiedAt IS NULL OR c.participantBEmailNotifiedAt < c.lastMessageCreatedAt))
+          )
+        """)
+    List<Conversation> findConversationsNeedingEmailNotification(@Param("cutoff") Instant cutoff);
+
     @Modifying
     @Query("DELETE FROM Conversation c WHERE c.participantA.id = :userId OR c.participantB.id = :userId")
     void deleteAllByParticipantId(@Param("userId") Long userId);

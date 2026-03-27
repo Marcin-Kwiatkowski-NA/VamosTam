@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nowa rezerwacja</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f5f7;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#00796b;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;">Vamigo</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:600;">Nowa rezerwacja!</h2>
+              <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.5;">
+                <strong>{{ params.PASSENGER_NAME }}</strong> chce zarezerwować miejsce w Twojej podróży.
+              </p>
+
+              <!-- Ride card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f8faf9;border-radius:8px;border:1px solid #e0e0e0;">
+                <tr>
+                  <td style="padding:20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding-bottom:12px;">
+                          <span style="display:inline-block;width:10px;height:10px;background-color:#00796b;border-radius:50%;margin-right:8px;vertical-align:middle;"></span>
+                          <span style="color:#1a1a1a;font-size:16px;font-weight:600;vertical-align:middle;">{{ params.ORIGIN }}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-left:4px;padding-bottom:12px;">
+                          <span style="display:inline-block;width:2px;height:20px;background-color:#00796b;margin-left:4px;"></span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom:16px;">
+                          <span style="display:inline-block;width:10px;height:10px;background-color:#ff8f00;border-radius:50%;margin-right:8px;vertical-align:middle;"></span>
+                          <span style="color:#1a1a1a;font-size:16px;font-weight:600;vertical-align:middle;">{{ params.DESTINATION }}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <table role="presentation" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="padding-right:20px;">
+                                <span style="color:#777;font-size:13px;">Data wyjazdu</span><br>
+                                <span style="color:#1a1a1a;font-size:14px;font-weight:500;">{{ params.DEPARTURE_TIME }}</span>
+                              </td>
+                              <td>
+                                <span style="color:#777;font-size:13px;">Miejsca</span><br>
+                                <span style="color:#1a1a1a;font-size:14px;font-weight:500;">{{ params.SEAT_COUNT }}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding:28px 0 0;">
+                    <a href="https://vamigo.app{{ params.DEEP_LINK }}"
+                       style="display:inline-block;background-color:#00796b;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:8px;">
+                      Zobacz rezerwację
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #eeeeee;">
+              <p style="margin:0;color:#999;font-size:12px;line-height:1.5;text-align:center;">
+                Otrzymujesz tę wiadomość, ponieważ ktoś zarezerwował miejsce w Twojej podróży na Vamigo.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
