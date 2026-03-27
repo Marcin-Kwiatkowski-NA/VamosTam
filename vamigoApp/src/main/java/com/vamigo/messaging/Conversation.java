@@ -77,6 +77,12 @@ public class Conversation {
     @Builder.Default
     private int participantBUnreadCount = 0;
 
+    @Column(name = "participant_a_email_notified_at")
+    private Instant participantAEmailNotifiedAt;
+
+    @Column(name = "participant_b_email_notified_at")
+    private Instant participantBEmailNotifiedAt;
+
     // Optimistic locking to prevent lost updates on concurrent sends
     @Version
     private int version;

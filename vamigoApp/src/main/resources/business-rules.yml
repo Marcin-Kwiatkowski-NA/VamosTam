@@ -36,6 +36,16 @@ brevo:
   verification-template-id-pl: ${BREVO_VERIFICATION_TEMPLATE_ID_PL:1}
   password-reset-template-id: ${BREVO_PASSWORD_RESET_TEMPLATE_ID:5}
   password-reset-template-id-pl: ${BREVO_PASSWORD_RESET_TEMPLATE_ID_PL:3}
+  booking-requested-template-id: ${BREVO_BOOKING_REQUESTED_TEMPLATE_ID:6}
+  booking-requested-template-id-pl: ${BREVO_BOOKING_REQUESTED_TEMPLATE_ID_PL:7}
+  booking-confirmed-template-id: ${BREVO_BOOKING_CONFIRMED_TEMPLATE_ID:8}
+  booking-confirmed-template-id-pl: ${BREVO_BOOKING_CONFIRMED_TEMPLATE_ID_PL:9}
+  unread-message-template-id: ${BREVO_UNREAD_MESSAGE_TEMPLATE_ID:10}
+  unread-message-template-id-pl: ${BREVO_UNREAD_MESSAGE_TEMPLATE_ID_PL:11}
+
+message-email:
+  delay-minutes: ${MESSAGE_EMAIL_DELAY_MINUTES:10}
+  check-interval-ms: ${MESSAGE_EMAIL_CHECK_INTERVAL_MS:120000}
 
 external-import:
   notify-address: ${EXTERNAL_IMPORT_NOTIFY_ADDRESS:blaskszminkii@gmail.com}
