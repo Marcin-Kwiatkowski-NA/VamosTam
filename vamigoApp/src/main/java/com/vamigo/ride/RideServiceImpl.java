@@ -379,14 +379,16 @@ public class RideServiceImpl implements RideService {
 
         stops.add(RideStop.builder()
                 .ride(ride).location(origin).stopOrder(order++)
-                .departureTime(dto.departureTime()).build());
+                .departureTime(dto.departureTime())
+                .legPrice(dto.originLegPrice()).build());
 
         if (dto.intermediateStops() != null) {
             for (var intermediateStop : dto.intermediateStops()) {
                 Location loc = locationResolutionService.resolve(intermediateStop.location());
                 stops.add(RideStop.builder()
                         .ride(ride).location(loc).stopOrder(order++)
-                        .departureTime(intermediateStop.departureTime()).build());
+                        .departureTime(intermediateStop.departureTime())
+                        .legPrice(intermediateStop.legPrice()).build());
             }
         }
 
@@ -407,10 +409,13 @@ public class RideServiceImpl implements RideService {
 
         if (existingOsmIds.equals(newOsmIds)) {
             existingRide.getStops().get(0).setDepartureTime(dto.departureTime());
+            existingRide.getStops().get(0).setLegPrice(dto.originLegPrice());
             if (dto.intermediateStops() != null) {
                 for (int i = 0; i < dto.intermediateStops().size(); i++) {
                     existingRide.getStops().get(i + 1)
                             .setDepartureTime(dto.intermediateStops().get(i).departureTime());
+                    existingRide.getStops().get(i + 1)
+                            .setLegPrice(dto.intermediateStops().get(i).legPrice());
                 }
             }
             validateStopTimeOrdering(existingRide.getStops());

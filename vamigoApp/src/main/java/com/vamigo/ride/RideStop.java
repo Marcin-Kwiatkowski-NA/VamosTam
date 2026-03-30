@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -47,4 +48,7 @@ public class RideStop {
 
     @Column(name = "departure_time")
     private Instant departureTime;
+
+    @Column(name = "leg_price", precision = 6, scale = 2)
+    private BigDecimal legPrice;
 }

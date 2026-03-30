@@ -50,7 +50,11 @@ public record RideCreationDto(
         String contactPhone,
 
         @NotNull(message = "Currency is required")
-        Currency currency
+        Currency currency,
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "Origin leg price cannot be negative")
+        @DecimalMax(value = "9999.99", inclusive = true, message = "Origin leg price cannot exceed 9999.99")
+        BigDecimal originLegPrice
 ) {
     public RideCreationDto {
         // Default autoApprove to true if not explicitly set

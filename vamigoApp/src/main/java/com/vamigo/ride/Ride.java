@@ -106,6 +106,23 @@ public class Ride extends AbstractTrip {
         };
     }
 
+    /**
+     * Sums leg prices for stops in [{@code boardOrder}, {@code alightOrder}).
+     * Returns {@code null} if any leg in the range has no price set.
+     */
+    public BigDecimal getSegmentPrice(int boardOrder, int alightOrder) {
+        if (stops == null) return null;
+        BigDecimal sum = BigDecimal.ZERO;
+        for (RideStop stop : stops) {
+            int order = stop.getStopOrder();
+            if (order >= boardOrder && order < alightOrder) {
+                if (stop.getLegPrice() == null) return null;
+                sum = sum.add(stop.getLegPrice());
+            }
+        }
+        return sum;
+    }
+
     public List<RideBooking> getConfirmedBookings() {
         if (bookings == null) return List.of();
         return bookings.stream()

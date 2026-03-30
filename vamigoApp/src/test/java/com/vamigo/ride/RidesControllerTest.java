@@ -149,7 +149,8 @@ class RidesControllerTest {
                 "",      // description
                 true,    // autoApprove
                 null,    // contactPhone
-                null     // currency
+                null,    // currency
+                null     // originLegPrice
         );
 
         // Act & Assert
@@ -277,7 +278,8 @@ class RidesControllerTest {
                 "",      // description
                 true,    // autoApprove
                 null,    // contactPhone
-                null     // currency
+                null,    // currency
+                null     // originLegPrice
         );
 
         // Act & Assert
