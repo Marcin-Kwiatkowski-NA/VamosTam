@@ -36,6 +36,11 @@ public class UserProfile {
     @Column(length = 500)
     private String bio;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false)
+    @Builder.Default
+    private AccountType accountType = AccountType.PRIVATE;
+
     @Embedded
     @Builder.Default
     private UserStats stats = new UserStats();

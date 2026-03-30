@@ -25,6 +25,7 @@ import com.vamigo.seat.SeatStatus;
 import com.vamigo.seat.dto.ExternalSeatCreationDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.user.AccountStatus;
+import com.vamigo.user.AccountType;
 import com.vamigo.user.Role;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserProfile;
@@ -156,7 +157,8 @@ public final class TestFixtures {
         return UserCardDto.builder()
                 .id(ID_ONE)
                 .name(CRISTIANO)
-                .vehicles(List.of());
+                .vehicles(List.of())
+                .accountType(AccountType.PRIVATE);
     }
 
     // ──────────────── Vehicle ────────────────

@@ -4,6 +4,7 @@ import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.ContactMethodFactory;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.ride.RideSource;
+import com.vamigo.user.AccountType;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.AvatarUrlResolver;
 import com.vamigo.user.UserAccountRepository;
@@ -170,7 +171,7 @@ public class ResponseEnricher {
             name = displayNameResolver.resolveExternal(
                     meta != null ? meta.getAuthorName() : null, entity.getId());
             return new UserCardDto(id, name, null, null,
-                    null, null, false, false, 0, 0, 0, List.of());
+                    null, null, false, false, 0, 0, 0, List.of(), AccountType.PRIVATE);
         }
 
         name = displayNameResolver.resolveInternal(profile, id);
@@ -205,8 +206,10 @@ public class ResponseEnricher {
             phoneVerified = account.getPhoneVerifiedAt() != null;
         }
 
+        AccountType accountType = profile != null ? profile.getAccountType() : AccountType.PRIVATE;
+
         return new UserCardDto(id, name, rating, ridesGiven + ridesTaken,
                 avatarUrl, bio, emailVerified, phoneVerified,
-                ridesGiven, ridesTaken, ratingCount, vehicles);
+                ridesGiven, ridesTaken, ratingCount, vehicles, accountType);
     }
 }

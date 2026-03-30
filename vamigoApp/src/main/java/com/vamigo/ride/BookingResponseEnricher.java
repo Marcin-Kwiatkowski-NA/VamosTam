@@ -5,6 +5,7 @@ import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationMapper;
 import com.vamigo.ride.dto.BookingResponseDto;
 import com.vamigo.ride.dto.RideSummaryDto;
+import com.vamigo.user.AccountType;
 import com.vamigo.user.AvatarUrlResolver;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
@@ -183,8 +184,10 @@ public class BookingResponseEnricher {
             phoneVerified = account.getPhoneVerifiedAt() != null;
         }
 
+        AccountType accountType = profile != null ? profile.getAccountType() : AccountType.PRIVATE;
+
         return new UserCardDto(id, name, rating, ridesGiven + ridesTaken,
                 avatarUrl, bio, emailVerified, phoneVerified,
-                ridesGiven, ridesTaken, ratingCount, vehicles);
+                ridesGiven, ridesTaken, ratingCount, vehicles, accountType);
     }
 }

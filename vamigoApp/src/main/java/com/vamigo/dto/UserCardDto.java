@@ -1,5 +1,6 @@
 package com.vamigo.dto;
 
+import com.vamigo.user.AccountType;
 import com.vamigo.vehicle.VehicleResponseDto;
 import lombok.Builder;
 
@@ -18,6 +19,7 @@ public record UserCardDto(
         int ridesGiven,
         int ridesTaken,
         int ratingCount,
-        List<VehicleResponseDto> vehicles
+        List<VehicleResponseDto> vehicles,
+        AccountType accountType
 ) {
 }
