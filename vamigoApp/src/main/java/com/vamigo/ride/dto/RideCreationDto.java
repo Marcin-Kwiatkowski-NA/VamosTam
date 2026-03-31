@@ -46,6 +46,8 @@ public record RideCreationDto(
 
         boolean autoApprove,
 
+        boolean doorToDoor,
+
         @Size(max = 32, message = "Contact phone cannot exceed 32 characters")
         String contactPhone,
 

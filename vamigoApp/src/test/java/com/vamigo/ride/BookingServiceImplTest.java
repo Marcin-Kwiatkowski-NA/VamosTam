@@ -18,6 +18,7 @@ import com.vamigo.ride.event.BookingRequestedEvent;
 import com.vamigo.ride.event.BookingRejectedEvent;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
+import com.vamigo.user.UserProfileRepository;
 import com.vamigo.user.capability.CapabilityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,7 @@ class BookingServiceImplTest {
     @Mock private RideRepository rideRepository;
     @Mock private RideBookingRepository bookingRepository;
     @Mock private UserAccountRepository userAccountRepository;
+    @Mock private UserProfileRepository userProfileRepository;
     @Mock private BookingMapper bookingMapper;
     @Mock private BookingResponseEnricher bookingResponseEnricher;
     @Mock private CapabilityService capabilityService;
@@ -67,6 +69,7 @@ class BookingServiceImplTest {
         ride.setTotalSeats(3);
         ride.setAutoApprove(true);
         passenger = aPassengerAccount().build();
+        lenient().when(userProfileRepository.findById(any())).thenReturn(Optional.empty());
     }
 
     private void stubEnricher() {

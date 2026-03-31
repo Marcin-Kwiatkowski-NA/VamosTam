@@ -48,6 +48,9 @@ public class Ride extends AbstractTrip {
     @Column(name = "auto_approve", nullable = false)
     private boolean autoApprove;
 
+    @Column(name = "door_to_door", nullable = false)
+    private boolean doorToDoor;
+
     @OneToMany(mappedBy = "ride", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("stopOrder ASC")
     private List<RideStop> stops;

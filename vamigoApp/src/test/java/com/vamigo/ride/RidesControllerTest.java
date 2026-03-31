@@ -148,6 +148,7 @@ class RidesControllerTest {
                 null,    // vehicleId
                 "",      // description
                 true,    // autoApprove
+                false,   // doorToDoor
                 null,    // contactPhone
                 null,    // currency
                 null     // originLegPrice
@@ -277,6 +278,7 @@ class RidesControllerTest {
                 null,    // vehicleId
                 "",      // description
                 true,    // autoApprove
+                false,   // doorToDoor
                 null,    // contactPhone
                 null,    // currency
                 null     // originLegPrice
