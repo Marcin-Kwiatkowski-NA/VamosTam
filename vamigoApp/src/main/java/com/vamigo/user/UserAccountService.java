@@ -11,6 +11,7 @@ import com.vamigo.ride.RideRepository;
 import com.vamigo.seat.SeatExternalMetaRepository;
 import com.vamigo.seat.SeatRepository;
 import com.vamigo.user.exception.DuplicateEmailException;
+import com.vamigo.user.exception.DuplicateNipException;
 import com.vamigo.user.exception.NoSuchUserException;
 import com.vamigo.vehicle.VehicleRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class UserAccountService {
 
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
+    private final CarrierProfileRepository carrierProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -87,6 +89,59 @@ public class UserAccountService {
                 .build();
 
         userProfileRepository.save(profile);
+
+        return savedAccount;
+    }
+
+    @Transactional
+    public UserAccount createCarrierAccount(String email, String password,
+                                             String companyName, String nip,
+                                             String phoneNumber, String websiteUrl) {
+        String normalizedEmail = email.toLowerCase();
+
+        if (userAccountRepository.existsByEmail(normalizedEmail)) {
+            throw new DuplicateEmailException(normalizedEmail);
+        }
+
+        if (carrierProfileRepository.existsByNip(nip)) {
+            throw new DuplicateNipException(nip);
+        }
+
+        Set<AuthProvider> providers = new HashSet<>();
+        providers.add(AuthProvider.EMAIL);
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.USER);
+        roles.add(Role.CARRIER);
+
+        UserAccount account = UserAccount.builder()
+                .email(normalizedEmail)
+                .passwordHash(passwordEncoder.encode(password))
+                .providers(providers)
+                .status(AccountStatus.ACTIVE)
+                .roles(roles)
+                .build();
+
+        UserAccount savedAccount = userAccountRepository.save(account);
+
+        UserProfile profile = UserProfile.builder()
+                .account(savedAccount)
+                .displayName(companyName)
+                .accountType(AccountType.CARRIER)
+                .phoneNumber(phoneNumber)
+                .stats(new UserStats())
+                .build();
+
+        userProfileRepository.save(profile);
+
+        CarrierProfile carrierProfile = CarrierProfile.builder()
+                .account(savedAccount)
+                .companyName(companyName)
+                .nip(nip)
+                .websiteUrl(websiteUrl)
+                .build();
+
+        carrierProfileRepository.save(carrierProfile);
 
         return savedAccount;
     }
@@ -188,7 +243,10 @@ public class UserAccountService {
         // 8. Vehicles
         vehicleRepository.deleteByOwnerId(userId);
 
-        // 9. User profile
+        // 9. Carrier profile (if exists)
+        carrierProfileRepository.findById(userId).ifPresent(carrierProfileRepository::delete);
+
+        // 10. User profile
         userProfileRepository.deleteById(userId);
 
         // 10. User account (cascades element collections: providers, roles)

@@ -1,6 +1,7 @@
 package com.vamigo.user.dto;
 
 import com.vamigo.user.AccountStatus;
+import com.vamigo.user.AccountType;
 
 public record UserProfileDto(
     Long id,
@@ -12,5 +13,6 @@ public record UserProfileDto(
     String bio,
     boolean isEmailVerified,
     boolean isPhoneVerified,
+    AccountType accountType,
     UserStatsDto stats
 ) {}

@@ -4,6 +4,7 @@ import com.vamigo.exceptions.AlreadyBookedException;
 import com.vamigo.exceptions.BookingNotFoundException;
 import com.vamigo.exceptions.CannotBookException;
 import com.vamigo.exceptions.CannotBookOwnRideException;
+import com.vamigo.exceptions.CarrierRideNotBookableException;
 import com.vamigo.exceptions.ExternalRideNotBookableException;
 import com.vamigo.exceptions.InsufficientSeatsException;
 import com.vamigo.exceptions.InvalidBookingSegmentException;
@@ -17,8 +18,10 @@ import com.vamigo.ride.event.BookingCancelledEvent;
 import com.vamigo.ride.event.BookingConfirmedEvent;
 import com.vamigo.ride.event.BookingRejectedEvent;
 import com.vamigo.ride.event.BookingRequestedEvent;
+import com.vamigo.user.AccountType;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
+import com.vamigo.user.UserProfileRepository;
 import com.vamigo.user.capability.CapabilityService;
 import com.vamigo.user.exception.NoSuchUserException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,6 +40,7 @@ public class BookingServiceImpl implements BookingService {
     private final RideRepository rideRepository;
     private final RideBookingRepository bookingRepository;
     private final UserAccountRepository userAccountRepository;
+    private final UserProfileRepository userProfileRepository;
     private final BookingMapper bookingMapper;
     private final BookingResponseEnricher bookingResponseEnricher;
     private final CapabilityService capabilityService;
@@ -45,6 +49,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingServiceImpl(RideRepository rideRepository,
                                RideBookingRepository bookingRepository,
                                UserAccountRepository userAccountRepository,
+                               UserProfileRepository userProfileRepository,
                                BookingMapper bookingMapper,
                                BookingResponseEnricher bookingResponseEnricher,
                                CapabilityService capabilityService,
@@ -52,6 +57,7 @@ public class BookingServiceImpl implements BookingService {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.userAccountRepository = userAccountRepository;
+        this.userProfileRepository = userProfileRepository;
         this.bookingMapper = bookingMapper;
         this.bookingResponseEnricher = bookingResponseEnricher;
         this.capabilityService = capabilityService;
@@ -67,6 +73,10 @@ public class BookingServiceImpl implements BookingService {
         if (ride.getSource() != RideSource.INTERNAL) {
             throw new ExternalRideNotBookableException(rideId);
         }
+
+        userProfileRepository.findById(ride.getDriver().getId())
+                .filter(p -> p.getAccountType() == AccountType.CARRIER)
+                .ifPresent(p -> { throw new CarrierRideNotBookableException(rideId); });
 
         if (ride.getDriver().getId().equals(passengerId)) {
             throw new CannotBookOwnRideException(rideId);

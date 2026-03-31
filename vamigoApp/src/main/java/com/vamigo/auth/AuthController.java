@@ -6,6 +6,7 @@ import com.vamigo.auth.dto.ForgotPasswordRequest;
 import com.vamigo.auth.dto.GoogleTokenRequest;
 import com.vamigo.auth.dto.LoginRequest;
 import com.vamigo.auth.dto.RefreshTokenRequest;
+import com.vamigo.auth.dto.CarrierRegisterRequest;
 import com.vamigo.auth.dto.RegisterRequest;
 import com.vamigo.auth.dto.ResetPasswordRequest;
 import com.vamigo.auth.exception.InvalidTokenException;
@@ -54,6 +55,11 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @PostMapping("/register/carrier")
+    public ResponseEntity<AuthResponse> registerCarrier(@Valid @RequestBody CarrierRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerCarrier(request));
     }
 
     @PostMapping("/google")

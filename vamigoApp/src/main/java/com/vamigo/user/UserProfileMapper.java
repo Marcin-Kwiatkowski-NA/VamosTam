@@ -22,6 +22,7 @@ public abstract class UserProfileMapper {
     @Mapping(target = "status", source = "account.status")
     @Mapping(target = "isEmailVerified", expression = "java(account.getEmailVerifiedAt() != null)")
     @Mapping(target = "isPhoneVerified", expression = "java(account.getPhoneVerifiedAt() != null)")
+    @Mapping(target = "accountType", source = "profile.accountType")
     @Mapping(target = "stats", source = "profile.stats", qualifiedByName = "toStatsDto")
     @Mapping(target = "avatarUrl", expression = "java(deriveAvatarUrl(profile))")
     public abstract UserProfileDto toDto(UserAccount account, UserProfile profile);

@@ -3,6 +3,7 @@ package com.vamigo.auth.service;
 import com.vamigo.auth.dto.AuthResponse;
 import com.vamigo.auth.dto.LoginRequest;
 import com.vamigo.auth.dto.RefreshTokenRequest;
+import com.vamigo.auth.dto.CarrierRegisterRequest;
 import com.vamigo.auth.dto.RegisterRequest;
 import com.vamigo.auth.verification.PasswordResetService;
 import com.vamigo.auth.event.OnRegistrationCompleteEvent;
@@ -98,6 +99,21 @@ public class AuthService {
                 request.email(),
                 request.password(),
                 displayName
+        );
+
+        eventPublisher.publishEvent(new OnRegistrationCompleteEvent(account, LocaleContextHolder.getLocale()));
+
+        return buildAuthResponse(account);
+    }
+
+    public AuthResponse registerCarrier(CarrierRegisterRequest request) {
+        UserAccount account = userAccountService.createCarrierAccount(
+                request.email(),
+                request.password(),
+                request.companyName(),
+                request.nip(),
+                request.phoneNumber(),
+                request.websiteUrl()
         );
 
         eventPublisher.publishEvent(new OnRegistrationCompleteEvent(account, LocaleContextHolder.getLocale()));

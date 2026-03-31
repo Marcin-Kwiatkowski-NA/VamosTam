@@ -17,6 +17,7 @@ import com.vamigo.review.exception.ReviewNotAllowedException;
 import com.vamigo.user.exception.AvatarKeyMismatchException;
 import com.vamigo.user.exception.AvatarNotUploadedException;
 import com.vamigo.user.exception.DuplicateEmailException;
+import com.vamigo.user.exception.DuplicateNipException;
 import com.vamigo.user.exception.InvalidAvatarContentTypeException;
 import com.vamigo.user.exception.NoSuchUserException;
 import com.vamigo.user.exception.StorageUnavailableException;
@@ -100,6 +101,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(DuplicateNipException.class)
+    public ProblemDetail handleDuplicateNipException(HttpServletRequest request, DuplicateNipException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(EmailAlreadyVerifiedException.class)
     public ProblemDetail handleEmailAlreadyVerified(HttpServletRequest request, EmailAlreadyVerifiedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
@@ -162,8 +168,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    @ExceptionHandler(ExternalRideNotBookableException.class)
-    public ProblemDetail handleExternalRideNotBookableException(HttpServletRequest request, ExternalRideNotBookableException ex) {
+    @ExceptionHandler({ExternalRideNotBookableException.class, CarrierRideNotBookableException.class})
+    public ProblemDetail handleRideNotBookableByTypeException(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
