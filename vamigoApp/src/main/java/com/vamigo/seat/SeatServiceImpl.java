@@ -10,6 +10,7 @@ import com.vamigo.search.SearchProperties;
 import com.vamigo.seat.dto.SeatCreationDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.seat.dto.SeatSearchCriteriaDto;
+import com.vamigo.seat.event.SeatCreatedEvent;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
@@ -17,6 +18,7 @@ import com.vamigo.user.exception.NoSuchUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +44,7 @@ public class SeatServiceImpl implements SeatService {
     private final SeatResponseEnricher seatResponseEnricher;
     private final CapabilityService capabilityService;
     private final SearchProperties searchProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     public SeatServiceImpl(SeatRepository seatRepository,
                             SeatMapper seatMapper,
@@ -49,7 +52,8 @@ public class SeatServiceImpl implements SeatService {
                             UserAccountRepository userAccountRepository,
                             SeatResponseEnricher seatResponseEnricher,
                             CapabilityService capabilityService,
-                            SearchProperties searchProperties) {
+                            SearchProperties searchProperties,
+                            ApplicationEventPublisher eventPublisher) {
         this.seatRepository = seatRepository;
         this.seatMapper = seatMapper;
         this.locationResolutionService = locationResolutionService;
@@ -57,6 +61,7 @@ public class SeatServiceImpl implements SeatService {
         this.seatResponseEnricher = seatResponseEnricher;
         this.capabilityService = capabilityService;
         this.searchProperties = searchProperties;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -80,7 +85,9 @@ public class SeatServiceImpl implements SeatService {
         seat.setLastModified(Instant.now());
 
         Seat saved = seatRepository.save(seat);
-        return seatResponseEnricher.enrich(saved, seatMapper.seatEntityToResponseDto(saved));
+        SeatResponseDto response = seatResponseEnricher.enrich(saved, seatMapper.seatEntityToResponseDto(saved));
+        eventPublisher.publishEvent(new SeatCreatedEvent(saved.getId(), userId, response));
+        return response;
     }
 
     @Override

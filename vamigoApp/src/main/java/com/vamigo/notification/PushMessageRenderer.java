@@ -73,6 +73,12 @@ public class PushMessageRenderer {
                         : resolve(prefix + ".body.fallback", locale);
                 yield reason != null ? base + ": " + reason : base;
             }
+            case SEARCH_ALERT_MATCH -> {
+                String count = param(params, "matchCount");
+                yield count != null
+                        ? resolve(prefix + ".body", locale, count)
+                        : resolve(prefix + ".body.fallback", locale);
+            }
             case REVIEW_RECEIVED -> resolve(prefix + ".body", locale);
             default -> resolve(prefix + ".body", locale);
         };

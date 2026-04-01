@@ -31,7 +31,16 @@ notification:
   cleanup-cron: ${NOTIFICATION_CLEANUP_CRON:0 0 3 * * ?}  # daily at 3:00 AM
   cleanup-retention-days: ${NOTIFICATION_CLEANUP_RETENTION_DAYS:90}
 
+search-alert:
+  push-check-interval-ms: ${SEARCH_ALERT_PUSH_CHECK_INTERVAL_MS:300000}
+  push-interval-hours: ${SEARCH_ALERT_PUSH_INTERVAL_HOURS:2}
+  email-cron: ${SEARCH_ALERT_EMAIL_CRON:0 0 8 * * ?}
+  max-alerts-per-user: ${SEARCH_ALERT_MAX_PER_USER:10}
+  proximity-radius-km: ${SEARCH_ALERT_PROXIMITY_RADIUS_KM:50}
+
 brevo:
+  search-alert-digest-template-id: ${BREVO_SEARCH_ALERT_DIGEST_TEMPLATE_ID:13}
+  search-alert-digest-template-id-pl: ${BREVO_SEARCH_ALERT_DIGEST_TEMPLATE_ID_PL:14}
   verification-template-id: ${BREVO_VERIFICATION_TEMPLATE_ID:2}
   verification-template-id-pl: ${BREVO_VERIFICATION_TEMPLATE_ID_PL:1}
   password-reset-template-id: ${BREVO_PASSWORD_RESET_TEMPLATE_ID:5}

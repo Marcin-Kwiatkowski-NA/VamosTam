@@ -11,6 +11,7 @@ import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.ride.event.RideCompletedEvent;
+import com.vamigo.ride.event.RideCreatedEvent;
 import com.vamigo.search.GeoUtils;
 import com.vamigo.search.SearchProperties;
 import com.vamigo.user.UserAccount;
@@ -115,7 +116,9 @@ public class RideServiceImpl implements RideService {
         newRide.setEstimatedArrivalAt(arrivalEstimator.estimate(newRide));
 
         Ride saved = rideRepository.save(newRide);
-        return rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
+        RideResponseDto response = rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
+        eventPublisher.publishEvent(new RideCreatedEvent(saved.getId(), userId, response));
+        return response;
     }
 
     @Override
