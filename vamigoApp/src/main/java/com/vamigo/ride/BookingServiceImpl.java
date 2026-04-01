@@ -11,6 +11,7 @@ import com.vamigo.exceptions.InvalidBookingSegmentException;
 import com.vamigo.exceptions.InvalidBookingTransitionException;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
+import com.vamigo.exceptions.RideDepartedException;
 import com.vamigo.exceptions.RideNotBookableException;
 import com.vamigo.ride.dto.BookRideRequest;
 import com.vamigo.ride.dto.BookingResponseDto;
@@ -219,6 +220,10 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
         RideBooking booking = findBookingForRide(rideId, bookingId);
+
+        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(Instant.now())) {
+            throw new RideDepartedException(rideId);
+        }
 
         // Idempotent: if already in a terminal cancellation status, return current state
         if (booking.getStatus() == BookingStatus.CANCELLED_BY_DRIVER
