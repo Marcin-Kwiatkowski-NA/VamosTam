@@ -53,7 +53,7 @@ external-import:
 
 location:
   overrides:
-    "jabłonka": 4585196
+    "[jabłonka]": 4585196
     "jablonka": 4585196
 
 search:
