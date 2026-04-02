@@ -29,7 +29,7 @@ public class CarrierProfile {
     @Column(name = "company_name", nullable = false, length = 200)
     private String companyName;
 
-    @Column(name = "nip", nullable = false, unique = true, length = 10)
+    @Column(name = "nip", nullable = true, unique = true, length = 10)
     private String nip;
 
     @Column(name = "website_url", length = 500)

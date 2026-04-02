@@ -18,7 +18,6 @@ public record CarrierRegisterRequest(
         @Size(max = 200, message = "Company name cannot exceed 200 characters")
         String companyName,
 
-        @NotBlank(message = "NIP is required")
         @Pattern(regexp = "^[0-9]{10}$", message = "NIP must be exactly 10 digits")
         String nip,
 

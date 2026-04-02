@@ -103,7 +103,7 @@ public class UserAccountService {
             throw new DuplicateEmailException(normalizedEmail);
         }
 
-        if (carrierProfileRepository.existsByNip(nip)) {
+        if (nip != null && carrierProfileRepository.existsByNip(nip)) {
             throw new DuplicateNipException(nip);
         }
 
