@@ -4,6 +4,7 @@ import com.vamigo.domain.Currency;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
 import com.vamigo.ride.RideStatus;
+import com.vamigo.vehicle.VehicleResponseDto;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ public record RideSummaryDto(
         int totalSeats,
         UserCardDto driver,
         RideStatus rideStatus,
-        Currency currency
+        Currency currency,
+        VehicleResponseDto vehicle
 ) {
 }

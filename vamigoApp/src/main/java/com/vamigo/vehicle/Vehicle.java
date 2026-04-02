@@ -2,6 +2,8 @@ package com.vamigo.vehicle;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,7 +41,10 @@ public class Vehicle {
 
     private Integer productionYear;
 
-    private String color;
+    @Enumerated(EnumType.STRING)
+    private VehicleColor color;
 
     private String licensePlate;
+
+    private String photoObjectKey;
 }

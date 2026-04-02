@@ -12,7 +12,10 @@ import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.UserProfile;
 import com.vamigo.user.UserProfileRepository;
 import com.vamigo.user.UserStats;
+import com.vamigo.vehicle.LicensePlateMasker;
+import com.vamigo.vehicle.Vehicle;
 import com.vamigo.vehicle.VehicleMapper;
+import com.vamigo.vehicle.VehiclePhotoUrlResolver;
 import com.vamigo.vehicle.VehicleRepository;
 import com.vamigo.vehicle.VehicleResponseDto;
 import org.springframework.stereotype.Component;
@@ -34,6 +37,7 @@ public class BookingResponseEnricher {
     private final UserAccountRepository userAccountRepository;
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
+    private final VehiclePhotoUrlResolver vehiclePhotoUrlResolver;
     private final PersonDisplayNameResolver displayNameResolver;
     private final LocationMapper locationMapper;
     private final AvatarUrlResolver avatarUrlResolver;
@@ -42,6 +46,7 @@ public class BookingResponseEnricher {
                                     UserAccountRepository userAccountRepository,
                                     VehicleRepository vehicleRepository,
                                     VehicleMapper vehicleMapper,
+                                    VehiclePhotoUrlResolver vehiclePhotoUrlResolver,
                                     PersonDisplayNameResolver displayNameResolver,
                                     LocationMapper locationMapper,
                                     AvatarUrlResolver avatarUrlResolver) {
@@ -49,6 +54,7 @@ public class BookingResponseEnricher {
         this.userAccountRepository = userAccountRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
+        this.vehiclePhotoUrlResolver = vehiclePhotoUrlResolver;
         this.displayNameResolver = displayNameResolver;
         this.locationMapper = locationMapper;
         this.avatarUrlResolver = avatarUrlResolver;
@@ -117,13 +123,17 @@ public class BookingResponseEnricher {
 
         List<BookingResponseDto> result = new ArrayList<>(bookings.size());
         for (int i = 0; i < bookings.size(); i++) {
-            Ride ride = bookings.get(i).getRide();
+            RideBooking booking = bookings.get(i);
+            Ride ride = booking.getRide();
             Long driverId = ride.getDriver().getId();
             UserCardDto driverCard = buildUserCard(
                     driverId,
                     profilesById.get(driverId),
                     accountsById.get(driverId),
                     vehiclesByOwnerId.getOrDefault(driverId, List.of()));
+
+            boolean revealPlate = booking.getStatus() == BookingStatus.CONFIRMED;
+            VehicleResponseDto vehicleDto = buildVehicleDto(ride.getVehicle(), revealPlate);
 
             RideSummaryDto rideSummary = RideSummaryDto.builder()
                     .id(ride.getId())
@@ -135,6 +145,7 @@ public class BookingResponseEnricher {
                     .driver(driverCard)
                     .rideStatus(ride.getRideStatus())
                     .currency(ride.getCurrency())
+                    .vehicle(vehicleDto)
                     .build();
 
             result.add(dtos.get(i).toBuilder().ride(rideSummary).build());
@@ -146,9 +157,18 @@ public class BookingResponseEnricher {
         UserProfile profile = userProfileRepository.findById(passengerId).orElse(null);
         UserAccount account = userAccountRepository.findById(passengerId).orElse(null);
         List<VehicleResponseDto> vehicles = vehicleRepository.findByOwnerId(passengerId).stream()
-                .map(vehicleMapper::vehicleEntityToVehicleResponseDto)
+                .map(v -> buildVehicleDto(v, false))
                 .toList();
         return buildUserCard(passengerId, profile, account, vehicles);
+    }
+
+    private VehicleResponseDto buildVehicleDto(Vehicle vehicle, boolean revealPlate) {
+        if (vehicle == null) return null;
+        VehicleResponseDto dto = vehicleMapper.vehicleEntityToVehicleResponseDto(vehicle);
+        return dto.toBuilder()
+                .photoUrl(vehiclePhotoUrlResolver.resolve(vehicle))
+                .licensePlate(revealPlate ? vehicle.getLicensePlate() : LicensePlateMasker.mask(vehicle.getLicensePlate()))
+                .build();
     }
 
     private UserCardDto buildUserCard(Long id, UserProfile profile, UserAccount account,

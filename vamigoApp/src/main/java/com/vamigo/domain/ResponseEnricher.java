@@ -11,7 +11,9 @@ import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.UserProfile;
 import com.vamigo.user.UserProfileRepository;
 import com.vamigo.user.UserStats;
+import com.vamigo.vehicle.LicensePlateMasker;
 import com.vamigo.vehicle.VehicleMapper;
+import com.vamigo.vehicle.VehiclePhotoUrlResolver;
 import com.vamigo.vehicle.VehicleRepository;
 import com.vamigo.vehicle.VehicleResponseDto;
 import org.springframework.stereotype.Component;
@@ -34,6 +36,7 @@ public class ResponseEnricher {
     private final UserAccountRepository userAccountRepository;
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
+    private final VehiclePhotoUrlResolver vehiclePhotoUrlResolver;
     private final ContactMethodFactory contactMethodFactory;
     private final PersonDisplayNameResolver displayNameResolver;
     private final AvatarUrlResolver avatarUrlResolver;
@@ -42,6 +45,7 @@ public class ResponseEnricher {
                             UserAccountRepository userAccountRepository,
                             VehicleRepository vehicleRepository,
                             VehicleMapper vehicleMapper,
+                            VehiclePhotoUrlResolver vehiclePhotoUrlResolver,
                             ContactMethodFactory contactMethodFactory,
                             PersonDisplayNameResolver displayNameResolver,
                             AvatarUrlResolver avatarUrlResolver) {
@@ -49,6 +53,7 @@ public class ResponseEnricher {
         this.userAccountRepository = userAccountRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
+        this.vehiclePhotoUrlResolver = vehiclePhotoUrlResolver;
         this.contactMethodFactory = contactMethodFactory;
         this.displayNameResolver = displayNameResolver;
         this.avatarUrlResolver = avatarUrlResolver;
@@ -98,7 +103,7 @@ public class ResponseEnricher {
                 : vehicleRepository.findByOwnerIdIn(internalPersonIds).stream()
                         .collect(Collectors.groupingBy(
                                 v -> v.getOwner().getId(),
-                                Collectors.mapping(vehicleMapper::vehicleEntityToVehicleResponseDto, Collectors.toList())));
+                                Collectors.mapping(this::toMaskedVehicleDto, Collectors.toList())));
 
         List<D> result = new ArrayList<>(entities.size());
         for (int i = 0; i < entities.size(); i++) {
@@ -138,7 +143,7 @@ public class ResponseEnricher {
             profile = userProfileRepository.findById(pid).orElse(null);
             account = userAccountRepository.findById(pid).orElse(null);
             vehicles = vehicleRepository.findByOwnerId(pid).stream()
-                    .map(vehicleMapper::vehicleEntityToVehicleResponseDto)
+                    .map(this::toMaskedVehicleDto)
                     .toList();
         }
         return enrichSingle(entity, dto, personId, meta, profile, account, vehicles, assembler);
@@ -211,5 +216,13 @@ public class ResponseEnricher {
         return new UserCardDto(id, name, rating, ridesGiven + ridesTaken,
                 avatarUrl, bio, emailVerified, phoneVerified,
                 ridesGiven, ridesTaken, ratingCount, vehicles, accountType);
+    }
+
+    private VehicleResponseDto toMaskedVehicleDto(com.vamigo.vehicle.Vehicle vehicle) {
+        VehicleResponseDto dto = vehicleMapper.vehicleEntityToVehicleResponseDto(vehicle);
+        return dto.toBuilder()
+                .photoUrl(vehiclePhotoUrlResolver.resolve(vehicle))
+                .licensePlate(LicensePlateMasker.mask(vehicle.getLicensePlate()))
+                .build();
     }
 }

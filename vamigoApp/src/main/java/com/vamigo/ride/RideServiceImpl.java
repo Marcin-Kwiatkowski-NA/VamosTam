@@ -18,6 +18,8 @@ import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
 import com.vamigo.user.exception.NoSuchUserException;
+import com.vamigo.vehicle.Vehicle;
+import com.vamigo.vehicle.VehicleRepository;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -61,6 +63,7 @@ public class RideServiceImpl implements RideService {
     private final RideArrivalEstimator arrivalEstimator;
     private final SearchProperties searchProperties;
     private final RideBusinessProperties rideProperties;
+    private final VehicleRepository vehicleRepository;
 
     public RideServiceImpl(RideRepository rideRepository,
                            RideBookingRepository bookingRepository,
@@ -72,7 +75,8 @@ public class RideServiceImpl implements RideService {
                            ApplicationEventPublisher eventPublisher,
                            RideArrivalEstimator arrivalEstimator,
                            SearchProperties searchProperties,
-                           RideBusinessProperties rideProperties) {
+                           RideBusinessProperties rideProperties,
+                           VehicleRepository vehicleRepository) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -84,6 +88,7 @@ public class RideServiceImpl implements RideService {
         this.arrivalEstimator = arrivalEstimator;
         this.searchProperties = searchProperties;
         this.rideProperties = rideProperties;
+        this.vehicleRepository = vehicleRepository;
     }
 
     @Override
@@ -107,6 +112,12 @@ public class RideServiceImpl implements RideService {
         var newRide = rideMapper.rideCreationDtoToEntity(dto);
         newRide.setDriver(driver);
         newRide.setLastModified(Instant.now());
+
+        if (dto.vehicleId() != null) {
+            Vehicle vehicle = vehicleRepository.findByIdAndOwnerId(dto.vehicleId(), userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Vehicle not found or not owned"));
+            newRide.setVehicle(vehicle);
+        }
 
         List<RideStop> stops = buildStops(newRide, dto);
         newRide.setStops(stops);
@@ -142,6 +153,14 @@ public class RideServiceImpl implements RideService {
         existingRide.setTimeApproximate(dto.isTimeApproximate());
         existingRide.setLastModified(Instant.now());
         existingRide.setEstimatedArrivalAt(arrivalEstimator.estimate(existingRide));
+
+        if (dto.vehicleId() != null) {
+            Vehicle vehicle = vehicleRepository.findByIdAndOwnerId(dto.vehicleId(), driverId)
+                    .orElseThrow(() -> new IllegalArgumentException("Vehicle not found or not owned"));
+            existingRide.setVehicle(vehicle);
+        } else {
+            existingRide.setVehicle(null);
+        }
 
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
     }

@@ -7,7 +7,7 @@ public record VehicleCreationDto(
         String make,
         String model,
         Integer productionYear,
-        String color,
+        VehicleColor color,
         String licensePlate
 ) {
 }

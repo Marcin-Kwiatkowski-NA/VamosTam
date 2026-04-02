@@ -7,5 +7,7 @@ public record StorageProperties(
         String bucket,
         String publicUrlBase,
         int avatarPresignTtlMinutes,
-        long avatarMaxSizeBytes
+        long avatarMaxSizeBytes,
+        int vehiclePhotoPresignTtlMinutes,
+        long vehiclePhotoMaxSizeBytes
 ) {}

@@ -15,5 +15,7 @@ public interface VehicleRepository extends ListCrudRepository<Vehicle, Long> {
 
     List<Vehicle> findByOwnerIdIn(Set<Long> ownerIds);
 
+    Optional<Vehicle> findByIdAndOwnerId(Long id, Long ownerId);
+
     void deleteByOwnerId(Long ownerId);
 }

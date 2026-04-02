@@ -1,16 +1,14 @@
 package com.vamigo.vehicle;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface VehicleService {
-    Optional<Vehicle> getById(Long id);
 
-    List<Vehicle> getAllVehicles();
+    List<VehicleResponseDto> getMyVehicles(Long userId);
 
-    VehicleResponseDto create(VehicleCreationDto vehicleDto);
+    VehicleResponseDto create(Long userId, VehicleCreationDto dto);
 
-    VehicleResponseDto update(VehicleCreationDto vehicleDto, Long id);
+    VehicleResponseDto update(Long userId, Long vehicleId, VehicleCreationDto dto);
 
-    void delete(Long id);
+    void delete(Long userId, Long vehicleId);
 }

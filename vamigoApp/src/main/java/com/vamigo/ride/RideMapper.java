@@ -21,6 +21,7 @@ public abstract class RideMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "driver", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "status", constant = "ACTIVE")
     @Mapping(target = "lastModified", ignore = true)
     @Mapping(target = "version", ignore = true)
@@ -36,6 +37,7 @@ public abstract class RideMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "driver", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "lastModified", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "source", ignore = true)

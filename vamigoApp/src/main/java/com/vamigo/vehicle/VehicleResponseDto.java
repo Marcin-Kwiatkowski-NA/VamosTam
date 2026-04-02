@@ -8,7 +8,8 @@ public record VehicleResponseDto(
         String make,
         String model,
         Integer productionYear,
-        String color,
-        String licensePlate
+        VehicleColor color,
+        String licensePlate,
+        String photoUrl
 ) {
 }
