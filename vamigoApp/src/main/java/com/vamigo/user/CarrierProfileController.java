@@ -53,6 +53,9 @@ public class CarrierProfileController {
         if (request.websiteUrl() != null) {
             carrier.setWebsiteUrl(request.websiteUrl().isBlank() ? null : request.websiteUrl());
         }
+        if (request.bookingEnabled() != null) {
+            carrier.setBookingEnabled(request.bookingEnabled());
+        }
 
         carrierProfileRepository.save(carrier);
 
@@ -64,7 +67,8 @@ public class CarrierProfileController {
                 carrier.getId(),
                 carrier.getCompanyName(),
                 carrier.getNip(),
-                carrier.getWebsiteUrl()
+                carrier.getWebsiteUrl(),
+                carrier.isBookingEnabled()
         );
     }
 }

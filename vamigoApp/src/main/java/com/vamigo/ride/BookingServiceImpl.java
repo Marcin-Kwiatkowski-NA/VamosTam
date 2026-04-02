@@ -20,6 +20,8 @@ import com.vamigo.ride.event.BookingConfirmedEvent;
 import com.vamigo.ride.event.BookingRejectedEvent;
 import com.vamigo.ride.event.BookingRequestedEvent;
 import com.vamigo.user.AccountType;
+import com.vamigo.user.CarrierProfile;
+import com.vamigo.user.CarrierProfileRepository;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.UserProfileRepository;
@@ -42,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final RideBookingRepository bookingRepository;
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
+    private final CarrierProfileRepository carrierProfileRepository;
     private final BookingMapper bookingMapper;
     private final BookingResponseEnricher bookingResponseEnricher;
     private final CapabilityService capabilityService;
@@ -51,6 +54,7 @@ public class BookingServiceImpl implements BookingService {
                                RideBookingRepository bookingRepository,
                                UserAccountRepository userAccountRepository,
                                UserProfileRepository userProfileRepository,
+                               CarrierProfileRepository carrierProfileRepository,
                                BookingMapper bookingMapper,
                                BookingResponseEnricher bookingResponseEnricher,
                                CapabilityService capabilityService,
@@ -59,6 +63,7 @@ public class BookingServiceImpl implements BookingService {
         this.bookingRepository = bookingRepository;
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
+        this.carrierProfileRepository = carrierProfileRepository;
         this.bookingMapper = bookingMapper;
         this.bookingResponseEnricher = bookingResponseEnricher;
         this.capabilityService = capabilityService;
@@ -77,7 +82,14 @@ public class BookingServiceImpl implements BookingService {
 
         userProfileRepository.findById(ride.getDriver().getId())
                 .filter(p -> p.getAccountType() == AccountType.CARRIER)
-                .ifPresent(p -> { throw new CarrierRideNotBookableException(rideId); });
+                .ifPresent(p -> {
+                    boolean bookingEnabled = carrierProfileRepository.findById(p.getId())
+                            .map(CarrierProfile::isBookingEnabled)
+                            .orElse(false);
+                    if (!bookingEnabled) {
+                        throw new CarrierRideNotBookableException(rideId);
+                    }
+                });
 
         if (ride.getDriver().getId().equals(passengerId)) {
             throw new CannotBookOwnRideException(rideId);

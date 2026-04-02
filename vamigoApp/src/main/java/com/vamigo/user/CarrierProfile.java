@@ -35,6 +35,10 @@ public class CarrierProfile {
     @Column(name = "website_url", length = 500)
     private String websiteUrl;
 
+    @Column(name = "booking_enabled", nullable = false)
+    @Builder.Default
+    private boolean bookingEnabled = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

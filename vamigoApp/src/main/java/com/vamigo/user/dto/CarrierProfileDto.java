@@ -4,6 +4,7 @@ public record CarrierProfileDto(
         Long userId,
         String companyName,
         String nip,
-        String websiteUrl
+        String websiteUrl,
+        boolean bookingEnabled
 ) {
 }

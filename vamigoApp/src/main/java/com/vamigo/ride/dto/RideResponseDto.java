@@ -35,6 +35,7 @@ public record RideResponseDto(
         VehicleResponseDto vehicle,
         RideStatus rideStatus,
         List<BookingResponseDto> bookings,
-        Currency currency
+        Currency currency,
+        boolean bookingEnabled
 ) {
 }

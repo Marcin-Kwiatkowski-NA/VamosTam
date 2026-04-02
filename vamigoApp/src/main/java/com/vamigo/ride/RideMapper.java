@@ -62,5 +62,6 @@ public abstract class RideMapper {
     @Mapping(target = "availableSeats", expression = "java(ride.getMinAvailableSeats())")
     @Mapping(target = "seatsTaken", expression = "java(ride.getTotalSeats() - ride.getMinAvailableSeats())")
     @Mapping(target = "rideStatus", expression = "java(ride.getRideStatus())")
+    @Mapping(target = "bookingEnabled", constant = "true")
     public abstract RideResponseDto rideEntityToRideResponseDto(Ride ride);
 }

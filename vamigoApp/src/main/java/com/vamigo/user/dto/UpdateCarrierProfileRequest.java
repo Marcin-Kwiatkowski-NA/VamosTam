@@ -7,6 +7,8 @@ public record UpdateCarrierProfileRequest(
         String companyName,
 
         @Size(max = 500, message = "Website URL cannot exceed 500 characters")
-        String websiteUrl
+        String websiteUrl,
+
+        Boolean bookingEnabled
 ) {
 }
