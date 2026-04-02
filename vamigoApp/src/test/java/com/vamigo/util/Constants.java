@@ -1,5 +1,7 @@
 package com.vamigo.util;
 
+import com.vamigo.vehicle.VehicleColor;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -84,9 +86,9 @@ public class Constants {
     public static final Integer VEHICLE_PRODUCTION_YEAR_2021 = 2021;
     public static final Integer VEHICLE_PRODUCTION_YEAR_2020 = 2020;
 
-    public static final String VEHICLE_COLOR_RED = "Red";
-    public static final String VEHICLE_COLOR_BLACK = "Black";
-    public static final String VEHICLE_COLOR_BLUE = "Blue";
+    public static final VehicleColor VEHICLE_COLOR_RED = VehicleColor.RED;
+    public static final VehicleColor VEHICLE_COLOR_BLACK = VehicleColor.BLACK;
+    public static final VehicleColor VEHICLE_COLOR_BLUE = VehicleColor.BLUE;
 
     public static final String VEHICLE_LICENSE_PLATE_1 = "123-ABC";
     public static final String VEHICLE_LICENSE_PLATE_2 = "456-DEF";
