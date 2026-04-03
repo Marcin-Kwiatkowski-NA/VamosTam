@@ -9,9 +9,12 @@ import com.vamigo.location.LocationResolutionService;
 import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
+import com.vamigo.search.SearchProperties;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
+import com.vamigo.vehicle.Vehicle;
+import com.vamigo.vehicle.VehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -70,6 +73,15 @@ class RideServiceImplTest {
     @Mock
     RideBusinessProperties rideProperties;
 
+    @Mock
+    SearchProperties searchProperties;
+
+    @Mock
+    VehicleRepository vehicleRepository;
+
+    @Mock
+    Vehicle vehicle;
+
     @InjectMocks
     private RideServiceImpl rideService;
 
@@ -126,6 +138,8 @@ class RideServiceImplTest {
         when(locationResolutionService.resolve(rideCreationDTO.origin())).thenReturn(originLocation);
         when(locationResolutionService.resolve(rideCreationDTO.destination())).thenReturn(destinationLocation);
 
+        when(vehicleRepository.findByIdAndOwnerId(rideCreationDTO.vehicleId(), driverId))
+                .thenReturn(Optional.of(vehicle));
         when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
         when(rideRepository.save(ride)).thenReturn(ride);
         when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
