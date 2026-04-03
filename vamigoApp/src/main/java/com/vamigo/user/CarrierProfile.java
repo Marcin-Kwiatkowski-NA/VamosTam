@@ -35,7 +35,7 @@ public class CarrierProfile {
     @Column(name = "website_url", length = 500)
     private String websiteUrl;
 
-    @Column(name = "booking_enabled", nullable = false)
+    @Column(name = "booking_enabled", nullable = false, columnDefinition = "boolean not null default true")
     @Builder.Default
     private boolean bookingEnabled = true;
 
