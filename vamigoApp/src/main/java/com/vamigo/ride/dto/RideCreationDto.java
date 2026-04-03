@@ -1,11 +1,11 @@
 package com.vamigo.ride.dto;
 
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.location.LocationRef;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,10 +26,10 @@ public record RideCreationDto(
         List<@Valid @NotNull IntermediateStopDto> intermediateStops,
 
         @NotNull(message = "Departure time cannot be null")
-        @Future(message = "Departure time must be in the future")
         Instant departureTime,
 
-        boolean isTimeApproximate,
+        @NotNull(message = "Time precision is required")
+        TimePrecision timePrecision,
 
         @NotNull(message = "Available seats cannot be null")
         @Min(value = 1, message = "Available seats must be at least 1")

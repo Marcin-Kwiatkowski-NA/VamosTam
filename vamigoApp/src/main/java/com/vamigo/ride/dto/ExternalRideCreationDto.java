@@ -1,6 +1,7 @@
 package com.vamigo.ride.dto;
 
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +26,8 @@ public record ExternalRideCreationDto(
         @NotNull(message = "Departure time is required")
         Instant departureTime,
 
-        boolean isTimeApproximate,
+        @NotNull(message = "Time precision is required")
+        TimePrecision timePrecision,
 
         int availableSeats,
 

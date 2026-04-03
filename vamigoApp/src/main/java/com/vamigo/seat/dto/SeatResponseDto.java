@@ -1,6 +1,7 @@
 package com.vamigo.seat.dto;
 
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
@@ -19,7 +20,7 @@ public record SeatResponseDto(
         LocationDto origin,
         LocationDto destination,
         Instant departureTime,
-        boolean isTimeApproximate,
+        TimePrecision timePrecision,
         int count,
         BigDecimal priceWillingToPay,
         String description,

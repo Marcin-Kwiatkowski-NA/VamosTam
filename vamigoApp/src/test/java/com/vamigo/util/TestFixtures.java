@@ -1,6 +1,7 @@
 package com.vamigo.util;
 
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.ContactType;
 import com.vamigo.dto.UserCardDto;
@@ -218,7 +219,7 @@ public final class TestFixtures {
                 .origin(originLocationRef())
                 .destination(destinationLocationRef())
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicleId(ID_ONE)
@@ -231,7 +232,7 @@ public final class TestFixtures {
                 .id(ID_100)
                 .driver(aDriverAccount().build())
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .totalSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .vehicle(aTesla().build())
@@ -312,7 +313,7 @@ public final class TestFixtures {
                 .destination(destinationLocationDto())
                 .stops(List.of())
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .pricePerSeat(BIG_DECIMAL)
                 .availableSeats(ONE)
                 .seatsTaken(0)
@@ -346,7 +347,7 @@ public final class TestFixtures {
                 .originLocationName(LOCATION_NAME_ORIGIN)
                 .destinationLocationName(LOCATION_NAME_DESTINATION)
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .availableSeats(ONE)
                 .pricePerSeat(BIG_DECIMAL)
                 .description(RIDE_DESCRIPTION)
@@ -382,7 +383,7 @@ public final class TestFixtures {
                 .originLocationName(LOCATION_NAME_ORIGIN)
                 .destinationLocationName(LOCATION_NAME_DESTINATION)
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .count(ONE)
                 .priceWillingToPay(BIG_DECIMAL)
                 .description("Looking for a ride")
@@ -403,7 +404,7 @@ public final class TestFixtures {
                 .origin(originLocationDto())
                 .destination(destinationLocationDto())
                 .departureTime(FUTURE_DEPARTURE)
-                .isTimeApproximate(false)
+                .timePrecision(TimePrecision.EXACT)
                 .count(ONE)
                 .priceWillingToPay(BIG_DECIMAL)
                 .description("Looking for a ride")

@@ -1,14 +1,18 @@
 package com.vamigo.seat;
 
 import com.vamigo.domain.AbstractTrip;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.location.Location;
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -36,8 +40,10 @@ public class Seat extends AbstractTrip {
     @Column(name = "departure_time", nullable = false)
     private Instant departureTime;
 
-    @Column(name = "is_time_approximate", nullable = false)
-    private boolean isTimeApproximate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "time_precision", nullable = false, length = 15)
+    @Builder.Default
+    private TimePrecision timePrecision = TimePrecision.EXACT;
 
     @ManyToOne(optional = false)
     private UserAccount passenger;

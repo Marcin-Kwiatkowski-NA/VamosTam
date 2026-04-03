@@ -1,6 +1,7 @@
 package com.vamigo.ride;
 
 import com.vamigo.domain.Status;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.exceptions.CannotCreateRideException;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
@@ -122,7 +123,10 @@ public class RideServiceImpl implements RideService {
         List<RideStop> stops = buildStops(newRide, dto);
         newRide.setStops(stops);
         newRide.setDepartureTime(dto.departureTime());
-        newRide.setTimeApproximate(dto.isTimeApproximate());
+        newRide.setTimePrecision(dto.timePrecision());
+        if (dto.timePrecision() != TimePrecision.EXACT) {
+            newRide.setAutoApprove(false);
+        }
 
         newRide.setEstimatedArrivalAt(arrivalEstimator.estimate(newRide));
 
@@ -150,7 +154,10 @@ public class RideServiceImpl implements RideService {
         rideMapper.update(existingRide, dto);
         updateStops(existingRide, dto);
         existingRide.setDepartureTime(dto.departureTime());
-        existingRide.setTimeApproximate(dto.isTimeApproximate());
+        existingRide.setTimePrecision(dto.timePrecision());
+        if (dto.timePrecision() != TimePrecision.EXACT) {
+            existingRide.setAutoApprove(false);
+        }
         existingRide.setLastModified(Instant.now());
         existingRide.setEstimatedArrivalAt(arrivalEstimator.estimate(existingRide));
 

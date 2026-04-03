@@ -1,6 +1,7 @@
 package com.vamigo.ride.dto;
 
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.UserCardDto;
 import com.vamigo.location.LocationDto;
@@ -21,7 +22,7 @@ public record RideResponseDto(
         LocationDto destination,
         List<RideStopDto> stops,
         Instant departureTime,
-        boolean isTimeApproximate,
+        TimePrecision timePrecision,
         BigDecimal pricePerSeat,
         int availableSeats,
         int seatsTaken,

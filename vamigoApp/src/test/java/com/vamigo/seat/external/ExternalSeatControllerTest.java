@@ -82,7 +82,7 @@ class ExternalSeatControllerTest {
     void createExternalSeat_ValidationError() throws Exception {
         ExternalSeatCreationDto invalidDto = new ExternalSeatCreationDto(
                 null, null, null,
-                false, 0, null, null,
+                null, 0, null, null,
                 null, null, null, null, null, null
         );
 

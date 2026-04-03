@@ -1,6 +1,7 @@
 package com.vamigo.ride;
 
 import com.vamigo.auth.AppPrincipal;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.auth.service.JwtTokenProvider;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
@@ -142,7 +143,7 @@ class RidesControllerTest {
                 null,    // destination - null (invalid)
                 null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                false,   // isTimeApproximate
+                TimePrecision.EXACT,   // timePrecision
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId
@@ -272,7 +273,7 @@ class RidesControllerTest {
                 null,    // destination - null (invalid)
                 null,    // intermediateStops
                 null,    // departureTime - null (invalid)
-                false,   // isTimeApproximate
+                TimePrecision.EXACT,   // timePrecision
                 0,       // availableSeats
                 BigDecimal.valueOf(-1),
                 null,    // vehicleId

@@ -81,7 +81,7 @@ public class SeatServiceImpl implements SeatService {
         seat.setOrigin(origin);
         seat.setDestination(destination);
         seat.setDepartureTime(dto.departureTime());
-        seat.setTimeApproximate(dto.isTimeApproximate());
+        seat.setTimePrecision(dto.timePrecision());
         seat.setLastModified(Instant.now());
 
         Seat saved = seatRepository.save(seat);
@@ -178,7 +178,7 @@ public class SeatServiceImpl implements SeatService {
         seat.setOrigin(origin);
         seat.setDestination(destination);
         seat.setDepartureTime(dto.departureTime());
-        seat.setTimeApproximate(dto.isTimeApproximate());
+        seat.setTimePrecision(dto.timePrecision());
         seat.setCount(dto.count());
         seat.setPriceWillingToPay(dto.priceWillingToPay());
         seat.setDescription(dto.description());

@@ -1,16 +1,20 @@
 package com.vamigo.ride;
 
 import com.vamigo.domain.AbstractTrip;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.location.Location;
 import com.vamigo.user.UserAccount;
 import com.vamigo.vehicle.Vehicle;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,8 +43,10 @@ public class Ride extends AbstractTrip {
     @ManyToOne
     private Vehicle vehicle;
 
-    @Column(name = "is_time_approximate", nullable = false)
-    private boolean isTimeApproximate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "time_precision", nullable = false, length = 15)
+    @Builder.Default
+    private TimePrecision timePrecision = TimePrecision.EXACT;
 
     @Column(name = "departure_time")
     private Instant departureTime;
