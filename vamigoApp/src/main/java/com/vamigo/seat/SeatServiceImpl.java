@@ -237,7 +237,7 @@ public class SeatServiceImpl implements SeatService {
 
     private static Instant clampToNow(Instant earliest) {
         Instant now = Instant.now();
-        return earliest.isBefore(now) ? now : earliest;
+        return earliest == null || earliest.isBefore(now) ? now : earliest;
     }
 
     private double resolveRadiusKm(SeatSearchCriteriaDto criteria) {

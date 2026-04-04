@@ -1,7 +1,5 @@
 package com.vamigo.seat.dto;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.time.Instant;
 
 public record SeatSearchCriteriaDto(
@@ -12,7 +10,7 @@ public record SeatSearchCriteriaDto(
         Double destinationLat,
         Double destinationLon,
         Double radiusKm,
-        @NotNull Instant earliestDeparture,
+        Instant earliestDeparture,
         Instant latestDeparture,
         Integer availableSeatsInCar
 ) {

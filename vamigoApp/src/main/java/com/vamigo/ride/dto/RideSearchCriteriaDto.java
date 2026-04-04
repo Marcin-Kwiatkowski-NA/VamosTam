@@ -1,7 +1,6 @@
 package com.vamigo.ride.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 
@@ -13,7 +12,7 @@ public record RideSearchCriteriaDto(
         Double destinationLat,
         Double destinationLon,
         Double radiusKm,
-        @NotNull Instant earliestDeparture,
+        Instant earliestDeparture,
         Instant latestDeparture,
         @Min(1) Integer minAvailableSeats
 ) {

@@ -259,12 +259,14 @@ public class RideServiceImpl implements RideService {
     }
 
     private Page<RideResponseDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
                 .and(RideSpecifications.hasStopWithOriginOsmId(criteria.originOsmId()))
                 .and(RideSpecifications.hasStopWithDestinationOsmId(criteria.destinationOsmId()))
                 .and(RideSpecifications.originBeforeDestination(criteria.originOsmId(), criteria.destinationOsmId()))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
-                .and(RideSpecifications.departsOnOrAfter(criteria.earliestDeparture()));
+                .and(RideSpecifications.departsOnOrAfter(effectiveEarliest));
 
         if (criteria.latestDeparture() != null) {
             spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
@@ -284,6 +286,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private Page<RideResponseDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
         double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
 
@@ -291,7 +294,7 @@ public class RideServiceImpl implements RideService {
                 .and(RideSpecifications.hasStopNearOrigin(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
-                .and(RideSpecifications.departsOnOrAfter(criteria.earliestDeparture()))
+                .and(RideSpecifications.departsOnOrAfter(effectiveEarliest))
                 .and(RideSpecifications.orderByNearestStopDistance(
                         criteria.originLat(), criteria.originLon(),
                         criteria.destinationLat(), criteria.destinationLon(),
@@ -359,6 +362,11 @@ public class RideServiceImpl implements RideService {
                 .findFirst()
                 .map(RideStop::getStopOrder)
                 .orElse(-1);
+    }
+
+    private static Instant clampToNow(Instant earliest) {
+        Instant now = Instant.now();
+        return earliest == null || earliest.isBefore(now) ? now : earliest;
     }
 
     private double resolveRadiusKm(RideSearchCriteriaDto criteria) {
