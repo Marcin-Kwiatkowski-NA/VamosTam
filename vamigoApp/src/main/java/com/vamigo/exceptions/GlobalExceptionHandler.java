@@ -2,6 +2,7 @@ package com.vamigo.exceptions;
 
 import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
 import com.vamigo.contact.ContactRateLimitException;
+import com.vamigo.map.RoutingException;
 import com.vamigo.auth.exception.InvalidTokenException;
 import com.vamigo.auth.exception.VerificationCooldownException;
 import com.vamigo.email.EmailSendException;
@@ -146,6 +147,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(GeocodingException.class)
     public ProblemDetail handleGeocodingException(HttpServletRequest request, GeocodingException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ExceptionHandler(RoutingException.class)
+    public ProblemDetail handleRoutingException(HttpServletRequest request, RoutingException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
