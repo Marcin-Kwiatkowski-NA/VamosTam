@@ -6,6 +6,7 @@ public record CarrierProfileDto(
         String nip,
         String websiteUrl,
         boolean bookingEnabled,
-        String slug
+        String slug,
+        String description
 ) {
 }

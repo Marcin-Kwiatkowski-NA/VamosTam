@@ -38,6 +38,9 @@ public class CarrierProfile {
     @Column(name = "slug", nullable = false, unique = true, length = 100)
     private String slug;
 
+    @Column(name = "description", length = 1000)
+    private String description;
+
     @Column(name = "booking_enabled", nullable = false, columnDefinition = "boolean not null default true")
     @Builder.Default
     private boolean bookingEnabled = true;

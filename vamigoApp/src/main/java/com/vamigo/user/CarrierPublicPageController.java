@@ -3,11 +3,15 @@ package com.vamigo.user;
 import com.vamigo.domain.PersonDisplayNameResolver;
 import com.vamigo.domain.Status;
 import com.vamigo.dto.UserCardDto;
+import com.vamigo.location.Location;
+import com.vamigo.location.LocationDto;
+import com.vamigo.location.LocationMapper;
 import com.vamigo.ride.Ride;
 import com.vamigo.ride.RideMapper;
 import com.vamigo.ride.RideRepository;
 import com.vamigo.ride.RideResponseEnricher;
 import com.vamigo.ride.dto.RideResponseDto;
+import com.vamigo.user.dto.CarrierDirectionsDto;
 import com.vamigo.user.dto.CarrierProfileDto;
 import com.vamigo.user.dto.CarrierPublicPageDto;
 import com.vamigo.user.exception.NoSuchUserException;
@@ -48,6 +52,7 @@ public class CarrierPublicPageController {
     private final RideRepository rideRepository;
     private final RideMapper rideMapper;
     private final RideResponseEnricher rideResponseEnricher;
+    private final LocationMapper locationMapper;
 
     @GetMapping("/carriers/{slug}")
     @PreAuthorize("permitAll()")
@@ -87,6 +92,23 @@ public class CarrierPublicPageController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/carriers/{slug}/directions")
+    @PreAuthorize("permitAll()")
+    @Transactional(readOnly = true)
+    public ResponseEntity<CarrierDirectionsDto> getCarrierDirections(@PathVariable String slug) {
+        CarrierProfile carrier = carrierProfileRepository.findBySlug(slug.toLowerCase())
+                .orElseThrow(() -> new NoSuchUserException("No carrier found with slug: " + slug));
+
+        List<Location> locations = rideRepository.findDistinctLocationsByDriverId(
+                carrier.getId(), Instant.now());
+
+        List<LocationDto> locationDtos = locations.stream()
+                .map(locationMapper::locationToDto)
+                .toList();
+
+        return ResponseEntity.ok(new CarrierDirectionsDto(locationDtos));
+    }
+
     private CarrierProfileDto toCarrierDto(CarrierProfile carrier) {
         return new CarrierProfileDto(
                 carrier.getId(),
@@ -94,7 +116,8 @@ public class CarrierPublicPageController {
                 carrier.getNip(),
                 carrier.getWebsiteUrl(),
                 carrier.isBookingEnabled(),
-                carrier.getSlug()
+                carrier.getSlug(),
+                carrier.getDescription()
         );
     }
 
