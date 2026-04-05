@@ -10,7 +10,6 @@ import com.vamigo.ride.Ride;
 import com.vamigo.ride.RideMapper;
 import com.vamigo.ride.RideRepository;
 import com.vamigo.ride.RideResponseEnricher;
-import com.vamigo.ride.RideStop;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.user.dto.CarrierDirectionsDto;
 import com.vamigo.user.dto.CarrierProfileDto;
@@ -36,10 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -103,19 +99,12 @@ public class CarrierPublicPageController {
         CarrierProfile carrier = carrierProfileRepository.findBySlug(slug.toLowerCase())
                 .orElseThrow(() -> new NoSuchUserException("No carrier found with slug: " + slug));
 
-        List<Ride> rides = rideRepository.findByDriverIdActiveWithStops(
+        List<Location> locations = rideRepository.findDistinctLocationsByDriverId(
                 carrier.getId(), Instant.now());
 
-        Set<Long> seenOsmIds = new LinkedHashSet<>();
-        List<LocationDto> locationDtos = new ArrayList<>();
-        for (Ride ride : rides) {
-            for (RideStop stop : ride.getStops()) {
-                Location loc = stop.getLocation();
-                if (seenOsmIds.add(loc.getOsmId())) {
-                    locationDtos.add(locationMapper.locationToDto(loc));
-                }
-            }
-        }
+        List<LocationDto> locationDtos = locations.stream()
+                .map(locationMapper::locationToDto)
+                .toList();
 
         return ResponseEntity.ok(new CarrierDirectionsDto(locationDtos));
     }

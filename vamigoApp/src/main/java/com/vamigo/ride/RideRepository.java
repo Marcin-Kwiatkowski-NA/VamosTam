@@ -12,6 +12,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.vamigo.location.Location;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -65,12 +67,10 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
     Optional<Ride> findByIdWithStopsAndLocations(@Param("id") Long id);
 
     @Query("""
-        SELECT DISTINCT r FROM Ride r
-        JOIN FETCH r.stops s
-        JOIN FETCH s.location
-        WHERE r.driver.id = :driverId
-        AND r.status = com.vamigo.domain.Status.ACTIVE
-        AND r.departureTime > :now
+        SELECT DISTINCT s.location FROM RideStop s
+        WHERE s.ride.driver.id = :driverId
+        AND s.ride.status = com.vamigo.domain.Status.ACTIVE
+        AND s.ride.departureTime > :now
         """)
-    List<Ride> findByDriverIdActiveWithStops(@Param("driverId") Long driverId, @Param("now") Instant now);
+    List<Location> findDistinctLocationsByDriverId(@Param("driverId") Long driverId, @Param("now") Instant now);
 }
