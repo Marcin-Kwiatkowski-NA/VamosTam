@@ -22,6 +22,11 @@ public class RideSpecifications {
                 status == null ? null : cb.equal(root.get("status"), status);
     }
 
+    public static Specification<Ride> hasDriverId(Long driverId) {
+        return (root, query, cb) ->
+                driverId == null ? null : cb.equal(root.get("driver").get("id"), driverId);
+    }
+
     public static Specification<Ride> hasStopWithOriginOsmId(Long osmId) {
         return (root, query, cb) -> {
             if (osmId == null) return null;

@@ -171,7 +171,8 @@ public class ExternalImportMatchListener {
                 destination.latitude(), destination.longitude(),
                 RADIUS_KM,
                 dayStart, dayEnd,
-                1
+                1,
+                null
         );
 
         Page<RideResponseDto> matches = rideService.searchRides(criteria, PageRequest.of(0, MAX_RESULTS));

@@ -262,6 +262,7 @@ public class RideServiceImpl implements RideService {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
+                .and(RideSpecifications.hasDriverId(criteria.driverId()))
                 .and(RideSpecifications.hasStopWithOriginOsmId(criteria.originOsmId()))
                 .and(RideSpecifications.hasStopWithDestinationOsmId(criteria.destinationOsmId()))
                 .and(RideSpecifications.originBeforeDestination(criteria.originOsmId(), criteria.destinationOsmId()))
@@ -291,6 +292,7 @@ public class RideServiceImpl implements RideService {
         double radiusMeters = radiusKm * 1000;
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
+                .and(RideSpecifications.hasDriverId(criteria.driverId()))
                 .and(RideSpecifications.hasStopNearOrigin(criteria.originLat(), criteria.originLon(), radiusMeters))
                 .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
                 .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))

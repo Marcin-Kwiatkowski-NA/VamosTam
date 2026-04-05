@@ -14,7 +14,8 @@ public record RideSearchCriteriaDto(
         Double radiusKm,
         Instant earliestDeparture,
         Instant latestDeparture,
-        @Min(1) Integer minAvailableSeats
+        @Min(1) Integer minAvailableSeats,
+        Long driverId
 ) {
 
     public boolean isProximityMode() {
