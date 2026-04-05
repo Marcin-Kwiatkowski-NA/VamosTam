@@ -30,13 +30,13 @@ public class OsrmClient {
     /**
      * Calls OSRM route service with the given coordinates.
      *
-     * @param cacheKey    precomputed cache key: "{profile}|{lon,lat;lon,lat;...}"
      * @param coordinates ordered list of [lon, lat] pairs
      * @param profile     routing profile (e.g. "driving")
      * @return OSRM route response with GeoJSON geometry
      */
-    @Cacheable(value = CacheConfig.OSRM_ROUTE_CACHE, key = "#cacheKey")
-    public OsrmRouteResponse route(String cacheKey, List<double[]> coordinates, String profile) {
+    @Cacheable(value = CacheConfig.OSRM_ROUTE_CACHE,
+               key = "T(com.vamigo.map.osrm.OsrmClient).buildCacheKey(#profile, #coordinates)")
+    public OsrmRouteResponse route(List<double[]> coordinates, String profile) {
         String coordString = coordinates.stream()
                 .map(c -> c[0] + "," + c[1])
                 .collect(Collectors.joining(";"));

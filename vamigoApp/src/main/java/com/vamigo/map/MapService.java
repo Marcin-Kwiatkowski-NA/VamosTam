@@ -130,8 +130,7 @@ public class MapService {
         double[] bbox;
 
         try {
-            String cacheKey = OsrmClient.buildCacheKey(DEFAULT_PROFILE, coordinates);
-            OsrmRouteResponse osrmResponse = osrmClient.route(cacheKey, coordinates, DEFAULT_PROFILE);
+            OsrmRouteResponse osrmResponse = osrmClient.route(coordinates, DEFAULT_PROFILE);
 
             if (osrmResponse != null && "Ok".equals(osrmResponse.code())
                     && osrmResponse.routes() != null && !osrmResponse.routes().isEmpty()) {
