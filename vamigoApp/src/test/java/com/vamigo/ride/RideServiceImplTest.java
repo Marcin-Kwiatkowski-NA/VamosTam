@@ -209,7 +209,7 @@ class RideServiceImplTest {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    Instant.now(), null, 1
+                    Instant.now(), null, 1, null
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -229,7 +229,7 @@ class RideServiceImplTest {
         void searchRides_WithMinimalCriteria_ReturnsResults() {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     null, null, null, null, null, null, null,
-                    Instant.now(), null, 1
+                    Instant.now(), null, 1, null
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -251,7 +251,7 @@ class RideServiceImplTest {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    earliest, latest, 1
+                    earliest, latest, 1, null
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
@@ -272,7 +272,7 @@ class RideServiceImplTest {
             RideSearchCriteriaDto criteria = new RideSearchCriteriaDto(
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     null, null, null, null, null,
-                    FUTURE_DEPARTURE, null, 1
+                    FUTURE_DEPARTURE, null, 1, null
             );
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
