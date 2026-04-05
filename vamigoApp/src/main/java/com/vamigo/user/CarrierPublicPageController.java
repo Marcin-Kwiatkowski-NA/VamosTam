@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,6 +51,7 @@ public class CarrierPublicPageController {
 
     @GetMapping("/carriers/{slug}")
     @PreAuthorize("permitAll()")
+    @Transactional(readOnly = true)
     public ResponseEntity<CarrierPublicPageDto> getCarrierPublicPage(
             @PathVariable String slug,
             @RequestParam(defaultValue = "0") int page,
