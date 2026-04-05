@@ -11,6 +11,7 @@ import com.vamigo.messaging.exception.ConversationNotFoundException;
 import com.vamigo.messaging.exception.NotParticipantException;
 import com.vamigo.messaging.exception.SelfConversationException;
 import com.vamigo.report.exception.AlreadyReportedException;
+import com.vamigo.user.exception.DuplicateSlugException;
 import com.vamigo.review.exception.BookingNotReviewableException;
 import com.vamigo.review.exception.ReviewAlreadySubmittedException;
 import com.vamigo.review.exception.ReviewDeadlinePassedException;
@@ -105,6 +106,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DuplicateNipException.class)
     public ProblemDetail handleDuplicateNipException(HttpServletRequest request, DuplicateNipException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSlugException.class)
+    public ProblemDetail handleDuplicateSlugException(HttpServletRequest request, DuplicateSlugException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 

@@ -3,8 +3,14 @@ package com.vamigo.user;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface CarrierProfileRepository extends JpaRepository<CarrierProfile, Long> {
 
     boolean existsByNip(String nip);
+
+    Optional<CarrierProfile> findBySlug(String slug);
+
+    boolean existsBySlug(String slug);
 }

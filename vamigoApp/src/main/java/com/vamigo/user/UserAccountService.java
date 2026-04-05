@@ -134,11 +134,18 @@ public class UserAccountService {
 
         userProfileRepository.save(profile);
 
+        String baseSlug = SlugUtils.generateSlug(companyName);
+        if (baseSlug.length() < 3) {
+            baseSlug = "carrier-" + savedAccount.getId();
+        }
+        String uniqueSlug = SlugUtils.makeUnique(baseSlug, carrierProfileRepository::existsBySlug);
+
         CarrierProfile carrierProfile = CarrierProfile.builder()
                 .account(savedAccount)
                 .companyName(companyName)
                 .nip(nip)
                 .websiteUrl(websiteUrl)
+                .slug(uniqueSlug)
                 .build();
 
         carrierProfileRepository.save(carrierProfile);

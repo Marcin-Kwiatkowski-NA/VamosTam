@@ -3,6 +3,7 @@ package com.vamigo.user;
 import com.vamigo.auth.AppPrincipal;
 import com.vamigo.user.dto.CarrierProfileDto;
 import com.vamigo.user.dto.UpdateCarrierProfileRequest;
+import com.vamigo.user.exception.DuplicateSlugException;
 import com.vamigo.user.exception.NoSuchUserException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,17 @@ public class CarrierProfileController {
         if (request.bookingEnabled() != null) {
             carrier.setBookingEnabled(request.bookingEnabled());
         }
+        if (request.slug() != null && !request.slug().isBlank()) {
+            String normalizedSlug = request.slug().toLowerCase();
+            if (SlugUtils.isReserved(normalizedSlug)) {
+                throw new IllegalArgumentException("This slug is reserved");
+            }
+            if (!normalizedSlug.equals(carrier.getSlug())
+                    && carrierProfileRepository.existsBySlug(normalizedSlug)) {
+                throw new DuplicateSlugException(normalizedSlug);
+            }
+            carrier.setSlug(normalizedSlug);
+        }
 
         carrierProfileRepository.save(carrier);
 
@@ -68,7 +80,8 @@ public class CarrierProfileController {
                 carrier.getCompanyName(),
                 carrier.getNip(),
                 carrier.getWebsiteUrl(),
-                carrier.isBookingEnabled()
+                carrier.isBookingEnabled(),
+                carrier.getSlug()
         );
     }
 }

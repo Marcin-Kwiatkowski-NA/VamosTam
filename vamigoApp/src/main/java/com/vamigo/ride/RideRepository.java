@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +20,9 @@ import java.util.Optional;
 public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificationExecutor<Ride> {
 
     List<Ride> findByDriverIdOrderByDepartureTimeAsc(Long driverId);
+
+    Page<Ride> findByDriverIdAndStatusAndDepartureTimeAfterOrderByDepartureTimeAsc(
+            Long driverId, Status status, Instant after, Pageable pageable);
 
     boolean existsByIdAndDriverId(Long id, Long driverId);
 

@@ -109,6 +109,7 @@ public class WebAuthorizationConfig {
                 .requestMatchers(HttpMethod.GET, "/privacy-policy.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/terms.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/carrier-profile/{userId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/carriers/{slug}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/seats/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/search/config").permitAll()
