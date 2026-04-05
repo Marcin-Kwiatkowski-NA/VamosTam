@@ -46,5 +46,7 @@ public class Vehicle {
 
     private String licensePlate;
 
+    private String description;
+
     private String photoObjectKey;
 }

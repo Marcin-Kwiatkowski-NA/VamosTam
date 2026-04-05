@@ -10,6 +10,7 @@ public record VehicleResponseDto(
         Integer productionYear,
         VehicleColor color,
         String licensePlate,
+        String description,
         String photoUrl
 ) {
 }
