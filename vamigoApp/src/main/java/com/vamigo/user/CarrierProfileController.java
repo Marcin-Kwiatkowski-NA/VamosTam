@@ -78,6 +78,9 @@ public class CarrierProfileController {
     }
 
     private CarrierProfileDto toDto(CarrierProfile carrier) {
+        String phone = userProfileRepository.findById(carrier.getId())
+                .map(UserProfile::getPhoneNumber)
+                .orElse(null);
         return new CarrierProfileDto(
                 carrier.getId(),
                 carrier.getCompanyName(),
@@ -85,7 +88,8 @@ public class CarrierProfileController {
                 carrier.getWebsiteUrl(),
                 carrier.isBookingEnabled(),
                 carrier.getSlug(),
-                carrier.getDescription()
+                carrier.getDescription(),
+                phone
         );
     }
 }
