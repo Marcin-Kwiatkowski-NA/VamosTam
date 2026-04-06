@@ -93,10 +93,11 @@ class CapabilityServiceTest {
     class CanCreateRide {
 
         @Test
-        void returnsTrue_whenActive() {
+        void returnsTrue_whenActiveAndEmailVerified() {
             UserAccount account = UserAccount.builder()
                     .id(ID_ONE)
                     .status(AccountStatus.ACTIVE)
+                    .emailVerifiedAt(Instant.now())
                     .build();
             when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
@@ -104,10 +105,23 @@ class CapabilityServiceTest {
         }
 
         @Test
+        void returnsFalse_whenActiveButEmailNotVerified() {
+            UserAccount account = UserAccount.builder()
+                    .id(ID_ONE)
+                    .status(AccountStatus.ACTIVE)
+                    .emailVerifiedAt(null)
+                    .build();
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
+
+            assertThat(capabilityService.canCreateRide(ID_ONE)).isFalse();
+        }
+
+        @Test
         void returnsFalse_whenDisabled() {
             UserAccount account = UserAccount.builder()
                     .id(ID_ONE)
                     .status(AccountStatus.DISABLED)
+                    .emailVerifiedAt(Instant.now())
                     .build();
             when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
@@ -119,6 +133,7 @@ class CapabilityServiceTest {
             UserAccount account = UserAccount.builder()
                     .id(ID_ONE)
                     .status(AccountStatus.BANNED)
+                    .emailVerifiedAt(Instant.now())
                     .build();
             when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
 
@@ -130,6 +145,54 @@ class CapabilityServiceTest {
             when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> capabilityService.canCreateRide(ID_ONE))
+                    .isInstanceOf(NoSuchUserException.class);
+        }
+    }
+
+    @Nested
+    class CanCreateSeat {
+
+        @Test
+        void returnsTrue_whenActiveAndEmailVerified() {
+            UserAccount account = UserAccount.builder()
+                    .id(ID_ONE)
+                    .status(AccountStatus.ACTIVE)
+                    .emailVerifiedAt(Instant.now())
+                    .build();
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
+
+            assertThat(capabilityService.canCreateSeat(ID_ONE)).isTrue();
+        }
+
+        @Test
+        void returnsFalse_whenActiveButEmailNotVerified() {
+            UserAccount account = UserAccount.builder()
+                    .id(ID_ONE)
+                    .status(AccountStatus.ACTIVE)
+                    .emailVerifiedAt(null)
+                    .build();
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
+
+            assertThat(capabilityService.canCreateSeat(ID_ONE)).isFalse();
+        }
+
+        @Test
+        void returnsFalse_whenDisabled() {
+            UserAccount account = UserAccount.builder()
+                    .id(ID_ONE)
+                    .status(AccountStatus.DISABLED)
+                    .emailVerifiedAt(Instant.now())
+                    .build();
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(account));
+
+            assertThat(capabilityService.canCreateSeat(ID_ONE)).isFalse();
+        }
+
+        @Test
+        void throwsNoSuchUserException_whenUserNotFound() {
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> capabilityService.canCreateSeat(ID_ONE))
                     .isInstanceOf(NoSuchUserException.class);
         }
     }

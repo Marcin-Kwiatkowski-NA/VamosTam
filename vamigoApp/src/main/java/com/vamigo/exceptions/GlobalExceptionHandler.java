@@ -176,7 +176,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    @ExceptionHandler({CannotCreateRideException.class, CannotBookException.class, CannotBookOwnRideException.class})
+    @ExceptionHandler({CannotCreateRideException.class, CannotCreateSeatException.class, CannotBookException.class, CannotBookOwnRideException.class})
     public ProblemDetail handleCapabilityException(HttpServletRequest request, RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }

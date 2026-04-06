@@ -25,15 +25,28 @@ public class CapabilityServiceImpl implements CapabilityService {
     @Override
     @Transactional(readOnly = true)
     public boolean canCreateRide(Long userId) {
-        return isActive(userId);
+        return isActiveAndEmailVerified(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canCreateSeat(Long userId) {
+        return isActiveAndEmailVerified(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isActive(Long userId) {
-        UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchUserException(userId));
+        return loadUser(userId).getStatus() == AccountStatus.ACTIVE;
+    }
 
-        return account.getStatus() == AccountStatus.ACTIVE;
+    private boolean isActiveAndEmailVerified(Long userId) {
+        UserAccount account = loadUser(userId);
+        return account.getStatus() == AccountStatus.ACTIVE && account.getEmailVerifiedAt() != null;
+    }
+
+    private UserAccount loadUser(Long userId) {
+        return userAccountRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchUserException(userId));
     }
 }

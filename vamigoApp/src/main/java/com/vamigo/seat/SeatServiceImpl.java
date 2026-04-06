@@ -1,6 +1,7 @@
 package com.vamigo.seat;
 
 import com.vamigo.domain.Status;
+import com.vamigo.exceptions.CannotCreateSeatException;
 import com.vamigo.exceptions.NoSuchSeatException;
 import com.vamigo.exceptions.NotSeatPassengerException;
 import com.vamigo.location.Location;
@@ -67,8 +68,8 @@ public class SeatServiceImpl implements SeatService {
     @Override
     @Transactional
     public SeatResponseDto createForCurrentUser(SeatCreationDto dto, Long userId) {
-        if (!capabilityService.isActive(userId)) {
-            throw new IllegalStateException("User " + userId + " is not active");
+        if (!capabilityService.canCreateSeat(userId)) {
+            throw new CannotCreateSeatException(userId);
         }
 
         UserAccount passenger = userAccountRepository.findById(userId)
