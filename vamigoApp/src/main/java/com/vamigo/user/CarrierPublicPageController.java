@@ -67,8 +67,9 @@ public class CarrierPublicPageController {
 
         Long userId = carrier.getId();
 
-        CarrierProfileDto carrierDto = toCarrierDto(carrier);
-        UserCardDto userCard = buildUserCard(userId);
+        UserProfile userProfile = userProfileRepository.findById(userId).orElse(null);
+        CarrierProfileDto carrierDto = toCarrierDto(carrier, userProfile);
+        UserCardDto userCard = buildUserCard(userId, userProfile);
 
         Pageable pageable = PageRequest.of(page, Math.min(size, 50));
         Page<Ride> ridePage = rideRepository.findByDriverIdAndStatusAndDepartureTimeAfterOrderByDepartureTimeAsc(
@@ -109,7 +110,8 @@ public class CarrierPublicPageController {
         return ResponseEntity.ok(new CarrierDirectionsDto(locationDtos));
     }
 
-    private CarrierProfileDto toCarrierDto(CarrierProfile carrier) {
+    private CarrierProfileDto toCarrierDto(CarrierProfile carrier, UserProfile userProfile) {
+        String phone = userProfile != null ? userProfile.getPhoneNumber() : null;
         return new CarrierProfileDto(
                 carrier.getId(),
                 carrier.getCompanyName(),
@@ -117,12 +119,12 @@ public class CarrierPublicPageController {
                 carrier.getWebsiteUrl(),
                 carrier.isBookingEnabled(),
                 carrier.getSlug(),
-                carrier.getDescription()
+                carrier.getDescription(),
+                phone
         );
     }
 
-    private UserCardDto buildUserCard(Long userId) {
-        UserProfile profile = userProfileRepository.findById(userId).orElse(null);
+    private UserCardDto buildUserCard(Long userId, UserProfile profile) {
         UserAccount account = userAccountRepository.findById(userId).orElse(null);
         List<VehicleResponseDto> vehicles = vehicleRepository.findByOwnerId(userId).stream()
                 .map(v -> {
