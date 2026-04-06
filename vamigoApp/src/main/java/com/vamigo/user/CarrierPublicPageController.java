@@ -119,7 +119,6 @@ public class CarrierPublicPageController {
                 carrier.getWebsiteUrl(),
                 carrier.isBookingEnabled(),
                 carrier.getSlug(),
-                carrier.getDescription(),
                 phone
         );
     }

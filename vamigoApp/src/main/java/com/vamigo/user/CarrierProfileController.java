@@ -57,9 +57,6 @@ public class CarrierProfileController {
         if (request.bookingEnabled() != null) {
             carrier.setBookingEnabled(request.bookingEnabled());
         }
-        if (request.description() != null) {
-            carrier.setDescription(request.description().isBlank() ? null : request.description());
-        }
         if (request.slug() != null && !request.slug().isBlank()) {
             String normalizedSlug = request.slug().toLowerCase();
             if (SlugUtils.isReserved(normalizedSlug)) {
@@ -88,7 +85,6 @@ public class CarrierProfileController {
                 carrier.getWebsiteUrl(),
                 carrier.isBookingEnabled(),
                 carrier.getSlug(),
-                carrier.getDescription(),
                 phone
         );
     }

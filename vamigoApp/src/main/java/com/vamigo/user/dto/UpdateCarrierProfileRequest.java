@@ -14,9 +14,6 @@ public record UpdateCarrierProfileRequest(
 
         @Size(min = 3, max = 100, message = "Slug must be between 3 and 100 characters")
         @Pattern(regexp = "^[a-z0-9][a-z0-9-]*[a-z0-9]$", message = "Slug must be lowercase alphanumeric with hyphens, not starting or ending with a hyphen")
-        String slug,
-
-        @Size(max = 1000, message = "Description cannot exceed 1000 characters")
-        String description
+        String slug
 ) {
 }
