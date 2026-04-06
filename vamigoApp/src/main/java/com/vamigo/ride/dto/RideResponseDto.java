@@ -29,6 +29,7 @@ public record RideResponseDto(
         int totalSeats,
         boolean autoApprove,
         boolean doorToDoor,
+        boolean acceptsPackages,
         String description,
         String contactPhone,
         UserCardDto driver,

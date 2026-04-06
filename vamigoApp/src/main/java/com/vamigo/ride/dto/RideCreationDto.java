@@ -48,6 +48,8 @@ public record RideCreationDto(
 
         boolean doorToDoor,
 
+        boolean acceptsPackages,
+
         @Size(max = 32, message = "Contact phone cannot exceed 32 characters")
         String contactPhone,
 

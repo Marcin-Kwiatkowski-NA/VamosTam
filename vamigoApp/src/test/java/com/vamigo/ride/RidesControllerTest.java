@@ -150,6 +150,7 @@ class RidesControllerTest {
                 "",      // description
                 true,    // autoApprove
                 false,   // doorToDoor
+                false,   // acceptsPackages
                 null,    // contactPhone
                 null,    // currency
                 null     // originLegPrice
@@ -280,6 +281,7 @@ class RidesControllerTest {
                 "",      // description
                 true,    // autoApprove
                 false,   // doorToDoor
+                false,   // acceptsPackages
                 null,    // contactPhone
                 null,    // currency
                 null     // originLegPrice
