@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/map")
-@PreAuthorize("hasRole('USER')")
 @EnableConfigurationProperties(MapProperties.class)
 public class MapController {
 
@@ -26,16 +25,19 @@ public class MapController {
     }
 
     @GetMapping("/trips/ride/{id}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<RoutePreviewResponse> getRideRoutePreview(@PathVariable Long id) {
         return ResponseEntity.ok(mapService.getRoutePreviewForRide(id));
     }
 
     @GetMapping("/trips/seat/{id}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<RoutePreviewResponse> getSeatRoutePreview(@PathVariable Long id) {
         return ResponseEntity.ok(mapService.getRoutePreviewForSeat(id));
     }
 
     @PostMapping("/route-preview")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<RoutePreviewResponse> getAdHocRoutePreview(
             @Valid @RequestBody RoutePreviewRequest request) {
         return ResponseEntity.ok(mapService.getRoutePreview(request));

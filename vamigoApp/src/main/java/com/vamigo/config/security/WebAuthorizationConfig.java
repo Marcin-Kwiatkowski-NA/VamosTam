@@ -114,6 +114,8 @@ public class WebAuthorizationConfig {
                 .requestMatchers(HttpMethod.GET, "/rides/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/seats/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/search/config").permitAll()
+                .requestMatchers(HttpMethod.GET, "/map/trips/ride/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/map/trips/seat/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/public/search-alerts/unsubscribe").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
