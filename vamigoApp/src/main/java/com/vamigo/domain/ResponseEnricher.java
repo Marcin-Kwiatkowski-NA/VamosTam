@@ -64,6 +64,11 @@ public class ResponseEnricher {
         D assemble(D dto, UserCardDto userCard, List<ContactMethodDto> contactMethods);
     }
 
+    @FunctionalInterface
+    public interface ListDtoAssembler<D> {
+        D assemble(D dto, UserCardDto userCard);
+    }
+
     public <E extends AbstractTrip, D, M extends AbstractExternalMeta> List<D> enrich(
             List<E> entities, List<D> dtos,
             Function<E, Long> personId,
@@ -147,6 +152,79 @@ public class ResponseEnricher {
                     .toList();
         }
         return enrichSingle(entity, dto, personId, meta, profile, account, vehicles, assembler);
+    }
+
+    public <E extends AbstractTrip, D, M extends AbstractExternalMeta> List<D> enrichForList(
+            List<E> entities, List<D> dtos,
+            Function<E, Long> personId,
+            Function<Set<Long>, Map<Long, M>> fetchAllMeta,
+            ListDtoAssembler<D> assembler) {
+
+        if (entities.size() != dtos.size()) {
+            throw new IllegalArgumentException("Entities and DTOs lists must have the same size");
+        }
+
+        Set<Long> facebookIds = entities.stream()
+                .filter(e -> e.getSource() == RideSource.FACEBOOK)
+                .map(AbstractTrip::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, M> metaById = facebookIds.isEmpty()
+                ? Map.of()
+                : fetchAllMeta.apply(facebookIds);
+
+        Set<Long> internalPersonIds = entities.stream()
+                .filter(e -> e.getSource() == RideSource.INTERNAL)
+                .map(personId)
+                .collect(Collectors.toSet());
+
+        Map<Long, UserProfile> profilesById = internalPersonIds.isEmpty()
+                ? Map.of()
+                : StreamSupport.stream(userProfileRepository.findAllById(internalPersonIds).spliterator(), false)
+                        .collect(Collectors.toMap(UserProfile::getId, Function.identity()));
+
+        Map<Long, UserAccount> accountsById = internalPersonIds.isEmpty()
+                ? Map.of()
+                : userAccountRepository.findAllById(internalPersonIds).stream()
+                        .collect(Collectors.toMap(UserAccount::getId, Function.identity()));
+
+        List<D> result = new ArrayList<>(entities.size());
+        for (int i = 0; i < entities.size(); i++) {
+            E entity = entities.get(i);
+            D dto = dtos.get(i);
+            M meta = metaById.get(entity.getId());
+            Long pid = personId.apply(entity);
+            UserProfile profile = entity.getSource() == RideSource.INTERNAL
+                    ? profilesById.get(pid)
+                    : null;
+            UserAccount account = entity.getSource() == RideSource.INTERNAL
+                    ? accountsById.get(pid)
+                    : null;
+            UserCardDto userCard = buildUserCard(entity, personId, meta, profile, account, List.of());
+            result.add(assembler.assemble(dto, userCard));
+        }
+        return result;
+    }
+
+    public <E extends AbstractTrip, D, M extends AbstractExternalMeta> D enrichForList(
+            E entity, D dto,
+            Function<E, Long> personId,
+            Function<Long, Optional<M>> fetchSingleMeta,
+            ListDtoAssembler<D> assembler) {
+
+        M meta = null;
+        UserProfile profile = null;
+        UserAccount account = null;
+
+        if (entity.getSource() == RideSource.FACEBOOK) {
+            meta = fetchSingleMeta.apply(entity.getId()).orElse(null);
+        } else {
+            Long pid = personId.apply(entity);
+            profile = userProfileRepository.findById(pid).orElse(null);
+            account = userAccountRepository.findById(pid).orElse(null);
+        }
+        UserCardDto userCard = buildUserCard(entity, personId, meta, profile, account, List.of());
+        return assembler.assemble(dto, userCard);
     }
 
     private <E extends AbstractTrip, D, M extends AbstractExternalMeta> D enrichSingle(

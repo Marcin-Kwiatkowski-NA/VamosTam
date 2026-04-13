@@ -2,6 +2,7 @@ package com.vamigo.seat;
 
 import com.vamigo.location.LocationMapper;
 import com.vamigo.seat.dto.SeatCreationDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -33,4 +34,10 @@ public abstract class SeatMapper {
     @Mapping(target = "contactMethods", ignore = true)
     @Mapping(target = "seatStatus", expression = "java(seat.computeSeatStatus())")
     public abstract SeatResponseDto seatEntityToResponseDto(Seat seat);
+
+    @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(seat.getOrigin()))")
+    @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(seat.getDestination()))")
+    @Mapping(target = "passenger", ignore = true)
+    @Mapping(target = "seatStatus", expression = "java(seat.computeSeatStatus())")
+    public abstract SeatListDto seatEntityToSeatListDto(Seat seat);
 }

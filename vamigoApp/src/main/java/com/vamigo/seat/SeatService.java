@@ -1,6 +1,7 @@
 package com.vamigo.seat;
 
 import com.vamigo.seat.dto.SeatCreationDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.seat.dto.SeatSearchCriteriaDto;
 import org.springframework.data.domain.Page;
@@ -17,11 +18,11 @@ public interface SeatService {
 
     SeatResponseDto update(SeatCreationDto dto, Long id, Long userId);
 
-    Page<SeatResponseDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable);
+    Page<SeatListDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable);
 
     void delete(Long id, Long userId);
 
     SeatResponseDto cancelSeat(Long id, Long userId);
 
-    List<SeatResponseDto> getSeatsForPassenger(Long passengerId);
+    List<SeatListDto> getSeatsForPassenger(Long passengerId);
 }

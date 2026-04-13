@@ -9,6 +9,7 @@ import com.vamigo.location.LocationResolutionService;
 import com.vamigo.search.GeoUtils;
 import com.vamigo.search.SearchProperties;
 import com.vamigo.seat.dto.SeatCreationDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.seat.dto.SeatSearchCriteriaDto;
 import com.vamigo.seat.event.SeatCreatedEvent;
@@ -100,14 +101,14 @@ public class SeatServiceImpl implements SeatService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SeatResponseDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable) {
+    public Page<SeatListDto> searchSeats(SeatSearchCriteriaDto criteria, Pageable pageable) {
         if (criteria.isProximityMode()) {
             return searchSeatsNearby(criteria, pageable);
         }
         return searchSeatsExact(criteria, pageable);
     }
 
-    private Page<SeatResponseDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
+    private Page<SeatListDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
 
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
@@ -123,14 +124,14 @@ public class SeatServiceImpl implements SeatService {
         Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
         List<Seat> seats = seatPage.getContent();
 
-        List<SeatResponseDto> dtos = seats.stream()
-                .map(seatMapper::seatEntityToResponseDto)
+        List<SeatListDto> dtos = seats.stream()
+                .map(seatMapper::seatEntityToSeatListDto)
                 .toList();
-        List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
+        List<SeatListDto> enriched = seatResponseEnricher.enrichList(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
     }
 
-    private Page<SeatResponseDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
+    private Page<SeatListDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
         double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
@@ -156,10 +157,10 @@ public class SeatServiceImpl implements SeatService {
         LOGGER.info("Proximity seat search: radiusKm={}, found={}",
                 radiusKm, seatPage.getTotalElements());
 
-        List<SeatResponseDto> dtos = seats.stream()
-                .map(seatMapper::seatEntityToResponseDto)
+        List<SeatListDto> dtos = seats.stream()
+                .map(seatMapper::seatEntityToSeatListDto)
                 .toList();
-        List<SeatResponseDto> enriched = seatResponseEnricher.enrich(seats, dtos);
+        List<SeatListDto> enriched = seatResponseEnricher.enrichList(seats, dtos);
         return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
     }
 
@@ -224,16 +225,16 @@ public class SeatServiceImpl implements SeatService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SeatResponseDto> getSeatsForPassenger(Long passengerId) {
+    public List<SeatListDto> getSeatsForPassenger(Long passengerId) {
         if (!userAccountRepository.existsById(passengerId)) {
             throw new NoSuchUserException(passengerId);
         }
 
         List<Seat> seats = seatRepository.findByPassengerIdOrderByDepartureTimeAsc(passengerId);
-        List<SeatResponseDto> dtos = seats.stream()
-                .map(seatMapper::seatEntityToResponseDto)
+        List<SeatListDto> dtos = seats.stream()
+                .map(seatMapper::seatEntityToSeatListDto)
                 .toList();
-        return seatResponseEnricher.enrich(seats, dtos);
+        return seatResponseEnricher.enrichList(seats, dtos);
     }
 
     private static Instant clampToNow(Instant earliest) {

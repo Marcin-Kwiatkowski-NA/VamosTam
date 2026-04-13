@@ -9,6 +9,7 @@ import com.vamigo.exceptions.RideHasBookingsException;
 import com.vamigo.location.Location;
 import com.vamigo.location.LocationResolutionService;
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.ride.event.RideCompletedEvent;
@@ -251,14 +252,14 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable) {
+    public Page<RideListDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable) {
         if (criteria.isProximityMode()) {
             return searchRidesNearby(criteria, pageable);
         }
         return searchRidesExact(criteria, pageable);
     }
 
-    private Page<RideResponseDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
+    private Page<RideListDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
@@ -279,14 +280,14 @@ public class RideServiceImpl implements RideService {
                 .filter(ride -> hasAvailableSeatsForExactSearch(ride, criteria))
                 .toList();
 
-        List<RideResponseDto> dtos = filtered.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
+        List<RideListDto> dtos = filtered.stream()
+                .map(rideMapper::rideEntityToRideListDto)
                 .toList();
-        List<RideResponseDto> enriched = rideResponseEnricher.enrich(filtered, dtos);
+        List<RideListDto> enriched = rideResponseEnricher.enrichList(filtered, dtos);
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
-    private Page<RideResponseDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
+    private Page<RideListDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
         double radiusKm = resolveRadiusKm(criteria);
         double radiusMeters = radiusKm * 1000;
@@ -317,10 +318,10 @@ public class RideServiceImpl implements RideService {
         LOGGER.info("Proximity ride search: radiusKm={}, found={}, filtered={}",
                 radiusKm, ridePage.getTotalElements(), filtered.size());
 
-        List<RideResponseDto> dtos = filtered.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
+        List<RideListDto> dtos = filtered.stream()
+                .map(rideMapper::rideEntityToRideListDto)
                 .toList();
-        List<RideResponseDto> enriched = rideResponseEnricher.enrich(filtered, dtos);
+        List<RideListDto> enriched = rideResponseEnricher.enrichList(filtered, dtos);
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
@@ -385,28 +386,28 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RideResponseDto> getAllRides(Pageable pageable) {
+    public Page<RideListDto> getAllRides(Pageable pageable) {
         Page<Ride> ridePage = rideRepository.findAll(pageable);
         List<Ride> rides = ridePage.getContent();
-        List<RideResponseDto> dtos = rides.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
+        List<RideListDto> dtos = rides.stream()
+                .map(rideMapper::rideEntityToRideListDto)
                 .toList();
-        List<RideResponseDto> enriched = rideResponseEnricher.enrich(rides, dtos);
+        List<RideListDto> enriched = rideResponseEnricher.enrichList(rides, dtos);
         return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RideResponseDto> getRidesForDriver(Long driverId) {
+    public List<RideListDto> getRidesForDriver(Long driverId) {
         if (!userAccountRepository.existsById(driverId)) {
             throw new NoSuchUserException(driverId);
         }
 
         List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(driverId);
-        List<RideResponseDto> dtos = rides.stream()
-                .map(rideMapper::rideEntityToRideResponseDto)
+        List<RideListDto> dtos = rides.stream()
+                .map(rideMapper::rideEntityToRideListDto)
                 .toList();
-        return rideResponseEnricher.enrich(rides, dtos);
+        return rideResponseEnricher.enrichList(rides, dtos);
     }
 
     private List<RideStop> buildStops(Ride ride, RideCreationDto dto) {

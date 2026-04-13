@@ -3,12 +3,14 @@ package com.vamigo.search;
 import com.vamigo.email.BrevoClient;
 import com.vamigo.email.EmailSendException;
 import com.vamigo.location.LocationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.ride.dto.RideStopDto;
 import com.vamigo.ride.event.ExternalRideCreatedEvent;
 import com.vamigo.ride.RideService;
 import com.vamigo.seat.SeatService;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.seat.dto.SeatSearchCriteriaDto;
 import com.vamigo.seat.event.ExternalSeatCreatedEvent;
@@ -97,7 +99,7 @@ public class ExternalImportMatchListener {
         Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS);
 
         // Search for matching seats across all stop pairs (board before alight)
-        Map<Long, SeatResponseDto> matchMap = new LinkedHashMap<>();
+        Map<Long, SeatListDto> matchMap = new LinkedHashMap<>();
         for (int i = 0; i < stops.size(); i++) {
             for (int j = i + 1; j < stops.size(); j++) {
                 LocationDto boardLoc = stops.get(i).location();
@@ -112,8 +114,8 @@ public class ExternalImportMatchListener {
                         null
                 );
 
-                Page<SeatResponseDto> page = seatService.searchSeats(criteria, PageRequest.of(0, MAX_RESULTS));
-                for (SeatResponseDto seat : page.getContent()) {
+                Page<SeatListDto> page = seatService.searchSeats(criteria, PageRequest.of(0, MAX_RESULTS));
+                for (SeatListDto seat : page.getContent()) {
                     matchMap.putIfAbsent(seat.id(), seat);
                 }
             }
@@ -127,7 +129,7 @@ public class ExternalImportMatchListener {
         }
 
         // Sort by combined nearest-stop distance (exact matches naturally first)
-        List<SeatResponseDto> allMatches = new ArrayList<>(matchMap.values());
+        List<SeatListDto> allMatches = new ArrayList<>(matchMap.values());
         allMatches.sort(Comparator.comparingDouble(seat ->
                 nearestStopDistance(stops, seat.origin().latitude(), seat.origin().longitude())
                         + nearestStopDistance(stops, seat.destination().latitude(), seat.destination().longitude())));
@@ -175,7 +177,7 @@ public class ExternalImportMatchListener {
                 null
         );
 
-        Page<RideResponseDto> matches = rideService.searchRides(criteria, PageRequest.of(0, MAX_RESULTS));
+        Page<RideListDto> matches = rideService.searchRides(criteria, PageRequest.of(0, MAX_RESULTS));
 
         int minRequired = involvesWien(origin, destination) ? importProperties.minMatchingResults() : 1;
         if (matches.getTotalElements() < minRequired) {
@@ -214,7 +216,7 @@ public class ExternalImportMatchListener {
     }
 
     private String buildRideMatchHtml(RideResponseDto ride, String sourceUrl,
-                                      List<SeatResponseDto> matches, String searchUrl) {
+                                      List<SeatListDto> matches, String searchUrl) {
         var sb = new StringBuilder();
         List<RideStopDto> stops = ride.stops();
 
@@ -240,7 +242,7 @@ public class ExternalImportMatchListener {
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Description</th>");
         sb.append("</tr>");
 
-        for (SeatResponseDto seat : matches) {
+        for (SeatListDto seat : matches) {
             String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
             String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
 
@@ -251,7 +253,7 @@ public class ExternalImportMatchListener {
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(alightLabel)));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(DATE_FMT.format(seat.departureTime())));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(seat.priceWillingToPay() != null ? seat.priceWillingToPay() : "-"));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(truncate(esc(seat.description()), 80)));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">-</td>");
             sb.append("</tr>");
         }
         sb.append("</table>");
@@ -259,7 +261,7 @@ public class ExternalImportMatchListener {
     }
 
     private String buildRideMatchText(RideResponseDto ride, String sourceUrl,
-                                      List<SeatResponseDto> matches, String searchUrl) {
+                                      List<SeatListDto> matches, String searchUrl) {
         var sb = new StringBuilder();
         List<RideStopDto> stops = ride.stops();
 
@@ -271,7 +273,7 @@ public class ExternalImportMatchListener {
         sb.append("Search results: %s\n\n".formatted(searchUrl));
         sb.append("Matching Seat Requests (%d):\n".formatted(matches.size()));
 
-        for (SeatResponseDto seat : matches) {
+        for (SeatListDto seat : matches) {
             String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
             String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
 
@@ -285,7 +287,7 @@ public class ExternalImportMatchListener {
     }
 
     private String buildSeatMatchHtml(SeatResponseDto seat, String sourceUrl,
-                                      List<RideResponseDto> matches, String searchUrl) {
+                                      List<RideListDto> matches, String searchUrl) {
         var sb = new StringBuilder();
         sb.append("<h2>New External Seat Request</h2>");
         sb.append("<table style=\"border-collapse:collapse;width:100%%;\">");
@@ -308,7 +310,7 @@ public class ExternalImportMatchListener {
         sb.append("<th style=\"padding:4px 8px;border:1px solid #ccc;\">Description</th>");
         sb.append("</tr>");
 
-        for (RideResponseDto ride : matches) {
+        for (RideListDto ride : matches) {
             List<RideStopDto> stops = ride.stops();
             String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
             String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());
@@ -320,7 +322,7 @@ public class ExternalImportMatchListener {
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(esc(alightLabel)));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(DATE_FMT.format(ride.departureTime())));
             sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(ride.pricePerSeat() != null ? ride.pricePerSeat() : "-"));
-            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">%s</td>".formatted(truncate(esc(ride.description()), 80)));
+            sb.append("<td style=\"padding:4px 8px;border:1px solid #ccc;\">-</td>");
             sb.append("</tr>");
         }
         sb.append("</table>");
@@ -328,7 +330,7 @@ public class ExternalImportMatchListener {
     }
 
     private String buildSeatMatchText(SeatResponseDto seat, String sourceUrl,
-                                      List<RideResponseDto> matches, String searchUrl) {
+                                      List<RideListDto> matches, String searchUrl) {
         var sb = new StringBuilder();
         sb.append("New External Seat Request\n\n");
         sb.append("Origin: %s\n".formatted(seat.origin().name()));
@@ -338,7 +340,7 @@ public class ExternalImportMatchListener {
         sb.append("Search results: %s\n\n".formatted(searchUrl));
         sb.append("Matching Ride Offers (%d):\n".formatted(matches.size()));
 
-        for (RideResponseDto ride : matches) {
+        for (RideListDto ride : matches) {
             List<RideStopDto> stops = ride.stops();
             String boardLabel = nearestStopLabel(stops, seat.origin().latitude(), seat.origin().longitude());
             String alightLabel = nearestStopLabel(stops, seat.destination().latitude(), seat.destination().longitude());

@@ -3,6 +3,7 @@ package com.vamigo.seat;
 import com.vamigo.auth.AppPrincipal;
 import com.vamigo.exceptions.NoSuchSeatException;
 import com.vamigo.seat.dto.SeatCreationDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.seat.dto.SeatSearchCriteriaDto;
 import jakarta.validation.Valid;
@@ -53,7 +54,7 @@ public class SeatController {
 
     @GetMapping("/seats/search")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Page<SeatResponseDto>> searchSeats(
+    public ResponseEntity<Page<SeatListDto>> searchSeats(
             @Valid @ModelAttribute SeatSearchCriteriaDto criteria,
             @PageableDefault(size = 10, sort = "departureTime", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(seatService.searchSeats(criteria, pageable));
@@ -85,7 +86,7 @@ public class SeatController {
     }
 
     @GetMapping("/me/seats")
-    public ResponseEntity<List<SeatResponseDto>> getMySeats(@AuthenticationPrincipal AppPrincipal principal) {
+    public ResponseEntity<List<SeatListDto>> getMySeats(@AuthenticationPrincipal AppPrincipal principal) {
         return ResponseEntity.ok(seatService.getSeatsForPassenger(principal.userId()));
     }
 }

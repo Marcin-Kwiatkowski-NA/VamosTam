@@ -3,6 +3,7 @@ package com.vamigo.ride;
 import com.vamigo.domain.ResponseEnricher;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.UserCardDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.user.AccountType;
 import com.vamigo.user.CarrierProfile;
@@ -69,6 +70,70 @@ public class RideResponseEnricher {
                 this::assembleDto);
         RideResponseDto processed = postProcessVehicle(ride, enriched);
         return resolveBookingEnabled(ride, processed);
+    }
+
+    public List<RideListDto> enrichList(List<Ride> rides, List<RideListDto> dtos) {
+        List<RideListDto> enriched = responseEnricher.enrichForList(rides, dtos,
+                r -> r.getDriver().getId(),
+                this::fetchAllMeta,
+                this::assembleListDto);
+        return resolveBookingEnabledForList(rides, enriched);
+    }
+
+    public RideListDto enrichList(Ride ride, RideListDto dto) {
+        RideListDto enriched = responseEnricher.enrichForList(ride, dto,
+                r -> r.getDriver().getId(),
+                this::fetchSingleMeta,
+                this::assembleListDto);
+        return resolveBookingEnabledForList(ride, enriched);
+    }
+
+    private RideListDto assembleListDto(RideListDto dto, UserCardDto userCard) {
+        return dto.toBuilder().driver(userCard).build();
+    }
+
+    private List<RideListDto> resolveBookingEnabledForList(List<Ride> rides, List<RideListDto> dtos) {
+        Set<Long> carrierDriverIds = dtos.stream()
+                .filter(dto -> dto.source() == RideSource.INTERNAL)
+                .filter(dto -> dto.driver() != null && dto.driver().accountType() == AccountType.CARRIER)
+                .map(dto -> dto.driver().id())
+                .collect(Collectors.toSet());
+        Map<Long, CarrierProfile> carrierProfiles = carrierDriverIds.isEmpty()
+                ? Map.of()
+                : carrierProfileRepository.findAllById(carrierDriverIds).stream()
+                        .collect(Collectors.toMap(CarrierProfile::getId, Function.identity()));
+
+        List<RideListDto> result = new java.util.ArrayList<>(dtos.size());
+        for (int i = 0; i < dtos.size(); i++) {
+            result.add(resolveBookingEnabledForList(rides.get(i), dtos.get(i), carrierProfiles));
+        }
+        return result;
+    }
+
+    private RideListDto resolveBookingEnabledForList(Ride ride, RideListDto dto) {
+        if (ride.getSource() != RideSource.INTERNAL) {
+            return dto.toBuilder().bookingEnabled(false).build();
+        }
+        if (dto.driver() != null && dto.driver().accountType() == AccountType.CARRIER) {
+            boolean enabled = carrierProfileRepository.findById(dto.driver().id())
+                    .map(CarrierProfile::isBookingEnabled)
+                    .orElse(false);
+            return dto.toBuilder().bookingEnabled(enabled).build();
+        }
+        return dto;
+    }
+
+    private RideListDto resolveBookingEnabledForList(Ride ride, RideListDto dto,
+                                                      Map<Long, CarrierProfile> carrierProfiles) {
+        if (ride.getSource() != RideSource.INTERNAL) {
+            return dto.toBuilder().bookingEnabled(false).build();
+        }
+        if (dto.driver() != null && dto.driver().accountType() == AccountType.CARRIER) {
+            CarrierProfile profile = carrierProfiles.get(dto.driver().id());
+            boolean enabled = profile != null && profile.isBookingEnabled();
+            return dto.toBuilder().bookingEnabled(enabled).build();
+        }
+        return dto;
     }
 
     private Map<Long, RideExternalMeta> fetchAllMeta(Set<Long> rideIds) {

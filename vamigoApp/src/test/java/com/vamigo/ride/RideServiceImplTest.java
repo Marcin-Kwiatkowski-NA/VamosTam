@@ -7,6 +7,7 @@ import com.vamigo.exceptions.RideHasBookingsException;
 import com.vamigo.location.Location;
 import com.vamigo.location.LocationResolutionService;
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.search.SearchProperties;
@@ -88,6 +89,7 @@ class RideServiceImplTest {
     private Ride ride;
     private RideCreationDto rideCreationDTO;
     private RideResponseDto rideResponseDto;
+    private RideListDto rideListDto;
     private Location originLocation;
     private Location destinationLocation;
 
@@ -97,6 +99,8 @@ class RideServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(1));
         lenient().when(rideResponseEnricher.enrich(anyList(), anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(1));
+        lenient().when(rideResponseEnricher.enrichList(anyList(), anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
         lenient().when(rideProperties.minDepartureNoticeMinutes()).thenReturn(30);
 
         originLocation = anOriginLocation().build();
@@ -104,6 +108,7 @@ class RideServiceImplTest {
         ride = buildRideWithStops(originLocation, destinationLocation);
         rideCreationDTO = aRideCreationDto().build();
         rideResponseDto = aRideResponseDto().build();
+        rideListDto = aRideListDto().build();
     }
 
     @Test
@@ -215,9 +220,9 @@ class RideServiceImplTest {
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
-            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
-            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+            Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
@@ -235,9 +240,9 @@ class RideServiceImplTest {
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
-            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
-            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+            Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
@@ -257,9 +262,9 @@ class RideServiceImplTest {
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
-            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
-            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+            Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
@@ -278,9 +283,9 @@ class RideServiceImplTest {
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
-            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
-            Page<RideResponseDto> result = rideService.searchRides(criteria, pageable);
+            Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
@@ -293,9 +298,9 @@ class RideServiceImplTest {
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
             when(rideRepository.findAll(pageable)).thenReturn(ridePage);
-            when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+            when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
-            Page<RideResponseDto> result = rideService.getAllRides(pageable);
+            Page<RideListDto> result = rideService.getAllRides(pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());

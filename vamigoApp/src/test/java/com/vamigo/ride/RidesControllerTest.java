@@ -6,6 +6,7 @@ import com.vamigo.auth.service.JwtTokenProvider;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.user.Role;
@@ -75,12 +76,14 @@ class RidesControllerTest {
     private Ride ride;
     private RideCreationDto rideCreationDTO;
     private RideResponseDto rideResponseDto;
+    private RideListDto rideListDto;
 
     @BeforeEach
     void setUp() {
         ride = aRide().build();
         rideCreationDTO = aRideCreationDto().build();
         rideResponseDto = aRideResponseDto().build();
+        rideListDto = aRideListDto().build();
     }
 
     @Test
@@ -304,7 +307,7 @@ class RidesControllerTest {
         @WithMockUser
         void getAllRides_Success() throws Exception {
             // Arrange
-            Page<RideResponseDto> ridePage = new PageImpl<>(List.of(rideResponseDto));
+            Page<RideListDto> ridePage = new PageImpl<>(List.of(rideListDto));
             when(rideService.getAllRides(any(Pageable.class))).thenReturn(ridePage);
 
             // Act & Assert
@@ -322,7 +325,7 @@ class RidesControllerTest {
         @WithMockUser
         void getAllRides_EmptyPage() throws Exception {
             // Arrange
-            Page<RideResponseDto> emptyPage = new PageImpl<>(Collections.emptyList());
+            Page<RideListDto> emptyPage = new PageImpl<>(Collections.emptyList());
             when(rideService.getAllRides(any(Pageable.class))).thenReturn(emptyPage);
 
             // Act & Assert
@@ -342,7 +345,7 @@ class RidesControllerTest {
         @WithMockUser
         void searchRides_Success() throws Exception {
             // Arrange
-            Page<RideResponseDto> ridePage = new PageImpl<>(List.of(rideResponseDto));
+            Page<RideListDto> ridePage = new PageImpl<>(List.of(rideListDto));
             when(rideService.searchRides(any(RideSearchCriteriaDto.class), any(Pageable.class)))
                     .thenReturn(ridePage);
 
@@ -363,7 +366,7 @@ class RidesControllerTest {
         @WithMockUser
         void searchRides_NoMatches() throws Exception {
             // Arrange
-            Page<RideResponseDto> emptyPage = new PageImpl<>(Collections.emptyList());
+            Page<RideListDto> emptyPage = new PageImpl<>(Collections.emptyList());
             when(rideService.searchRides(any(RideSearchCriteriaDto.class), any(Pageable.class)))
                     .thenReturn(emptyPage);
 
@@ -381,7 +384,7 @@ class RidesControllerTest {
         @WithMockUser
         void searchRides_WithTimeWindow() throws Exception {
             // Arrange
-            Page<RideResponseDto> ridePage = new PageImpl<>(List.of(rideResponseDto));
+            Page<RideListDto> ridePage = new PageImpl<>(List.of(rideListDto));
             when(rideService.searchRides(any(RideSearchCriteriaDto.class), any(Pageable.class)))
                     .thenReturn(ridePage);
 
@@ -405,7 +408,7 @@ class RidesControllerTest {
         @DisplayName("GET /me/rides - Returns user's rides")
         void getMyRides_Success() throws Exception {
             // Arrange
-            when(rideService.getRidesForDriver(any())).thenReturn(List.of(rideResponseDto));
+            when(rideService.getRidesForDriver(any())).thenReturn(List.of(rideListDto));
             AppPrincipal principal = new AppPrincipal(USER_ID, TRAVELER_EMAIL_USER2, Set.of(Role.USER));
 
             // Act & Assert

@@ -3,6 +3,7 @@ package com.vamigo.ride;
 import com.vamigo.auth.AppPrincipal;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import jakarta.validation.Valid;
@@ -98,7 +99,7 @@ public class RidesController {
     }
 
     @GetMapping("/rides")
-    public ResponseEntity<Page<RideResponseDto>> getAllRides(
+    public ResponseEntity<Page<RideListDto>> getAllRides(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "departureTime") String sortBy,
@@ -112,14 +113,14 @@ public class RidesController {
 
     @GetMapping("/rides/search")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Page<RideResponseDto>> searchRides(
+    public ResponseEntity<Page<RideListDto>> searchRides(
             @Valid @ModelAttribute RideSearchCriteriaDto criteria,
             @PageableDefault(size = 10, sort = "departureTime", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(rideService.searchRides(criteria, pageable));
     }
 
     @GetMapping("/me/rides")
-    public ResponseEntity<List<RideResponseDto>> getMyRides(@AuthenticationPrincipal AppPrincipal principal) {
+    public ResponseEntity<List<RideListDto>> getMyRides(@AuthenticationPrincipal AppPrincipal principal) {
         return ResponseEntity.ok(rideService.getRidesForDriver(principal.userId()));
     }
 

@@ -3,6 +3,7 @@ package com.vamigo.seat;
 import com.vamigo.domain.ResponseEnricher;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.UserCardDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,24 @@ public class SeatResponseEnricher {
                 s -> s.getPassenger().getId(),
                 this::fetchSingleMeta,
                 this::assembleDto);
+    }
+
+    public List<SeatListDto> enrichList(List<Seat> seats, List<SeatListDto> dtos) {
+        return responseEnricher.enrichForList(seats, dtos,
+                s -> s.getPassenger().getId(),
+                this::fetchAllMeta,
+                this::assembleListDto);
+    }
+
+    public SeatListDto enrichList(Seat seat, SeatListDto dto) {
+        return responseEnricher.enrichForList(seat, dto,
+                s -> s.getPassenger().getId(),
+                this::fetchSingleMeta,
+                this::assembleListDto);
+    }
+
+    private SeatListDto assembleListDto(SeatListDto dto, UserCardDto userCard) {
+        return dto.toBuilder().passenger(userCard).build();
     }
 
     private Map<Long, SeatExternalMeta> fetchAllMeta(Set<Long> seatIds) {

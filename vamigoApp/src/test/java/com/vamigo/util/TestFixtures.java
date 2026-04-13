@@ -21,9 +21,11 @@ import com.vamigo.ride.dto.BookRideRequest;
 import com.vamigo.ride.dto.BookingResponseDto;
 import com.vamigo.ride.dto.ExternalRideCreationDto;
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.seat.SeatStatus;
 import com.vamigo.seat.dto.ExternalSeatCreationDto;
+import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.user.AccountStatus;
 import com.vamigo.user.AccountType;
@@ -325,6 +327,23 @@ public final class TestFixtures {
                 .rideStatus(RideStatus.OPEN);
     }
 
+    public static RideListDto.RideListDtoBuilder aRideListDto() {
+        return RideListDto.builder()
+                .id(ID_100)
+                .source(RideSource.INTERNAL)
+                .origin(originLocationDto())
+                .destination(destinationLocationDto())
+                .stops(List.of())
+                .departureTime(FUTURE_DEPARTURE)
+                .timePrecision(TimePrecision.EXACT)
+                .pricePerSeat(BIG_DECIMAL)
+                .availableSeats(ONE)
+                .seatsTaken(0)
+                .totalSeats(ONE)
+                .driver(aDriverCard().build())
+                .rideStatus(RideStatus.OPEN);
+    }
+
     // ── French Ride Scenario ──
 
     public static RideResponseDto.RideResponseDtoBuilder aFrenchRideResponse() {
@@ -410,6 +429,20 @@ public final class TestFixtures {
                 .description("Looking for a ride")
                 .passenger(aDriverCard().build())
                 .contactMethods(List.of(phoneContact()))
+                .seatStatus(SeatStatus.SEARCHING);
+    }
+
+    public static SeatListDto.SeatListDtoBuilder aSeatListDto() {
+        return SeatListDto.builder()
+                .id(ID_100)
+                .source(RideSource.FACEBOOK)
+                .origin(originLocationDto())
+                .destination(destinationLocationDto())
+                .departureTime(FUTURE_DEPARTURE)
+                .timePrecision(TimePrecision.EXACT)
+                .count(ONE)
+                .priceWillingToPay(BIG_DECIMAL)
+                .passenger(aDriverCard().build())
                 .seatStatus(SeatStatus.SEARCHING);
     }
 }

@@ -1,6 +1,7 @@
 package com.vamigo.ride;
 
 import com.vamigo.ride.dto.RideCreationDto;
+import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import org.springframework.data.domain.Page;
@@ -22,9 +23,9 @@ public interface RideService {
 
     RideResponseDto completeRide(Long rideId, Long driverId);
 
-    Page<RideResponseDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable);
+    Page<RideListDto> searchRides(RideSearchCriteriaDto criteria, Pageable pageable);
 
-    Page<RideResponseDto> getAllRides(Pageable pageable);
+    Page<RideListDto> getAllRides(Pageable pageable);
 
-    List<RideResponseDto> getRidesForDriver(Long driverId);
+    List<RideListDto> getRidesForDriver(Long driverId);
 }
