@@ -1,6 +1,10 @@
 package com.vamigo.util;
 
+import com.vamigo.auth.verification.EmailVerificationToken;
+import com.vamigo.auth.verification.PasswordResetToken;
+import com.vamigo.auth.verification.TokenHashUtil;
 import com.vamigo.domain.Currency;
+import com.vamigo.domain.Status;
 import com.vamigo.domain.TimePrecision;
 import com.vamigo.dto.ContactMethodDto;
 import com.vamigo.dto.ContactType;
@@ -9,11 +13,23 @@ import com.vamigo.location.Location;
 import com.vamigo.location.LocationDto;
 import com.vamigo.location.LocationLang;
 import com.vamigo.location.LocationRef;
+import com.vamigo.messaging.Conversation;
+import com.vamigo.messaging.Message;
 import com.vamigo.notification.DeviceToken;
+import com.vamigo.notification.EntityType;
+import com.vamigo.notification.Notification;
+import com.vamigo.notification.NotificationType;
 import com.vamigo.notification.Platform;
+import com.vamigo.report.Report;
+import com.vamigo.report.ReportReason;
+import com.vamigo.report.ReportTargetType;
+import com.vamigo.review.Review;
+import com.vamigo.review.ReviewRole;
+import com.vamigo.review.ReviewStatus;
 import com.vamigo.ride.BookingStatus;
 import com.vamigo.ride.Ride;
 import com.vamigo.ride.RideBooking;
+import com.vamigo.ride.RideExternalMeta;
 import com.vamigo.ride.RideSource;
 import com.vamigo.ride.RideStatus;
 import com.vamigo.ride.RideStop;
@@ -23,12 +39,17 @@ import com.vamigo.ride.dto.ExternalRideCreationDto;
 import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
+import com.vamigo.searchalert.SavedSearch;
+import com.vamigo.searchalert.SearchType;
+import com.vamigo.seat.Seat;
+import com.vamigo.seat.SeatExternalMeta;
 import com.vamigo.seat.SeatStatus;
 import com.vamigo.seat.dto.ExternalSeatCreationDto;
 import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
 import com.vamigo.user.AccountStatus;
 import com.vamigo.user.AccountType;
+import com.vamigo.user.CarrierProfile;
 import com.vamigo.user.Role;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserProfile;
@@ -40,6 +61,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -444,5 +468,135 @@ public final class TestFixtures {
                 .priceWillingToPay(BIG_DECIMAL)
                 .passenger(aDriverCard().build())
                 .seatStatus(SeatStatus.SEARCHING);
+    }
+
+    public static Seat.SeatBuilder<?, ?> aSeat(UserAccount passenger, Location origin, Location destination) {
+        return Seat.builder()
+                .passenger(passenger)
+                .origin(origin)
+                .destination(destination)
+                .departureTime(FUTURE_DEPARTURE)
+                .timePrecision(TimePrecision.EXACT)
+                .count(ONE)
+                .priceWillingToPay(BIG_DECIMAL)
+                .currency(Currency.PLN)
+                .status(Status.ACTIVE);
+    }
+
+    // ──────────────── Auth verification tokens ────────────────
+
+    public static EmailVerificationToken.EmailVerificationTokenBuilder anEmailVerificationToken(UserAccount user) {
+        return EmailVerificationToken.builder()
+                .tokenHash(TokenHashUtil.hashToken("evt-" + System.nanoTime()))
+                .user(user)
+                .expiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
+    }
+
+    public static PasswordResetToken.PasswordResetTokenBuilder aPasswordResetToken(UserAccount user) {
+        return PasswordResetToken.builder()
+                .tokenHash(TokenHashUtil.hashToken("prt-" + System.nanoTime()))
+                .user(user)
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+    }
+
+    // ──────────────── Messaging ────────────────
+
+    public static Conversation.ConversationBuilder aConversation(UserAccount a, UserAccount b) {
+        return Conversation.builder()
+                .topicKey("RIDE:1")
+                .participantA(a)
+                .participantB(b);
+    }
+
+    public static Message.MessageBuilder aMessage(Conversation conversation, UserAccount sender) {
+        return Message.builder()
+                .conversation(conversation)
+                .sender(sender)
+                .body("hello");
+    }
+
+    // ──────────────── Notification ────────────────
+
+    public static Notification.NotificationBuilder aNotification(UserAccount recipient) {
+        return Notification.builder()
+                .recipient(recipient)
+                .notificationType(NotificationType.BOOKING_REQUESTED)
+                .channel(NotificationType.BOOKING_REQUESTED.channel())
+                .entityType(EntityType.RIDE)
+                .entityId("1")
+                .count(1);
+    }
+
+    // ──────────────── Review ────────────────
+
+    public static Review.ReviewBuilder aReview(RideBooking booking, UserAccount author, UserAccount subject) {
+        return Review.builder()
+                .booking(booking)
+                .author(author)
+                .subject(subject)
+                .authorRole(ReviewRole.PASSENGER)
+                .stars(5)
+                .status(ReviewStatus.PUBLISHED)
+                .publishedAt(Instant.now())
+                .deadlineAt(Instant.now().plus(14, ChronoUnit.DAYS));
+    }
+
+    // ──────────────── Report ────────────────
+
+    public static Report.ReportBuilder aReport(UserAccount author) {
+        return Report.builder()
+                .author(author)
+                .targetType(ReportTargetType.RIDE)
+                .targetId(1L)
+                .reason(ReportReason.SPAM);
+    }
+
+    // ──────────────── Saved search ────────────────
+
+    public static SavedSearch.SavedSearchBuilder aSavedSearch(UserAccount user) {
+        return SavedSearch.builder()
+                .user(user)
+                .originOsmId(OSM_ID_ORIGIN)
+                .originName(LOCATION_NAME_ORIGIN)
+                .originLat(LAT_ORIGIN)
+                .originLon(LON_ORIGIN)
+                .destinationOsmId(OSM_ID_DESTINATION)
+                .destinationName(LOCATION_NAME_DESTINATION)
+                .destinationLat(LAT_DESTINATION)
+                .destinationLon(LON_DESTINATION)
+                .searchType(SearchType.RIDE)
+                .departureDate(LocalDate.now().plusDays(7));
+    }
+
+    // ──────────────── External meta ────────────────
+
+    public static RideExternalMeta.RideExternalMetaBuilder<?, ?> aRideExternalMeta(Ride ride) {
+        return RideExternalMeta.builder()
+                .ride(ride)
+                .sourceUrl("https://facebook.com/post/" + System.nanoTime())
+                .externalId("ext-" + System.nanoTime())
+                .rawContent("raw")
+                .phoneNumber(TELEPHONE)
+                .authorName(CRISTIANO);
+    }
+
+    public static SeatExternalMeta.SeatExternalMetaBuilder<?, ?> aSeatExternalMeta(Seat seat) {
+        return SeatExternalMeta.builder()
+                .seat(seat)
+                .sourceUrl("https://facebook.com/post/" + System.nanoTime())
+                .externalId("ext-seat-" + System.nanoTime())
+                .rawContent("raw")
+                .phoneNumber(TELEPHONE)
+                .authorName(CRISTIANO);
+    }
+
+    // ──────────────── Carrier profile ────────────────
+
+    public static CarrierProfile.CarrierProfileBuilder aCarrierProfile(UserAccount account) {
+        return CarrierProfile.builder()
+                .account(account)
+                .companyName("Acme Carriers")
+                .nip("1234567890")
+                .slug("acme-carriers");
     }
 }

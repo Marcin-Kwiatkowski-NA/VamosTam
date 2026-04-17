@@ -11,6 +11,7 @@ import com.vamigo.vehicle.VehicleRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -20,11 +21,15 @@ import org.springframework.test.context.ActiveProfiles;
 import com.vamigo.AbstractIntegrationTest;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static com.vamigo.util.Constants.*;
 import static com.vamigo.util.TestFixtures.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -196,5 +201,269 @@ class RideRepositoryTest extends AbstractIntegrationTest {
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
             rideRepository.save(nonExistentRide);
         }, "Updating non-existent ride should throw exception");
+    }
+
+    // ──────────────────────── Custom query methods ────────────────────────
+
+    private Ride persistActiveRide() {
+        Ride r = createRideWithStops(origin, destination);
+        return rideRepository.saveAndFlush(r);
+    }
+
+    private Ride persistActiveRide(Instant departureTime, Instant estimatedArrival) {
+        Ride r = createRideWithStops(origin, destination);
+        r.setDepartureTime(departureTime);
+        r.setEstimatedArrivalAt(estimatedArrival);
+        r.getStops().get(0).setDepartureTime(departureTime);
+        return rideRepository.saveAndFlush(r);
+    }
+
+    private RideBooking persistBooking(Ride ride, UserAccount passenger, BookingStatus status) {
+        RideBooking b = RideBooking.builder()
+                .ride(ride).passenger(passenger)
+                .boardStop(ride.getStops().get(0))
+                .alightStop(ride.getStops().get(ride.getStops().size() - 1))
+                .status(status).seatCount(1).bookedAt(Instant.now())
+                .resolvedAt(status == BookingStatus.CONFIRMED ? Instant.now() : null)
+                .build();
+        entityManager.persist(b);
+        entityManager.flush();
+        return b;
+    }
+
+    @Nested
+    @DisplayName("Load ride with pessimistic write lock")
+    class FindByIdForUpdateTests {
+
+        @Test
+        @DisplayName("Returns the ride attached to the persistence context when it exists")
+        void returnsRideAttachedToPersistenceContext() {
+            Ride ride = persistActiveRide();
+            entityManager.clear();
+
+            Optional<Ride> found = rideRepository.findByIdForUpdate(ride.getId());
+
+            assertThat(found).isPresent()
+                    .get().extracting(Ride::getId).isEqualTo(ride.getId());
+        }
+
+        @Test
+        @DisplayName("Returns empty when the ride id does not exist")
+        void returnsEmptyForMissingId() {
+            assertThat(rideRepository.findByIdForUpdate(NON_EXISTENT_ID)).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("List active rides ready to be auto-completed")
+    class FindActiveRidesReadyForCompletionTests {
+
+        @Test
+        @DisplayName("Includes active rides with confirmed bookings whose arrival has passed")
+        void returnsActiveRidesWithConfirmedBookingsPastArrival() {
+            Ride ride = persistActiveRide(
+                    Instant.now().minus(2, ChronoUnit.HOURS),
+                    Instant.now().minus(1, ChronoUnit.HOURS));
+            UserAccount pax = userAccountRepository.save(
+                    anActiveUserAccount().email("pax1@example.com").build());
+            entityManager.flush();
+            persistBooking(ride, pax, BookingStatus.CONFIRMED);
+            entityManager.clear();
+
+            List<Ride> ready = rideRepository.findActiveRidesReadyForCompletion(Instant.now());
+
+            assertThat(ready).extracting(Ride::getId).contains(ride.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes rides that have no confirmed bookings")
+        void excludesRidesWithoutConfirmedBooking() {
+            Ride ride = persistActiveRide(
+                    Instant.now().minus(2, ChronoUnit.HOURS),
+                    Instant.now().minus(1, ChronoUnit.HOURS));
+            entityManager.clear();
+
+            List<Ride> ready = rideRepository.findActiveRidesReadyForCompletion(Instant.now());
+
+            assertThat(ready).extracting(Ride::getId).doesNotContain(ride.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes rides that do not yet have an estimated arrival time")
+        void excludesRidesWithNullEstimatedArrival() {
+            Ride ride = persistActiveRide(Instant.now().minus(2, ChronoUnit.HOURS), null);
+            UserAccount pax = userAccountRepository.save(
+                    anActiveUserAccount().email("pax2@example.com").build());
+            entityManager.flush();
+            persistBooking(ride, pax, BookingStatus.CONFIRMED);
+            entityManager.clear();
+
+            List<Ride> ready = rideRepository.findActiveRidesReadyForCompletion(Instant.now());
+
+            assertThat(ready).extracting(Ride::getId).doesNotContain(ride.getId());
+        }
+    }
+
+    @Nested
+    @DisplayName("List active rides ready to be expired (no bookings)")
+    class FindActiveRidesReadyForExpiryTests {
+
+        @Test
+        @DisplayName("Includes active rides whose departure has passed and have no confirmed bookings")
+        void returnsRidesWithNoConfirmedBookingsPastDeparture() {
+            Ride ride = persistActiveRide(
+                    Instant.now().minus(1, ChronoUnit.HOURS), null);
+            entityManager.clear();
+
+            List<Ride> expired = rideRepository.findActiveRidesWithNoBookingsReadyForExpiry(Instant.now());
+
+            assertThat(expired).extracting(Ride::getId).contains(ride.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes rides that already have a confirmed booking")
+        void excludesRidesWithConfirmedBooking() {
+            Ride ride = persistActiveRide(
+                    Instant.now().minus(1, ChronoUnit.HOURS), null);
+            UserAccount pax = userAccountRepository.save(
+                    anActiveUserAccount().email("pax3@example.com").build());
+            entityManager.flush();
+            persistBooking(ride, pax, BookingStatus.CONFIRMED);
+            entityManager.clear();
+
+            List<Ride> expired = rideRepository.findActiveRidesWithNoBookingsReadyForExpiry(Instant.now());
+
+            assertThat(expired).extracting(Ride::getId).doesNotContain(ride.getId());
+        }
+    }
+
+    @Nested
+    @DisplayName("Load ride with stops and their locations eagerly")
+    class FindByIdWithStopsAndLocationsTests {
+
+        @Test
+        @DisplayName("Returns the ride with stops and each stop's location initialised")
+        void eagerLoadsStopsAndLocations() {
+            Ride ride = persistActiveRide();
+            entityManager.clear();
+
+            Optional<Ride> found = rideRepository.findByIdWithStopsAndLocations(ride.getId());
+
+            assertThat(found).isPresent();
+            assertThat(found.get().getStops()).hasSize(2)
+                    .allSatisfy(s -> assertThat(s.getLocation()).isNotNull());
+        }
+    }
+
+    @Nested
+    @DisplayName("List distinct locations used by a driver's active future rides")
+    class FindDistinctLocationsByDriverIdTests {
+
+        @Test
+        @DisplayName("Returns distinct locations used by the driver's active future rides")
+        void returnsDistinctLocationsFromActiveFutureRides() {
+            persistActiveRide(Instant.now().plus(2, ChronoUnit.HOURS), null);
+            persistActiveRide(Instant.now().plus(3, ChronoUnit.HOURS), null);
+            entityManager.clear();
+
+            List<Location> locations = rideRepository.findDistinctLocationsByDriverId(
+                    driver.getId(), Instant.now());
+
+            assertThat(locations).hasSize(2)
+                    .extracting(Location::getOsmId)
+                    .containsExactlyInAnyOrder(OSM_ID_ORIGIN, OSM_ID_DESTINATION);
+        }
+
+        @Test
+        @DisplayName("Excludes locations that only appear in rides already departed")
+        void excludesLocationsFromPastRides() {
+            persistActiveRide(Instant.now().minus(1, ChronoUnit.HOURS), null);
+            entityManager.clear();
+
+            List<Location> locations = rideRepository.findDistinctLocationsByDriverId(
+                    driver.getId(), Instant.now());
+
+            assertThat(locations).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("List a driver's rides ordered by departure time")
+    class FindByDriverIdTests {
+
+        @Test
+        @DisplayName("Returns the driver's rides ordered from earliest to latest departure")
+        void returnsRidesInDepartureOrder() {
+            Ride later = persistActiveRide(Instant.now().plus(2, ChronoUnit.HOURS), null);
+            Ride earlier = persistActiveRide(Instant.now().plus(1, ChronoUnit.HOURS), null);
+            entityManager.clear();
+
+            List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(driver.getId());
+
+            assertThat(rides).extracting(Ride::getId)
+                    .containsExactly(earlier.getId(), later.getId());
+        }
+    }
+
+    @Nested
+    @DisplayName("Check driver ownership of a ride")
+    class ExistsByIdAndDriverIdTests {
+
+        @Test
+        @DisplayName("Returns true when the ride is owned by the given driver")
+        void returnsTrueForOwner() {
+            Ride ride = persistActiveRide();
+            entityManager.clear();
+
+            assertThat(rideRepository.existsByIdAndDriverId(ride.getId(), driver.getId())).isTrue();
+        }
+
+        @Test
+        @DisplayName("Returns false when the user is not the driver of the ride")
+        void returnsFalseForNonOwner() {
+            Ride ride = persistActiveRide();
+            entityManager.clear();
+
+            assertThat(rideRepository.existsByIdAndDriverId(ride.getId(), NON_EXISTENT_ID)).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("List rides by status completed in a time window")
+    class FindByStatusAndCompletedAtBetweenTests {
+
+        @Test
+        @DisplayName("Returns rides with the given status completed within the time window")
+        void returnsRidesWithinRange() {
+            Ride ride = persistActiveRide();
+            ride.setStatus(Status.COMPLETED);
+            ride.setCompletedAt(Instant.now().minus(30, ChronoUnit.MINUTES));
+            rideRepository.saveAndFlush(ride);
+            entityManager.clear();
+
+            List<Ride> result = rideRepository.findByStatusAndCompletedAtBetween(
+                    Status.COMPLETED,
+                    Instant.now().minus(1, ChronoUnit.HOURS),
+                    Instant.now());
+
+            assertThat(result).extracting(Ride::getId).contains(ride.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes rides completed outside the requested time window")
+        void excludesRidesOutsideRange() {
+            Ride ride = persistActiveRide();
+            ride.setStatus(Status.COMPLETED);
+            ride.setCompletedAt(Instant.now().minus(2, ChronoUnit.HOURS));
+            rideRepository.saveAndFlush(ride);
+            entityManager.clear();
+
+            List<Ride> result = rideRepository.findByStatusAndCompletedAtBetween(
+                    Status.COMPLETED,
+                    Instant.now().minus(1, ChronoUnit.HOURS),
+                    Instant.now());
+
+            assertThat(result).extracting(Ride::getId).doesNotContain(ride.getId());
+        }
     }
 }

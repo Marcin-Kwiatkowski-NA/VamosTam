@@ -80,11 +80,11 @@ class BookingServiceImplTest {
     }
 
     @Nested
-    @DisplayName("createBooking")
+    @DisplayName("Create a booking for a ride")
     class CreateBookingTests {
 
         @Test
-        @DisplayName("auto-approve ride creates CONFIRMED booking")
+        @DisplayName("Creates a CONFIRMED booking when the ride has auto-approve enabled")
         void autoApproveCreatesConfirmedBooking() {
             ride.setAutoApprove(true);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
@@ -104,7 +104,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("manual-approve ride creates PENDING booking")
+        @DisplayName("Creates a PENDING booking when the ride requires driver approval")
         void manualApproveCreatesPendingBooking() {
             ride.setAutoApprove(false);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
@@ -124,7 +124,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("multi-seat booking sets seatCount correctly")
+        @DisplayName("Stores the requested seat count when more than one seat is booked")
         void multiSeatBooking() {
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
@@ -142,7 +142,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws InsufficientSeatsException when not enough seats")
+        @DisplayName("Throws InsufficientSeatsException when the ride has fewer seats than requested")
         void throwsWhenInsufficientSeats() {
             ride.setTotalSeats(1);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
@@ -157,7 +157,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws AlreadyBookedException for duplicate active booking")
+        @DisplayName("Throws AlreadyBookedException when the passenger already has an active booking on the ride")
         void throwsOnDuplicateBooking() {
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
@@ -169,7 +169,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws NoSuchRideException for non-existent ride")
+        @DisplayName("Throws NoSuchRideException when the ride id does not exist")
         void throwsForMissingRide() {
             when(rideRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
@@ -178,7 +178,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws CannotBookOwnRideException when driver books own ride")
+        @DisplayName("Throws CannotBookOwnRideException when the driver tries to book their own ride")
         void throwsWhenDriverBooksOwnRide() {
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
 
@@ -187,7 +187,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws ExternalRideNotBookableException for FACEBOOK ride")
+        @DisplayName("Throws ExternalRideNotBookableException when the ride was imported from Facebook")
         void throwsForExternalRide() {
             ride.setSource(RideSource.FACEBOOK);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
@@ -197,7 +197,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws RideNotBookableException for CANCELLED ride")
+        @DisplayName("Throws RideNotBookableException when the ride has been cancelled")
         void throwsForCancelledRide() {
             ride.setStatus(Status.CANCELLED);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
@@ -212,11 +212,11 @@ class BookingServiceImplTest {
     }
 
     @Nested
-    @DisplayName("confirmBooking")
+    @DisplayName("Driver confirms a booking")
     class ConfirmBookingTests {
 
         @Test
-        @DisplayName("confirms PENDING booking")
+        @DisplayName("Moves a PENDING booking to CONFIRMED and publishes BookingConfirmedEvent")
         void confirmsPendingBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
@@ -232,7 +232,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws NotRideDriverException for non-driver")
+        @DisplayName("Throws NotRideDriverException when the caller is not the ride's driver")
         void throwsForNonDriver() {
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
 
@@ -241,7 +241,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws InvalidBookingTransitionException for CONFIRMED booking")
+        @DisplayName("Throws InvalidBookingTransitionException when the booking is already CONFIRMED")
         void throwsForAlreadyConfirmed() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -254,11 +254,11 @@ class BookingServiceImplTest {
     }
 
     @Nested
-    @DisplayName("rejectBooking")
+    @DisplayName("Driver rejects a booking")
     class RejectBookingTests {
 
         @Test
-        @DisplayName("rejects PENDING booking")
+        @DisplayName("Moves a PENDING booking to REJECTED and publishes BookingRejectedEvent")
         void rejectsPendingBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
@@ -274,7 +274,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws InvalidBookingTransitionException for CONFIRMED booking")
+        @DisplayName("Throws InvalidBookingTransitionException when rejecting a CONFIRMED booking")
         void throwsForConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -287,11 +287,11 @@ class BookingServiceImplTest {
     }
 
     @Nested
-    @DisplayName("cancelBooking")
+    @DisplayName("Cancel an existing booking")
     class CancelBookingTests {
 
         @Test
-        @DisplayName("passenger cancels CONFIRMED booking")
+        @DisplayName("Passenger cancellation on a CONFIRMED booking sets status to CANCELLED_BY_PASSENGER")
         void passengerCancelsConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -306,7 +306,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("driver cancels CONFIRMED booking")
+        @DisplayName("Driver cancellation on a CONFIRMED booking sets status to CANCELLED_BY_DRIVER")
         void driverCancelsConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -320,7 +320,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("passenger cancels PENDING booking without reason")
+        @DisplayName("Allows passenger to cancel a PENDING booking without supplying a reason")
         void passengerCancelsPendingBookingWithoutReason() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
@@ -335,7 +335,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws IllegalArgumentException when cancelling CONFIRMED booking without reason")
+        @DisplayName("Throws IllegalArgumentException when a CONFIRMED booking is cancelled without a reason")
         void throwsWhenCancellingConfirmedWithoutReason() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -347,7 +347,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws InvalidBookingTransitionException for REJECTED booking")
+        @DisplayName("Throws InvalidBookingTransitionException when cancelling an already REJECTED booking")
         void throwsForRejectedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.REJECTED).build();
@@ -359,7 +359,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws NotRideDriverException for unrelated user")
+        @DisplayName("Throws NotRideDriverException when a user unrelated to the booking attempts to cancel it")
         void throwsForUnrelatedUser() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
@@ -372,11 +372,11 @@ class BookingServiceImplTest {
     }
 
     @Nested
-    @DisplayName("getBookingsForRide")
+    @DisplayName("List bookings for a ride")
     class GetBookingsForRideTests {
 
         @Test
-        @DisplayName("returns bookings for driver")
+        @DisplayName("Returns the ride's bookings when the caller is the driver")
         void returnsBookingsForDriver() {
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
             when(bookingRepository.findByRideId(ID_100)).thenReturn(List.of());
@@ -388,7 +388,7 @@ class BookingServiceImplTest {
         }
 
         @Test
-        @DisplayName("throws NotRideDriverException for non-driver")
+        @DisplayName("Throws NotRideDriverException when a non-driver requests the booking list")
         void throwsForNonDriver() {
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
 

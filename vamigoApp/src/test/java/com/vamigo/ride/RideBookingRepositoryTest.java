@@ -21,8 +21,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import static com.vamigo.util.Constants.NON_EXISTENT_ID;
 import static com.vamigo.util.TestFixtures.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -104,7 +107,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("existsByRideIdAndPassengerIdAndStatusIn")
+    @DisplayName("Check whether passenger has a booking on a ride in given statuses")
     class ExistsByStatusTests {
 
         @Test
@@ -143,7 +146,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("findByRideIdAndStatusIn")
+    @DisplayName("List bookings on a ride filtered by status")
     class FindByRideIdAndStatusTests {
 
         @Test
@@ -175,7 +178,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("findByPassengerIdAndStatusIn")
+    @DisplayName("List a passenger's bookings filtered by status")
     class FindByPassengerIdAndStatusTests {
 
         @Test
@@ -208,7 +211,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("findByStatusAndBookedAtBefore")
+    @DisplayName("List bookings with a given status booked before a cutoff")
     class FindByStatusAndBookedAtBeforeTests {
 
         @Test
@@ -251,7 +254,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("findByRideId")
+    @DisplayName("List every booking for a ride")
     class FindByRideIdTests {
 
         @Test
@@ -274,6 +277,170 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
             List<RideBooking> bookings = bookingRepository.findByRideId(ride.getId());
 
             assertTrue(bookings.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Load booking with ride, stops and locations eagerly")
+    class FindByIdWithRideAndLocationsTests {
+
+        @Test
+        @DisplayName("Returns the booking with its ride, every stop and the stop locations initialised")
+        void eagerLoadsRideStopsAndLocations() {
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            Optional<RideBooking> found = bookingRepository.findByIdWithRideAndLocations(booking.getId());
+
+            assertThat(found).isPresent();
+            RideBooking loaded = found.get();
+            assertThat(loaded.getRide().getId()).isEqualTo(ride.getId());
+            assertThat(loaded.getRide().getStops())
+                    .hasSize(2)
+                    .allSatisfy(s -> assertThat(s.getLocation()).isNotNull());
+            assertThat(loaded.getBoardStop().getLocation().getId()).isEqualTo(origin.getId());
+            assertThat(loaded.getAlightStop().getLocation().getId()).isEqualTo(destination.getId());
+        }
+
+        @Test
+        @DisplayName("Returns empty when the booking id does not exist")
+        void returnsEmptyForMissingId() {
+            assertThat(bookingRepository.findByIdWithRideAndLocations(NON_EXISTENT_ID)).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Check whether user is a participant in a booking")
+    class IsUserParticipantTests {
+
+        @Test
+        @DisplayName("Returns true when the user is the driver of the booking's ride")
+        void returnsTrueForDriver() {
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            boolean participant = bookingRepository.isUserParticipant(
+                    ride.getId(), booking.getId(), driver.getId());
+
+            assertThat(participant).isTrue();
+        }
+
+        @Test
+        @DisplayName("Returns true when the user is the passenger of the booking")
+        void returnsTrueForPassenger() {
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            boolean participant = bookingRepository.isUserParticipant(
+                    ride.getId(), booking.getId(), passenger.getId());
+
+            assertThat(participant).isTrue();
+        }
+
+        @Test
+        @DisplayName("Returns false when the user is neither driver nor passenger")
+        void returnsFalseForUnrelatedUser() {
+            UserAccount stranger = anActiveUserAccount().email("stranger@example.com").build();
+            userAccountRepository.save(stranger);
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            boolean participant = bookingRepository.isUserParticipant(
+                    ride.getId(), booking.getId(), stranger.getId());
+
+            assertThat(participant).isFalse();
+        }
+
+        @Test
+        @DisplayName("Returns false when the booking does not belong to the given ride")
+        void returnsFalseWhenBookingBelongsToDifferentRide() {
+            Ride other = createPersistedRide();
+            RideBooking booking = createBooking(other, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            boolean participant = bookingRepository.isUserParticipant(
+                    ride.getId(), booking.getId(), passenger.getId());
+
+            assertThat(participant).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("List confirmed bookings on recently completed rides")
+    class FindConfirmedBookingsOnCompletedRidesTests {
+
+        private void markCompleted(Ride r, Instant completedAt) {
+            r.setStatus(Status.COMPLETED);
+            r.setCompletedAt(completedAt);
+            rideRepository.save(r);
+        }
+
+        @Test
+        @DisplayName("Returns the passenger's confirmed bookings for rides completed after the cutoff")
+        void returnsConfirmedBookingsForPassengerAfterCutoff() {
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+            markCompleted(ride, Instant.now().minus(10, ChronoUnit.MINUTES));
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    passenger.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).extracting(RideBooking::getId).containsExactly(booking.getId());
+        }
+
+        @Test
+        @DisplayName("Returns the driver's confirmed bookings for rides completed after the cutoff")
+        void returnsConfirmedBookingsForDriverAfterCutoff() {
+            RideBooking booking = createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+            markCompleted(ride, Instant.now().minus(10, ChronoUnit.MINUTES));
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    driver.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).extracting(RideBooking::getId).containsExactly(booking.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes bookings on rides completed before the cutoff")
+        void excludesRidesCompletedBeforeCutoff() {
+            createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+            markCompleted(ride, Instant.now().minus(2, ChronoUnit.HOURS));
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    passenger.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Excludes bookings on rides that are still active")
+        void excludesRidesStillActive() {
+            createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    passenger.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Excludes bookings that are not in CONFIRMED status")
+        void excludesNonConfirmedBookings() {
+            createBooking(ride, passenger, BookingStatus.CANCELLED_BY_PASSENGER, Instant.now());
+            markCompleted(ride, Instant.now().minus(10, ChronoUnit.MINUTES));
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    passenger.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Excludes bookings when the user is neither driver nor passenger")
+        void excludesUnrelatedUser() {
+            UserAccount stranger = anActiveUserAccount().email("stranger-ride@example.com").build();
+            userAccountRepository.save(stranger);
+            createBooking(ride, passenger, BookingStatus.CONFIRMED, Instant.now());
+            markCompleted(ride, Instant.now().minus(10, ChronoUnit.MINUTES));
+
+            List<RideBooking> result = bookingRepository.findConfirmedBookingsOnCompletedRides(
+                    stranger.getId(), Instant.now().minus(1, ChronoUnit.HOURS));
+
+            assertThat(result).isEmpty();
         }
     }
 }

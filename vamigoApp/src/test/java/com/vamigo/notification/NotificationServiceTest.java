@@ -46,11 +46,11 @@ class NotificationServiceTest {
     }
 
     @Nested
-    @DisplayName("notify()")
+    @DisplayName("Dispatch a notification to a recipient")
     class Notify {
 
         @Test
-        @DisplayName("should persist new notification, broadcast STOMP, and push with deepLink")
+        @DisplayName("Persists the notification, broadcasts a STOMP alert, and sends a push with the deepLink payload")
         void persistsAndBroadcasts() {
             var params = Map.of("offerKey", "r-42", "deepLink", "/my-offer/r-42",
                     "origin", "Krakow", "destination", "Warsaw");
@@ -97,7 +97,7 @@ class NotificationServiceTest {
         }
 
         @Test
-        @DisplayName("should collapse existing unread notification with same collapse key")
+        @DisplayName("Collapses into the existing unread notification when the collapse key already exists")
         void collapsesExistingNotification() {
             var existing = Notification.builder()
                     .recipient(recipient)
@@ -136,7 +136,7 @@ class NotificationServiceTest {
         }
 
         @Test
-        @DisplayName("should broadcast STOMP alert and push for CHAT_MESSAGE_NEW (no DB persistence)")
+        @DisplayName("Broadcasts STOMP and push for CHAT_MESSAGE_NEW without writing anything to the database")
         void chatMessageBroadcastsWithoutPersistence() {
             var params = Map.of("conversationId", "conv-uuid", "senderName", "Anna",
                     "deepLink", "/chat/conv-uuid");
@@ -177,7 +177,7 @@ class NotificationServiceTest {
         }
 
         @Test
-        @DisplayName("should skip notification for unknown user")
+        @DisplayName("Skips persistence and broadcast when the recipient user cannot be found")
         void skipsUnknownUser() {
             when(userAccountRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -196,11 +196,11 @@ class NotificationServiceTest {
     }
 
     @Nested
-    @DisplayName("getNotifications()")
+    @DisplayName("Fetch a paginated notification feed")
     class GetNotifications {
 
         @Test
-        @DisplayName("should return paginated notifications with unread count")
+        @DisplayName("Returns a page of notifications together with the current unread count")
         void returnsPaginatedNotifications() {
             var notification = Notification.builder()
                     .recipient(recipient)
@@ -229,11 +229,11 @@ class NotificationServiceTest {
     }
 
     @Nested
-    @DisplayName("markRead()")
+    @DisplayName("Mark a notification as read")
     class MarkRead {
 
         @Test
-        @DisplayName("should mark read and broadcast count sync")
+        @DisplayName("Marks the notification read and broadcasts the updated unread count via STOMP")
         void marksReadAndBroadcasts() {
             UUID id = UUID.randomUUID();
             when(notificationRepository.countByRecipientIdAndReadAtIsNullAndNotificationTypeNot(

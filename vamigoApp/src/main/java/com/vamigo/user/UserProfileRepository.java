@@ -10,8 +10,8 @@ import org.springframework.stereotype.Repository;
 public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
 
     @Modifying
-    @Query(value = "INSERT INTO user_profile (id, display_name, rides_given, rides_taken, rating_sum, rating_count) " +
-                   "SELECT :id, :displayName, 0, 0, 0, 0 " +
+    @Query(value = "INSERT INTO user_profile (id, display_name, account_type, rides_given, rides_taken, rating_sum, rating_count) " +
+                   "SELECT :id, :displayName, 'PRIVATE', 0, 0, 0, 0 " +
                    "WHERE NOT EXISTS (SELECT 1 FROM user_profile WHERE id = :id)",
            nativeQuery = true)
     void insertProfileIfNotExists(@Param("id") Long id,

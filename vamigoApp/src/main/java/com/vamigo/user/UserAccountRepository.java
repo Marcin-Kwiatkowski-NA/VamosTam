@@ -18,8 +18,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     boolean existsByEmail(String email);
 
     @Modifying
-    @Query(value = "INSERT INTO user_account (id, email, status, created_at, updated_at, version) " +
-                   "SELECT :id, :email, :status, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0 " +
+    @Query(value = "INSERT INTO user_account (id, email, status, failed_login_attempts, token_version, created_at, updated_at, version) " +
+                   "SELECT :id, :email, :status, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0 " +
                    "WHERE NOT EXISTS (SELECT 1 FROM user_account WHERE id = :id)",
            nativeQuery = true)
     void insertSystemUserIfNotExists(@Param("id") Long id,

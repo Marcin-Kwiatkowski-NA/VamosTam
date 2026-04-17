@@ -66,11 +66,11 @@ class NotificationParamsEnricherTest {
     }
 
     @Nested
-    @DisplayName("enrichBooking()")
+    @DisplayName("Enrich notification params for a booking event")
     class EnrichBooking {
 
         @Test
-        @DisplayName("should include route, counterparty name, and deep link for driver")
+        @DisplayName("Populates route, counterparty name, and driver-facing deep link when recipient is the driver")
         void enrichesBookingForDriver() {
             Ride ride = rideWithStops(42L);
             RideBooking booking = bookingWithRide(10L, ride);
@@ -90,7 +90,7 @@ class NotificationParamsEnricherTest {
         }
 
         @Test
-        @DisplayName("should use /offer deep link for passenger")
+        @DisplayName("Uses the passenger-facing /offer deep link when the recipient is a passenger")
         void deepLinkForPassenger() {
             Ride ride = rideWithStops(42L);
             RideBooking booking = bookingWithRide(10L, ride);
@@ -104,7 +104,7 @@ class NotificationParamsEnricherTest {
         }
 
         @Test
-        @DisplayName("should truncate long reason")
+        @DisplayName("Truncates cancellation reason to 100 characters and appends an ellipsis")
         void truncatesReason() {
             when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.empty());
 
@@ -118,7 +118,7 @@ class NotificationParamsEnricherTest {
         }
 
         @Test
-        @DisplayName("toMap() should only include non-null fields")
+        @DisplayName("toMap emits only the fields that are populated and drops nulls")
         void toMapExcludesNulls() {
             when(bookingRepository.findByIdWithRideAndLocations(10L)).thenReturn(Optional.empty());
 
@@ -134,11 +134,11 @@ class NotificationParamsEnricherTest {
     }
 
     @Nested
-    @DisplayName("enrichRideCompleted()")
+    @DisplayName("Enrich notification params for a completed ride")
     class EnrichRideCompleted {
 
         @Test
-        @DisplayName("should include route and deep link")
+        @DisplayName("Populates origin, destination, offer key, and deep link from the ride's stops")
         void enrichesRideCompleted() {
             Ride ride = rideWithStops(42L);
             when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));
@@ -152,7 +152,7 @@ class NotificationParamsEnricherTest {
         }
 
         @Test
-        @DisplayName("should fall back gracefully when ride not found")
+        @DisplayName("Falls back to offer key and deep link with null city names when the ride cannot be loaded")
         void fallsBackWhenRideNotFound() {
             when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.empty());
 
@@ -166,11 +166,11 @@ class NotificationParamsEnricherTest {
     }
 
     @Nested
-    @DisplayName("enrichChat()")
+    @DisplayName("Enrich notification params for a chat message")
     class EnrichChat {
 
         @Test
-        @DisplayName("should include sender name, route from offerKey, and conversation deep link")
+        @DisplayName("Resolves sender name, route from the conversation's offer key, and deep link to the chat")
         void enrichesChat() {
             var conversation = Conversation.builder()
                     .topicKey("offer:r-42")
@@ -194,11 +194,11 @@ class NotificationParamsEnricherTest {
     }
 
     @Nested
-    @DisplayName("enrichReviewReminder()")
+    @DisplayName("Enrich notification params for a review reminder")
     class EnrichReviewReminder {
 
         @Test
-        @DisplayName("should include route and counterpartSubmitted flag")
+        @DisplayName("Populates route, offer deep link, and the counterpart-submitted flag")
         void enrichesReviewReminder() {
             Ride ride = rideWithStops(42L);
             when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));
@@ -215,11 +215,11 @@ class NotificationParamsEnricherTest {
     }
 
     @Nested
-    @DisplayName("enrichReviewReceived()")
+    @DisplayName("Enrich notification params for a received review")
     class EnrichReviewReceived {
 
         @Test
-        @DisplayName("should deep link to subject's reviews page")
+        @DisplayName("Builds a deep link pointing at the review subject's reviews page")
         void enrichesReviewReceived() {
             var result = enricher.enrichReviewReceived(99L, 5L);
 
@@ -233,7 +233,7 @@ class NotificationParamsEnricherTest {
     class StaticHelpers {
 
         @Test
-        @DisplayName("truncateCity should truncate names over 25 chars")
+        @DisplayName("truncateCity clips city names longer than 25 characters and appends an ellipsis")
         void truncatesLongCity() {
             String longCity = "a".repeat(30);
             String result = NotificationParamsEnricher.truncateCity(longCity);
@@ -242,20 +242,20 @@ class NotificationParamsEnricherTest {
         }
 
         @Test
-        @DisplayName("truncateCity should not truncate short names")
+        @DisplayName("truncateCity leaves short city names unchanged")
         void keepsShortCity() {
             assertEquals("Kraków", NotificationParamsEnricher.truncateCity("Kraków"));
         }
 
         @Test
-        @DisplayName("routeLabel should format origin → destination")
+        @DisplayName("routeLabel formats origin and destination as \"origin → destination\"")
         void routeLabel() {
             assertEquals("Krakow \u2192 Warsaw",
                     NotificationParamsEnricher.routeLabel("Krakow", "Warsaw"));
         }
 
         @Test
-        @DisplayName("routeLabel should return null when either city is null")
+        @DisplayName("routeLabel returns null when either origin or destination is missing")
         void routeLabelNullWhenIncomplete() {
             assertNull(NotificationParamsEnricher.routeLabel(null, "Warsaw"));
             assertNull(NotificationParamsEnricher.routeLabel("Krakow", null));
