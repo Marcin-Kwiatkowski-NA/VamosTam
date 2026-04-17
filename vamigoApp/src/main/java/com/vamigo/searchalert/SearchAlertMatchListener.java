@@ -1,6 +1,8 @@
 package com.vamigo.searchalert;
 
+import com.vamigo.ride.event.ExternalRideCreatedEvent;
 import com.vamigo.ride.event.RideCreatedEvent;
+import com.vamigo.seat.event.ExternalSeatCreatedEvent;
 import com.vamigo.seat.event.SeatCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,28 @@ public class SearchAlertMatchListener {
             matcher.matchSeat(event.seat(), event.userId());
         } catch (Exception e) {
             log.error("Failed to match seat {} against saved searches", event.seatId(), e);
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onExternalRideCreated(ExternalRideCreatedEvent event) {
+        try {
+            Long driverId = event.ride().driver() != null ? event.ride().driver().id() : null;
+            matcher.matchRide(event.ride(), driverId);
+        } catch (Exception e) {
+            log.error("Failed to match external ride {} against saved searches", event.ride().id(), e);
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onExternalSeatCreated(ExternalSeatCreatedEvent event) {
+        try {
+            Long userId = event.seat().passenger() != null ? event.seat().passenger().id() : null;
+            matcher.matchSeat(event.seat(), userId);
+        } catch (Exception e) {
+            log.error("Failed to match external seat {} against saved searches", event.seat().id(), e);
         }
     }
 }
