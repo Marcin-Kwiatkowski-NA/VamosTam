@@ -36,8 +36,8 @@ public class NotificationParamsEnricher {
     private static final Logger log = LoggerFactory.getLogger(NotificationParamsEnricher.class);
     private static final int MAX_CITY_LENGTH = 25;
     private static final int MAX_REASON_LENGTH = 100;
-    /** Per-row cap so 3 rows + separators stay under the FCM 4 KB limit. */
-    private static final int MAX_PREVIEW_NAME_LENGTH = 20;
+    /** Per-side cap so 3 rows with two names + two offsets stay under the 256-char bigBody cap. */
+    private static final int MAX_PREVIEW_NAME_LENGTH = 18;
     private static final int MAX_PREVIEW_ROWS = 3;
     private static final int MAX_BIG_BODY_LENGTH = 256;
     /** Render preview times in the platform's default zone — Europe/Warsaw in production. */
@@ -271,18 +271,30 @@ public class NotificationParamsEnricher {
 
     /**
      * Compact summary of a single match used to render the rich SearchAlert
-     * push notification — caller supplies these from queried Ride/Seat rows.
+     * push notification — caller supplies these from the persisted
+     * {@link com.vamigo.searchalert.SearchAlertMatch} row plus Ride/Seat rows
+     * (for departureTime + price). Stop-name/distance fields are {@code null}
+     * when that side is exact — the renderer falls back to the saved-search
+     * city name with no offset suffix.
      */
     public record SearchAlertMatchInfo(
             java.time.Instant departureTime,
-            String counterpartyName,
+            boolean exactMatch,
+            String rideOriginStopName,
+            Integer originDistanceM,
+            String rideDestinationStopName,
+            Integer destinationDistanceM,
             BigDecimal price
     ) { }
 
+    /** Distances at or below this value count as exact on that side. */
+    private static final int EXACT_SIDE_THRESHOLD_METERS = 500;
+
     /**
      * Build the rich-content keys for a single-match SearchAlert push.
-     * Adds {@code departureDateFmt} (title) and a single-line body via
-     * {@code earliestDeparture}, {@code minPrice}, and {@code previewRows}.
+     * Adds {@code departureDateFmt} (title) and body params via
+     * {@code earliestDeparture}, {@code originLabel}, {@code destinationLabel},
+     * {@code minPrice}, and {@code previewRows}.
      */
     public Map<String, String> enrichSearchAlertSingle(com.vamigo.searchalert.SavedSearch ss,
                                                         SearchAlertMatchInfo match) {
@@ -296,10 +308,14 @@ public class NotificationParamsEnricher {
         String price = formatPrice(match.price());
         if (price != null) rich.put("minPrice", price);
 
-        String name = truncatePreviewName(match.counterpartyName());
-        if (name != null) rich.put("driverName", name);
+        rich.put("originLabel", composeSideLabel(
+                match.rideOriginStopName(), match.originDistanceM(),
+                ss.getOriginName()));
+        rich.put("destinationLabel", composeSideLabel(
+                match.rideDestinationStopName(), match.destinationDistanceM(),
+                ss.getDestinationName()));
 
-        String previewJson = encodePreviewRows(List.of(match));
+        String previewJson = encodePreviewRows(ss, List.of(match));
         if (previewJson != null) rich.put("previewRows", previewJson);
 
         return rich;
@@ -309,7 +325,8 @@ public class NotificationParamsEnricher {
      * Build the rich-content keys for a multi-match SearchAlert push.
      * Caller passes the matches sorted by departure ascending; we cap at
      * {@link #MAX_PREVIEW_ROWS} and derive {@code earliestDeparture} +
-     * {@code minPrice} across the whole set.
+     * {@code minPrice} + {@code exactCount}/{@code nearbyCount} across the
+     * whole set.
      */
     public Map<String, String> enrichSearchAlertMulti(com.vamigo.searchalert.SavedSearch ss,
                                                        List<SearchAlertMatchInfo> matches) {
@@ -333,23 +350,50 @@ public class NotificationParamsEnricher {
         String minPrice = formatPrice(min);
         if (minPrice != null) rich.put("minPrice", minPrice);
 
+        long exactCount = matches.stream().filter(SearchAlertMatchInfo::exactMatch).count();
+        rich.put("exactCount", Long.toString(exactCount));
+        rich.put("nearbyCount", Long.toString(matches.size() - exactCount));
+
         List<SearchAlertMatchInfo> previewRows = matches.size() > MAX_PREVIEW_ROWS
                 ? matches.subList(0, MAX_PREVIEW_ROWS)
                 : matches;
-        String previewJson = encodePreviewRows(previewRows);
+        String previewJson = encodePreviewRows(ss, previewRows);
         if (previewJson != null) rich.put("previewRows", previewJson);
 
         return rich;
     }
 
-    private String encodePreviewRows(List<SearchAlertMatchInfo> matches) {
+    /**
+     * Compose the per-side label used in body + preview rows. Returns the
+     * saved-search city name (e.g. {@code "Kraków"}) when the side is exact
+     * or within {@link #EXACT_SIDE_THRESHOLD_METERS}. Otherwise returns
+     * {@code "<stopName> +<km> km"} with ceil-rounded km.
+     */
+    public String composeSideLabel(String rideStopName, Integer distanceM, String savedSearchName) {
+        String fallback = truncatePreviewName(savedSearchName);
+        if (rideStopName == null || distanceM == null) {
+            return fallback != null ? fallback : "";
+        }
+        if (distanceM <= EXACT_SIDE_THRESHOLD_METERS) {
+            return fallback != null ? fallback : "";
+        }
+        String stop = truncatePreviewName(rideStopName);
+        if (stop == null) return fallback != null ? fallback : "";
+        long km = (long) Math.ceil(distanceM / 1000.0);
+        return stop + " +" + km + " km";
+    }
+
+    private String encodePreviewRows(com.vamigo.searchalert.SavedSearch ss,
+                                     List<SearchAlertMatchInfo> matches) {
         var rows = new ArrayList<Map<String, String>>(matches.size());
         for (var m : matches) {
             var row = new LinkedHashMap<String, String>();
             String t = formatTime(m.departureTime());
             if (t != null) row.put("time", t);
-            String n = truncatePreviewName(m.counterpartyName());
-            if (n != null) row.put("name", n);
+            row.put("originLabel", composeSideLabel(
+                    m.rideOriginStopName(), m.originDistanceM(), ss.getOriginName()));
+            row.put("destinationLabel", composeSideLabel(
+                    m.rideDestinationStopName(), m.destinationDistanceM(), ss.getDestinationName()));
             String p = formatPrice(m.price());
             if (p != null) row.put("price", p);
             if (!row.isEmpty()) rows.add(row);

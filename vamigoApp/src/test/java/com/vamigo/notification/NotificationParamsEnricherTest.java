@@ -8,6 +8,7 @@ import com.vamigo.ride.RideBooking;
 import com.vamigo.ride.RideBookingRepository;
 import com.vamigo.ride.RideRepository;
 import com.vamigo.ride.RideStop;
+import com.vamigo.searchalert.SavedSearch;
 import com.vamigo.user.UserProfile;
 import com.vamigo.user.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -225,6 +230,94 @@ class NotificationParamsEnricherTest {
 
             assertEquals("/user/5/reviews", result.deepLink());
             assertNull(result.offerKey());
+        }
+    }
+
+    @Nested
+    @DisplayName("Enrich SearchAlert match — route labels with offsets")
+    class EnrichSearchAlert {
+
+        private NotificationParamsEnricher localEnricher;
+        private SavedSearch savedSearch;
+
+        @BeforeEach
+        void initEnricher() {
+            localEnricher = new NotificationParamsEnricher(
+                    bookingRepository, rideRepository, userProfileRepository,
+                    displayNameResolver, JsonMapper.builder().build());
+            savedSearch = SavedSearch.builder()
+                    .originName("Krak\u00f3w")
+                    .destinationName("Warszawa")
+                    .departureDate(LocalDate.of(2026, 4, 18))
+                    .build();
+        }
+
+        @Test
+        @DisplayName("composeSideLabel: nearby side renders stop name with ceil km offset")
+        void labelNearby() {
+            assertEquals("Wieliczka +6 km",
+                    localEnricher.composeSideLabel("Wieliczka", 5400, "Krak\u00f3w"));
+        }
+
+        @Test
+        @DisplayName("composeSideLabel: distance at or under 500 m folds to saved-search name")
+        void labelFoldThreshold() {
+            assertEquals("Krak\u00f3w",
+                    localEnricher.composeSideLabel("Wieliczka", 500, "Krak\u00f3w"));
+            assertEquals("Krak\u00f3w",
+                    localEnricher.composeSideLabel("Wieliczka", 0, "Krak\u00f3w"));
+        }
+
+        @Test
+        @DisplayName("composeSideLabel: null stop / null distance falls back to saved-search name")
+        void labelNullFallback() {
+            assertEquals("Krak\u00f3w",
+                    localEnricher.composeSideLabel(null, null, "Krak\u00f3w"));
+            assertEquals("Krak\u00f3w",
+                    localEnricher.composeSideLabel(null, 5000, "Krak\u00f3w"));
+        }
+
+        @Test
+        @DisplayName("enrichSearchAlertSingle emits originLabel / destinationLabel with mixed sides")
+        void singleMixedSides() {
+            var info = new NotificationParamsEnricher.SearchAlertMatchInfo(
+                    Instant.parse("2026-04-18T06:30:00Z"),
+                    false,
+                    "Wieliczka", 5400,
+                    null, null,
+                    new BigDecimal("45"));
+
+            Map<String, String> rich = localEnricher.enrichSearchAlertSingle(savedSearch, info);
+
+            assertEquals("Wieliczka +6 km", rich.get("originLabel"));
+            assertEquals("Warszawa", rich.get("destinationLabel"));
+            assertEquals("45", rich.get("minPrice"));
+            assertNotNull(rich.get("previewRows"));
+            assertFalse(rich.containsKey("driverName"));
+        }
+
+        @Test
+        @DisplayName("enrichSearchAlertMulti emits exactCount / nearbyCount")
+        void multiCounts() {
+            var exact = new NotificationParamsEnricher.SearchAlertMatchInfo(
+                    Instant.parse("2026-04-18T06:30:00Z"),
+                    true, null, null, null, null, new BigDecimal("40"));
+            var nearby1 = new NotificationParamsEnricher.SearchAlertMatchInfo(
+                    Instant.parse("2026-04-18T08:00:00Z"),
+                    false, "Wieliczka", 5400, "Pr\u00f3szk\u00f3w", 14200,
+                    new BigDecimal("50"));
+            var nearby2 = new NotificationParamsEnricher.SearchAlertMatchInfo(
+                    Instant.parse("2026-04-18T10:00:00Z"),
+                    false, "Skawina", 3800, null, null,
+                    new BigDecimal("55"));
+
+            Map<String, String> rich = localEnricher.enrichSearchAlertMulti(
+                    savedSearch, List.of(exact, nearby1, nearby2));
+
+            assertEquals("1", rich.get("exactCount"));
+            assertEquals("2", rich.get("nearbyCount"));
+            assertEquals("40", rich.get("minPrice"));
+            assertNotNull(rich.get("previewRows"));
         }
     }
 

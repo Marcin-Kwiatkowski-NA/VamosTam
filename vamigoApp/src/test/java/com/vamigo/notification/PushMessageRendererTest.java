@@ -154,6 +154,76 @@ class PushMessageRendererTest {
     }
 
     @Nested
+    @DisplayName("SEARCH_ALERT_MATCH")
+    class SearchAlertMatch {
+
+        @Test
+        @DisplayName("single-match body shows both stops with offsets")
+        void singleNearbyBoth() {
+            var params = Map.of(
+                    "matchCount", "1",
+                    "earliestDeparture", "08:30",
+                    "originLabel", "Wieliczka +6 km",
+                    "destinationLabel", "Pr\u00f3szk\u00f3w +15 km",
+                    "minPrice", "45");
+            String body = renderer.body(NotificationType.SEARCH_ALERT_MATCH, params);
+            assertEquals("08:30 \u00b7 Wieliczka +6 km \u2192 Pr\u00f3szk\u00f3w +15 km \u00b7 45 z\u0142", body);
+        }
+
+        @Test
+        @DisplayName("single-match body uses saved-search city on exact side")
+        void singleOriginNearbyDestExact() {
+            var params = Map.of(
+                    "matchCount", "1",
+                    "earliestDeparture", "08:30",
+                    "originLabel", "Wieliczka +6 km",
+                    "destinationLabel", "Warszawa",
+                    "minPrice", "45");
+            String body = renderer.body(NotificationType.SEARCH_ALERT_MATCH, params);
+            assertEquals("08:30 \u00b7 Wieliczka +6 km \u2192 Warszawa \u00b7 45 z\u0142", body);
+        }
+
+        @Test
+        @DisplayName("single-match body renders both sides exact with saved-search cities")
+        void singleFullyExact() {
+            var params = Map.of(
+                    "matchCount", "1",
+                    "earliestDeparture", "08:30",
+                    "originLabel", "Krak\u00f3w",
+                    "destinationLabel", "Warszawa",
+                    "minPrice", "45");
+            String body = renderer.body(NotificationType.SEARCH_ALERT_MATCH, params);
+            assertEquals("08:30 \u00b7 Krak\u00f3w \u2192 Warszawa \u00b7 45 z\u0142", body);
+        }
+
+        @Test
+        @DisplayName("multi-match body includes exact/nearby counts")
+        void multiWithCounts() {
+            var params = Map.of(
+                    "matchCount", "3",
+                    "exactCount", "1",
+                    "nearbyCount", "2",
+                    "earliestDeparture", "08:30",
+                    "minPrice", "40");
+            String body = renderer.body(NotificationType.SEARCH_ALERT_MATCH, params);
+            assertEquals("3 new rides match (1 exact, 2 nearby) \u00b7 from 40 z\u0142 \u00b7 earliest 08:30", body);
+        }
+
+        @Test
+        @DisplayName("bigBody renders route-shaped preview rows from JSON")
+        void bigBodyRenders() throws Exception {
+            var rows = "[{\"time\":\"08:30\",\"originLabel\":\"Wieliczka +6 km\",\"destinationLabel\":\"Warszawa\",\"price\":\"45\"},"
+                    + "{\"time\":\"12:00\",\"originLabel\":\"Krak\u00f3w\",\"destinationLabel\":\"Pr\u00f3szk\u00f3w +15 km\",\"price\":\"40\"}]";
+            var params = Map.of("previewRows", rows);
+            String bigBody = renderer.bigBody(NotificationType.SEARCH_ALERT_MATCH, params);
+            assertNotNull(bigBody);
+            assertTrue(bigBody.contains("Wieliczka +6 km \u2192 Warszawa"), bigBody);
+            assertTrue(bigBody.contains("Krak\u00f3w \u2192 Pr\u00f3szk\u00f3w +15 km"), bigBody);
+            assertTrue(bigBody.contains("45 z\u0142"), bigBody);
+        }
+    }
+
+    @Nested
     @DisplayName("Null params")
     class NullParams {
 

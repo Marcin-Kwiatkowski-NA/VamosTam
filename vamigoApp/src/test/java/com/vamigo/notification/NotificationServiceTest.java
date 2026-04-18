@@ -180,6 +180,51 @@ class NotificationServiceTest {
         }
 
         @Test
+        @DisplayName("Persists typed v1 route fields (targetType, resultKind, listFilters) into params so bell-row taps resolve like FCM taps")
+        void persistsTypedFieldsInParams() {
+            var params = Map.of(
+                    "origin", "Warsaw",
+                    "destination", "Krakow",
+                    "matchCount", "3",
+                    "deepLink", "/rides/list?originName=Warsaw&destinationName=Krakow");
+            var request = NotificationRequest.builder()
+                    .recipientId(1L)
+                    .type(NotificationType.SEARCH_ALERT_MATCH)
+                    .entityType(EntityType.SAVED_SEARCH)
+                    .entityId("7")
+                    .targetType(TargetType.LIST)
+                    .resultKind(ResultKind.RIDE)
+                    .listFilters(Map.of("originName", "Warsaw", "destinationName", "Krakow"))
+                    .params(params)
+                    .build();
+
+            when(notificationRepository.save(any(Notification.class)))
+                    .thenAnswer(inv -> {
+                        Notification n = inv.getArgument(0);
+                        n.setId(UUID.randomUUID());
+                        n.setCreatedAt(Instant.now());
+                        return n;
+                    });
+            when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(1L);
+            lenient().when(pushMessageRenderer.title(any(), any())).thenReturn("Search alert");
+            lenient().when(pushMessageRenderer.body(any(), any())).thenReturn("3 new matches");
+
+            notificationService.notify(request);
+
+            ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+            verify(notificationRepository).save(captor.capture());
+            var saved = captor.getValue().getParams();
+
+            assertEquals("LIST", saved.get("targetType"));
+            assertEquals("RIDE", saved.get("resultKind"));
+            assertTrue(saved.get("listFilters").contains("\"originName\":\"Warsaw\""));
+            assertTrue(saved.get("listFilters").contains("\"destinationName\":\"Krakow\""));
+            // Original params are preserved
+            assertEquals("Warsaw", saved.get("origin"));
+            assertEquals("3", saved.get("matchCount"));
+        }
+
+        @Test
         @DisplayName("Skips persistence and broadcast when the recipient user cannot be found")
         void skipsUnknownUser() {
             when(userAccountRepository.findById(999L)).thenReturn(Optional.empty());

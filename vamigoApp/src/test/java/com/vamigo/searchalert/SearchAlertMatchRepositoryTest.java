@@ -101,6 +101,49 @@ class SearchAlertMatchRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Nested
+    @DisplayName("Route offset columns")
+    class RouteOffsetColumns {
+
+        @Test
+        @DisplayName("Round-trips nearby-match stop names and distances on both sides")
+        void roundTripsNearbyFields() {
+            SearchAlertMatch persisted = em.persistAndFlush(match()
+                    .rideId(20L)
+                    .exactMatch(false)
+                    .originStopName("Wieliczka")
+                    .originDistanceM(5400)
+                    .destinationStopName("Pr\u00f3szk\u00f3w")
+                    .destinationDistanceM(14200)
+                    .build());
+            em.clear();
+
+            SearchAlertMatch reloaded = em.find(SearchAlertMatch.class, persisted.getId());
+            assertThat(reloaded.getOriginStopName()).isEqualTo("Wieliczka");
+            assertThat(reloaded.getOriginDistanceM()).isEqualTo(5400);
+            assertThat(reloaded.getDestinationStopName()).isEqualTo("Pr\u00f3szk\u00f3w");
+            assertThat(reloaded.getDestinationDistanceM()).isEqualTo(14200);
+            assertThat(reloaded.isExactMatch()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Leaves offset columns null for fully exact matches")
+        void nullForExactMatch() {
+            SearchAlertMatch persisted = em.persistAndFlush(match()
+                    .rideId(21L)
+                    .exactMatch(true)
+                    .build());
+            em.clear();
+
+            SearchAlertMatch reloaded = em.find(SearchAlertMatch.class, persisted.getId());
+            assertThat(reloaded.getOriginStopName()).isNull();
+            assertThat(reloaded.getOriginDistanceM()).isNull();
+            assertThat(reloaded.getDestinationStopName()).isNull();
+            assertThat(reloaded.getDestinationDistanceM()).isNull();
+            assertThat(reloaded.isExactMatch()).isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("Delete matches by saved search id")
     class DeleteBySavedSearchIdTests {
 

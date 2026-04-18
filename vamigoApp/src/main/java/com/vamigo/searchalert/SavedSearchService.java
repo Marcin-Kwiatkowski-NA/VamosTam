@@ -84,9 +84,8 @@ public class SavedSearchService {
                                        String destName, Long destOsmId,
                                        double destLat, double destLon,
                                        LocalDate departureDate, SearchType searchType) {
-        boolean exists = savedSearchRepository
-                .existsByUserIdAndOriginOsmIdAndDestinationOsmIdAndDepartureDateAndSearchTypeAndActiveTrue(
-                        userId, originOsmId, destOsmId, departureDate, searchType);
+        boolean exists = savedSearchRepository.existsActiveSearch(
+                userId, originOsmId, destOsmId, departureDate, searchType);
         if (exists) {
             log.debug("Auto-alert already exists for user {} route {}->{} on {}", userId, originOsmId, destOsmId, departureDate);
             return null;

@@ -36,6 +36,18 @@ public class SearchAlertMatch {
     @Column(name = "exact_match", nullable = false)
     private boolean exactMatch = false;
 
+    @Column(name = "origin_stop_name", length = 120)
+    private String originStopName;
+
+    @Column(name = "origin_distance_m")
+    private Integer originDistanceM;
+
+    @Column(name = "destination_stop_name", length = 120)
+    private String destinationStopName;
+
+    @Column(name = "destination_distance_m")
+    private Integer destinationDistanceM;
+
     @Builder.Default
     @Column(name = "push_sent", nullable = false)
     private boolean pushSent = false;

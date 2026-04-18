@@ -95,19 +95,21 @@ public class PushMessageRenderer {
                 String count = param(params, "matchCount");
                 String earliest = param(params, "earliestDeparture");
                 String minPrice = param(params, "minPrice");
-                String driverName = param(params, "driverName");
+                String originLabel = param(params, "originLabel");
+                String destinationLabel = param(params, "destinationLabel");
+                String exactCount = param(params, "exactCount");
+                String nearbyCount = param(params, "nearbyCount");
                 int matchCount = parseIntOr(count, 0);
 
-                if (matchCount == 1 && earliest != null) {
-                    if (driverName != null && minPrice != null) {
-                        yield resolve(prefix + ".body.single", locale, earliest, driverName, minPrice);
-                    }
-                    if (minPrice != null) {
-                        yield resolve(prefix + ".body.single.no_name", locale, earliest, minPrice);
-                    }
+                if (matchCount == 1 && earliest != null && minPrice != null
+                        && originLabel != null && destinationLabel != null) {
+                    yield resolve(prefix + ".body.single", locale,
+                            earliest, originLabel, destinationLabel, minPrice);
                 }
-                if (matchCount > 1 && earliest != null && minPrice != null) {
-                    yield resolve(prefix + ".body.multi", locale, count, minPrice, earliest);
+                if (matchCount > 1 && earliest != null && minPrice != null
+                        && exactCount != null && nearbyCount != null) {
+                    yield resolve(prefix + ".body.multi", locale,
+                            count, exactCount, nearbyCount, minPrice, earliest);
                 }
                 yield count != null
                         ? resolve(prefix + ".body", locale, count)
@@ -138,14 +140,15 @@ public class PushMessageRenderer {
             if (rows.isEmpty()) return null;
 
             String rowFormat = resolve("push.search_alert_match.preview.row", locale,
-                    "{0}", "{1}", "{2}");
+                    "{0}", "{1}", "{2}", "{3}");
             var sb = new StringBuilder();
             for (var row : rows) {
                 String time = stringOrEmpty(row.get("time"));
-                String name = stringOrEmpty(row.get("name"));
+                String originLabel = stringOrEmpty(row.get("originLabel"));
+                String destinationLabel = stringOrEmpty(row.get("destinationLabel"));
                 String price = stringOrEmpty(row.get("price"));
                 String formatted = java.text.MessageFormat.format(
-                        rowFormat, time, name, price);
+                        rowFormat, time, originLabel, destinationLabel, price);
                 if (sb.length() > 0) sb.append('\n');
                 sb.append(formatted);
             }

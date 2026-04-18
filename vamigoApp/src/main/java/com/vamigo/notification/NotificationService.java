@@ -147,12 +147,13 @@ public class NotificationService {
     // -- Private helpers --
 
     private Notification persistOrCollapse(UserAccount recipient, NotificationRequest request) {
+        Map<String, String> augmentedParams = paramsWithTypedFields(request);
         if (request.collapseKey() != null) {
             var existing = notificationRepository
                     .findByRecipientIdAndCollapseKeyAndReadAtIsNull(request.recipientId(), request.collapseKey());
             if (existing.isPresent()) {
                 Notification n = existing.get();
-                n.collapse(request.params());
+                n.collapse(augmentedParams);
                 return notificationRepository.save(n);
             }
         }
@@ -163,7 +164,7 @@ public class NotificationService {
                 .channel(request.channel())
                 .entityType(request.entityType())
                 .entityId(request.entityId())
-                .params(request.params())
+                .params(augmentedParams)
                 .collapseKey(request.collapseKey())
                 .build();
         return notificationRepository.save(notification);
@@ -211,18 +212,7 @@ public class NotificationService {
         data.put("type", request.type().name());
         data.put("entityType", request.entityType().name());
         data.put("entityId", request.entityId() != null ? request.entityId() : "");
-        data.put("targetType", request.effectiveTargetType().name());
-        if (request.resultKind() != null) {
-            data.put("resultKind", request.resultKind().name());
-        }
-        if (request.listFilters() != null && !request.listFilters().isEmpty()) {
-            try {
-                data.put("listFilters", jsonMapper.writeValueAsString(request.listFilters()));
-            } catch (JacksonException e) {
-                log.warn("Failed to serialize listFilters for notification (type={}): {}",
-                        request.type(), e.getMessage());
-            }
-        }
+        data.putAll(typedFieldsForParams(request));
         data.put("collapseKey", request.collapseKey() != null ? request.collapseKey() : "");
         // Compat: derived deep link for pre-v1 clients. Client must prefer targetType.
         if (request.params() != null && request.params().containsKey("deepLink")) {
@@ -242,6 +232,42 @@ public class NotificationService {
         }
 
         return data;
+    }
+
+    /**
+     * Typed v1 route fields ({@code targetType}, {@code resultKind},
+     * {@code listFilters}) as stringified map entries. Used by both FCM
+     * {@code data} and persisted {@code Notification.params} so REST-fetched
+     * rows resolve routes identically to warm/cold FCM taps.
+     */
+    private Map<String, String> typedFieldsForParams(NotificationRequest request) {
+        var typed = new LinkedHashMap<String, String>();
+        typed.put("targetType", request.effectiveTargetType().name());
+        if (request.resultKind() != null) {
+            typed.put("resultKind", request.resultKind().name());
+        }
+        if (request.listFilters() != null && !request.listFilters().isEmpty()) {
+            try {
+                typed.put("listFilters", jsonMapper.writeValueAsString(request.listFilters()));
+            } catch (JacksonException e) {
+                log.warn("Failed to serialize listFilters for notification (type={}): {}",
+                        request.type(), e.getMessage());
+            }
+        }
+        return typed;
+    }
+
+    /**
+     * Merge request params with the typed v1 route fields. Typed fields win
+     * on key collision so the client resolver sees a canonical payload.
+     */
+    private Map<String, String> paramsWithTypedFields(NotificationRequest request) {
+        var merged = new LinkedHashMap<String, String>();
+        if (request.params() != null) {
+            merged.putAll(request.params());
+        }
+        merged.putAll(typedFieldsForParams(request));
+        return merged;
     }
 
     private static int estimatePayloadSize(Map<String, String> data) {

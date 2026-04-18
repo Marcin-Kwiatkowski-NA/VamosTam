@@ -117,9 +117,8 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
             em.persistAndFlush(aSavedSearch(user).departureDate(departureDate).active(true).build());
             em.clear();
 
-            boolean exists = repository
-                    .existsByUserIdAndOriginOsmIdAndDestinationOsmIdAndDepartureDateAndSearchTypeAndActiveTrue(
-                            user.getId(), OSM_ID_ORIGIN, OSM_ID_DESTINATION, departureDate, SearchType.RIDE);
+            boolean exists = repository.existsActiveSearch(
+                    user.getId(), OSM_ID_ORIGIN, OSM_ID_DESTINATION, departureDate, SearchType.RIDE);
 
             assertThat(exists).isTrue();
         }
@@ -130,9 +129,8 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
             em.persistAndFlush(aSavedSearch(user).departureDate(departureDate).active(false).build());
             em.clear();
 
-            boolean exists = repository
-                    .existsByUserIdAndOriginOsmIdAndDestinationOsmIdAndDepartureDateAndSearchTypeAndActiveTrue(
-                            user.getId(), OSM_ID_ORIGIN, OSM_ID_DESTINATION, departureDate, SearchType.RIDE);
+            boolean exists = repository.existsActiveSearch(
+                    user.getId(), OSM_ID_ORIGIN, OSM_ID_DESTINATION, departureDate, SearchType.RIDE);
 
             assertThat(exists).isFalse();
         }
@@ -148,17 +146,17 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
             em.persistAndFlush(aSavedSearch(user).departureDate(departureDate).active(true).build());
             em.clear();
 
-            List<Object[]> results = repository.findMatchingSearches(
+            List<SearchMatchProjection> results = repository.findMatchingSearches(
                     SearchType.RIDE, departureDate, creator.getId(),
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     LAT_ORIGIN, LON_ORIGIN, LAT_DESTINATION, LON_DESTINATION,
                     1000.0);
 
             assertThat(results).hasSize(1);
-            Object[] row = results.get(0);
-            assertThat(row).hasSizeGreaterThan(1);
-            assertThat(row[row.length - 1]).isInstanceOf(Boolean.class);
-            assertThat((Boolean) row[row.length - 1]).isTrue();
+            SearchMatchProjection row = results.get(0);
+            assertThat(row.getExactMatch()).isTrue();
+            assertThat(row.getOriginDistanceM()).isEqualTo(0);
+            assertThat(row.getDestinationDistanceM()).isEqualTo(0);
         }
 
         @Test
@@ -167,7 +165,7 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
             em.persistAndFlush(aSavedSearch(creator).departureDate(departureDate).active(true).build());
             em.clear();
 
-            List<Object[]> results = repository.findMatchingSearches(
+            List<SearchMatchProjection> results = repository.findMatchingSearches(
                     SearchType.RIDE, departureDate, creator.getId(),
                     OSM_ID_ORIGIN, OSM_ID_DESTINATION,
                     LAT_ORIGIN, LON_ORIGIN, LAT_DESTINATION, LON_DESTINATION,
@@ -190,9 +188,9 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
 
             double shiftedOriginLat = LAT_ORIGIN + 0.045;
             double shiftedDestLat = LAT_DESTINATION + 0.045;
-            // OSM IDs intentionally mismatched (9_999_998L / 9_999_999L) so the exact_match CASE
+            // OSM IDs intentionally mismatched (9_999_998L / 9_999_999L) so the exactMatch expression
             // evaluates false; only the proximity (ST_DWithin) branch can match.
-            List<Object[]> results = repository.findMatchingSearches(
+            List<SearchMatchProjection> results = repository.findMatchingSearches(
                     SearchType.RIDE, departureDate, creator.getId(),
                     9_999_998L, 9_999_999L,
                     shiftedOriginLat, LON_ORIGIN, shiftedDestLat, LON_DESTINATION,
@@ -200,10 +198,10 @@ class SavedSearchRepositoryTest extends AbstractIntegrationTest {
 
             if (expectMatch) {
                 assertThat(results).hasSize(1);
-                Object[] row = results.get(0);
-                assertThat(row).hasSizeGreaterThan(1);
-                assertThat(row[row.length - 1]).isInstanceOf(Boolean.class);
-                assertThat((Boolean) row[row.length - 1]).isFalse();
+                SearchMatchProjection row = results.get(0);
+                assertThat(row.getExactMatch()).isFalse();
+                assertThat(row.getOriginDistanceM()).isGreaterThan(0);
+                assertThat(row.getDestinationDistanceM()).isGreaterThan(0);
             } else {
                 assertThat(results).isEmpty();
             }
