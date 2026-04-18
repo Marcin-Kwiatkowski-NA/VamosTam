@@ -58,6 +58,9 @@ public class UserAccount {
     @Column(name = "google_id", unique = true)
     private String googleId;
 
+    @Column(name = "facebook_id", unique = true)
+    private String facebookId;
+
     @Column(name = "failed_login_attempts")
     @Builder.Default
     private int failedLoginAttempts = 0;

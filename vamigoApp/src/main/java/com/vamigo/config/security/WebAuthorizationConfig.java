@@ -111,6 +111,7 @@ public class WebAuthorizationConfig {
                 .requestMatchers("/auth/register").permitAll()
                 .requestMatchers("/auth/register/carrier").permitAll()
                 .requestMatchers("/auth/google").permitAll()
+                .requestMatchers("/auth/facebook").permitAll()
                 .requestMatchers("/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                 .requestMatchers("/auth/forgot-password").permitAll()

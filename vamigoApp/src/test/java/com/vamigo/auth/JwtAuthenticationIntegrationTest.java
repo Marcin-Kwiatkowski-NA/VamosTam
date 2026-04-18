@@ -1,6 +1,7 @@
 package com.vamigo.auth;
 
 import com.vamigo.AbstractIntegrationTest;
+import com.vamigo.TestFirebaseConfig;
 import com.vamigo.auth.service.JwtTokenProvider;
 import com.vamigo.user.AccountStatus;
 import com.vamigo.user.Role;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(TestFirebaseConfig.class)
 @Transactional
 class JwtAuthenticationIntegrationTest extends AbstractIntegrationTest {
 

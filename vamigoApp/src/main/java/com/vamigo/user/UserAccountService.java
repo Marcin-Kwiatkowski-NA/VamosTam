@@ -58,6 +58,11 @@ public class UserAccountService {
         return userAccountRepository.findByGoogleId(googleId);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<UserAccount> findByFacebookId(String facebookId) {
+        return userAccountRepository.findByFacebookId(facebookId);
+    }
+
     @Transactional
     public UserAccount createWithEmailPassword(String email, String password, String displayName) {
         String normalizedEmail = email.toLowerCase();
@@ -191,6 +196,56 @@ public class UserAccountService {
                 .status(AccountStatus.ACTIVE)
                 .roles(roles)
                 .googleId(googleId)
+                .emailVerifiedAt(Instant.now())
+                .build();
+
+        UserAccount savedAccount = userAccountRepository.save(account);
+
+        UserProfile profile = UserProfile.builder()
+                .account(savedAccount)
+                .displayName(name)
+                .stats(new UserStats())
+                .build();
+
+        userProfileRepository.save(profile);
+
+        return savedAccount;
+    }
+
+    @Transactional
+    public UserAccount createOrUpdateFacebookUser(String email, String facebookId, String name) {
+        String normalizedEmail = email.toLowerCase();
+
+        Optional<UserAccount> existingByFacebookId = userAccountRepository.findByFacebookId(facebookId);
+        if (existingByFacebookId.isPresent()) {
+            UserAccount account = existingByFacebookId.get();
+            account.setEmailVerifiedAt(Instant.now());
+
+            return userAccountRepository.save(account);
+        }
+
+        Optional<UserAccount> existingByEmail = userAccountRepository.findByEmail(normalizedEmail);
+        if (existingByEmail.isPresent()) {
+            UserAccount account = existingByEmail.get();
+            account.addProvider(AuthProvider.FACEBOOK);
+            account.setFacebookId(facebookId);
+            account.setEmailVerifiedAt(Instant.now());
+
+            return userAccountRepository.save(account);
+        }
+
+        Set<AuthProvider> providers = new HashSet<>();
+        providers.add(AuthProvider.FACEBOOK);
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.USER);
+
+        UserAccount account = UserAccount.builder()
+                .email(normalizedEmail)
+                .providers(providers)
+                .status(AccountStatus.ACTIVE)
+                .roles(roles)
+                .facebookId(facebookId)
                 .emailVerifiedAt(Instant.now())
                 .build();
 

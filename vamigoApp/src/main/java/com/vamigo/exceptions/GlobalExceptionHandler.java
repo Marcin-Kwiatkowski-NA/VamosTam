@@ -4,6 +4,7 @@ import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
 import com.vamigo.contact.ContactRateLimitException;
 import com.vamigo.map.RoutingException;
 import com.vamigo.auth.exception.InvalidTokenException;
+import com.vamigo.auth.exception.MissingProviderEmailException;
 import com.vamigo.auth.exception.VerificationCooldownException;
 import com.vamigo.email.EmailSendException;
 import com.vamigo.location.NoSuchLocationException;
@@ -84,6 +85,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidTokenException.class)
     public ProblemDetail handleInvalidTokenException(HttpServletRequest request, InvalidTokenException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingProviderEmailException.class)
+    public ResponseEntity<java.util.Map<String, String>> handleMissingProviderEmailException(
+            HttpServletRequest request, MissingProviderEmailException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(java.util.Map.of(
+                        "code", "MISSING_EMAIL_PERMISSION",
+                        "message", ex.getMessage()
+                ));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

@@ -9,7 +9,9 @@ import com.vamigo.auth.verification.PasswordResetService;
 import com.vamigo.auth.event.OnRegistrationCompleteEvent;
 import com.vamigo.auth.exception.EmailAlreadyVerifiedException;
 import com.vamigo.auth.exception.InvalidTokenException;
+import com.vamigo.auth.exception.MissingProviderEmailException;
 import com.vamigo.auth.verification.EmailVerificationService;
+import com.google.firebase.auth.FirebaseToken;
 import com.vamigo.user.AvatarService;
 import com.vamigo.user.SecurityUser;
 import com.vamigo.user.UserAccount;
@@ -32,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 
@@ -45,6 +49,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserProfileMapper userProfileMapper;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final FirebaseTokenVerifier firebaseTokenVerifier;
     private final ApplicationEventPublisher eventPublisher;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
@@ -57,6 +62,7 @@ public class AuthService {
                        JwtTokenProvider jwtTokenProvider,
                        UserProfileMapper userProfileMapper,
                        GoogleTokenVerifier googleTokenVerifier,
+                       FirebaseTokenVerifier firebaseTokenVerifier,
                        ApplicationEventPublisher eventPublisher,
                        EmailVerificationService emailVerificationService,
                        PasswordResetService passwordResetService,
@@ -68,6 +74,7 @@ public class AuthService {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userProfileMapper = userProfileMapper;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.firebaseTokenVerifier = firebaseTokenVerifier;
         this.eventPublisher = eventPublisher;
         this.emailVerificationService = emailVerificationService;
         this.passwordResetService = passwordResetService;
@@ -152,6 +159,55 @@ public class AuthService {
         }
 
         return buildAuthResponse(account);
+    }
+
+    public AuthResponse authenticateWithFacebook(String firebaseIdToken) {
+        FirebaseToken token = firebaseTokenVerifier.verify(firebaseIdToken);
+        String facebookId = extractFacebookId(token);
+
+        String email = token.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new MissingProviderEmailException();
+        }
+
+        String name = token.getName();
+        UserAccount account = userAccountService.createOrUpdateFacebookUser(email, facebookId, name);
+
+        String pictureUrl = token.getPicture();
+        if (pictureUrl != null) {
+            UserProfile profile = userProfileRepository.findById(account.getId()).orElse(null);
+            if (profile != null && profile.getAvatarObjectKey() == null) {
+                avatarService.importAvatarFromUrl(account.getId(), pictureUrl);
+            }
+        }
+
+        return buildAuthResponse(account);
+    }
+
+    private String extractFacebookId(FirebaseToken token) {
+        Object firebaseRaw = token.getClaims().get("firebase");
+        if (!(firebaseRaw instanceof Map<?, ?> firebaseClaim)) {
+            throw new InvalidTokenException("Token missing firebase claim");
+        }
+
+        Object provider = firebaseClaim.get("sign_in_provider");
+        if (!"facebook.com".equals(provider)) {
+            throw new InvalidTokenException("Token was not issued by Facebook");
+        }
+
+        Object identitiesRaw = firebaseClaim.get("identities");
+        if (!(identitiesRaw instanceof Map<?, ?> identities)) {
+            throw new InvalidTokenException("Token missing identities claim");
+        }
+        Object fbList = identities.get("facebook.com");
+        if (!(fbList instanceof List<?> fbIds) || fbIds.isEmpty()) {
+            throw new InvalidTokenException("No Facebook identity found in token");
+        }
+        Object first = fbIds.get(0);
+        if (!(first instanceof String fbId)) {
+            throw new InvalidTokenException("Facebook identity is not a string");
+        }
+        return fbId;
     }
 
     public AuthResponse refresh(RefreshTokenRequest request) {

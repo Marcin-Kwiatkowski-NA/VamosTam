@@ -15,6 +15,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     Optional<UserAccount> findByGoogleId(String googleId);
 
+    Optional<UserAccount> findByFacebookId(String facebookId);
+
     boolean existsByEmail(String email);
 
     @Modifying

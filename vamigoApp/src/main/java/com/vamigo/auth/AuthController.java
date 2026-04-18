@@ -2,6 +2,7 @@ package com.vamigo.auth;
 
 import com.vamigo.auth.dto.AuthResponse;
 import com.vamigo.auth.dto.ChangePasswordRequest;
+import com.vamigo.auth.dto.FacebookTokenRequest;
 import com.vamigo.auth.dto.ForgotPasswordRequest;
 import com.vamigo.auth.dto.GoogleTokenRequest;
 import com.vamigo.auth.dto.LoginRequest;
@@ -66,6 +67,12 @@ public class AuthController {
     public ResponseEntity<AuthResponse> authenticateWithGoogle(
             @Valid @RequestBody GoogleTokenRequest request) throws GeneralSecurityException, IOException {
         return ResponseEntity.ok(authService.authenticateWithGoogle(request.idToken()));
+    }
+
+    @PostMapping("/facebook")
+    public ResponseEntity<AuthResponse> authenticateWithFacebook(
+            @Valid @RequestBody FacebookTokenRequest request) {
+        return ResponseEntity.ok(authService.authenticateWithFacebook(request.idToken()));
     }
 
     @PostMapping("/refresh")
