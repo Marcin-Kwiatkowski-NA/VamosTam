@@ -8,7 +8,9 @@ public record SearchAlertProperties(
         int pushIntervalHours,
         String emailCron,
         int maxAlertsPerUser,
-        double proximityRadiusKm
+        double proximityRadiusKm,
+        String expiryCron,
+        String expiryZone
 ) {
     public double proximityRadiusMeters() {
         return proximityRadiusKm * 1000;

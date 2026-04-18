@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -79,13 +78,6 @@ public class SearchAlertPushScheduler {
         for (var entry : grouped.entrySet()) {
             List<SearchAlertMatch> matches = entry.getValue();
             SavedSearch ss = matches.getFirst().getSavedSearch();
-
-            // Auto-expire past departure date
-            if (ss.getDepartureDate().isBefore(LocalDate.now())) {
-                ss.setActive(false);
-                markPushSentAndCollectDeletable(matches, toDelete);
-                continue;
-            }
 
             if (!ss.isActive()) {
                 markPushSentAndCollectDeletable(matches, toDelete);

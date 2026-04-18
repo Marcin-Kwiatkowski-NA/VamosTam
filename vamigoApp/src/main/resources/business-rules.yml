@@ -37,6 +37,8 @@ search-alert:
   email-cron: ${SEARCH_ALERT_EMAIL_CRON:0 0 8 * * ?}
   max-alerts-per-user: ${SEARCH_ALERT_MAX_PER_USER:10}
   proximity-radius-km: ${SEARCH_ALERT_PROXIMITY_RADIUS_KM:50}
+  expiry-cron: ${SEARCH_ALERT_EXPIRY_CRON:0 5 0 * * ?}
+  expiry-zone: ${SEARCH_ALERT_EXPIRY_ZONE:Europe/Warsaw}
 
 brevo:
   search-alert-digest-template-id: ${BREVO_SEARCH_ALERT_DIGEST_TEMPLATE_ID:13}

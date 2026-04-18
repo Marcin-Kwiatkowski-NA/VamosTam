@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -78,11 +77,6 @@ public class SearchAlertEmailScheduler {
             for (var searchEntry : userEntry.getValue()) {
                 List<SearchAlertMatch> matches = searchEntry.getValue();
                 SavedSearch ss = matches.getFirst().getSavedSearch();
-
-                if (ss.getDepartureDate().isBefore(LocalDate.now())) {
-                    ss.setActive(false);
-                    continue;
-                }
 
                 if (!ss.isActive()) continue;
 

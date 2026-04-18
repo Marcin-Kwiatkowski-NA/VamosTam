@@ -1,6 +1,7 @@
 package com.vamigo.searchalert;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,6 +19,11 @@ public interface SavedSearchRepository extends JpaRepository<SavedSearch, Long> 
 
     boolean existsByUserIdAndOriginOsmIdAndDestinationOsmIdAndDepartureDateAndSearchTypeAndActiveTrue(
             Long userId, Long originOsmId, Long destinationOsmId, LocalDate departureDate, SearchType searchType);
+
+    @Modifying
+    @Query("UPDATE SavedSearch s SET s.active = false " +
+            "WHERE s.active = true AND s.departureDate < :today")
+    int deactivateExpired(@Param("today") LocalDate today);
 
     /**
      * Finds saved searches matching a given route (exact OSM ID match or proximity within radius).
