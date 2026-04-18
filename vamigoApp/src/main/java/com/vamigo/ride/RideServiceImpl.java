@@ -8,14 +8,21 @@ import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.exceptions.RideHasBookingsException;
 import com.vamigo.location.Location;
 import com.vamigo.location.LocationResolutionService;
+import com.vamigo.match.DateWindow;
+import com.vamigo.match.GeoPoint;
+import com.vamigo.match.LocationMatchingService;
+import com.vamigo.match.MatchFilters;
+import com.vamigo.match.MatchProperties;
+import com.vamigo.match.RadiusStrategy;
+import com.vamigo.match.RideMatch;
+import com.vamigo.match.RideMatchQuery;
+import com.vamigo.match.RouteQuery;
 import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
 import com.vamigo.ride.event.RideCompletedEvent;
 import com.vamigo.ride.event.RideCreatedEvent;
-import com.vamigo.search.GeoUtils;
-import com.vamigo.search.SearchProperties;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
@@ -32,7 +39,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -46,7 +52,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@EnableConfigurationProperties({SearchProperties.class, RideBusinessProperties.class})
+@EnableConfigurationProperties(RideBusinessProperties.class)
 public class RideServiceImpl implements RideService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RideServiceImpl.class);
@@ -63,7 +69,8 @@ public class RideServiceImpl implements RideService {
     private final CapabilityService capabilityService;
     private final ApplicationEventPublisher eventPublisher;
     private final RideArrivalEstimator arrivalEstimator;
-    private final SearchProperties searchProperties;
+    private final LocationMatchingService locationMatchingService;
+    private final MatchProperties matchProperties;
     private final RideBusinessProperties rideProperties;
     private final VehicleRepository vehicleRepository;
 
@@ -76,7 +83,8 @@ public class RideServiceImpl implements RideService {
                            CapabilityService capabilityService,
                            ApplicationEventPublisher eventPublisher,
                            RideArrivalEstimator arrivalEstimator,
-                           SearchProperties searchProperties,
+                           LocationMatchingService locationMatchingService,
+                           MatchProperties matchProperties,
                            RideBusinessProperties rideProperties,
                            VehicleRepository vehicleRepository) {
         this.rideRepository = rideRepository;
@@ -88,7 +96,8 @@ public class RideServiceImpl implements RideService {
         this.capabilityService = capabilityService;
         this.eventPublisher = eventPublisher;
         this.arrivalEstimator = arrivalEstimator;
-        this.searchProperties = searchProperties;
+        this.locationMatchingService = locationMatchingService;
+        this.matchProperties = matchProperties;
         this.rideProperties = rideProperties;
         this.vehicleRepository = vehicleRepository;
     }
@@ -289,40 +298,35 @@ public class RideServiceImpl implements RideService {
 
     private Page<RideListDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
-        double radiusKm = resolveRadiusKm(criteria);
-        double radiusMeters = radiusKm * 1000;
+        RadiusStrategy radius = criteria.radiusKm() != null
+                ? RadiusStrategy.fixedKm(criteria.radiusKm())
+                : matchProperties.rideSmartRadius();
 
-        Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
-                .and(RideSpecifications.hasDriverId(criteria.driverId()))
-                .and(RideSpecifications.hasStopNearOrigin(criteria.originLat(), criteria.originLon(), radiusMeters))
-                .and(RideSpecifications.hasStopNearDestination(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
-                .and(RideSpecifications.hasTotalSeatsAtLeast(criteria.minAvailableSeats()))
-                .and(RideSpecifications.departsOnOrAfter(effectiveEarliest))
-                .and(RideSpecifications.orderByNearestStopDistance(
-                        criteria.originLat(), criteria.originLon(),
-                        criteria.destinationLat(), criteria.destinationLon(),
-                        radiusMeters));
+        var query = new RideMatchQuery(
+                new RouteQuery(
+                        new GeoPoint(criteria.originLat(), criteria.originLon()),
+                        new GeoPoint(criteria.destinationLat(), criteria.destinationLon()),
+                        criteria.originOsmId(), criteria.destinationOsmId()),
+                radius,
+                DateWindow.of(effectiveEarliest, criteria.latestDeparture()),
+                new MatchFilters(criteria.driverId(), null, criteria.minAvailableSeats())
+        );
 
-        if (criteria.latestDeparture() != null) {
-            spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
-        }
+        Page<RideMatch> matchPage = locationMatchingService.findRides(query, pageable);
 
-        // Strip pageable sort so the Specification's distance-based orderBy is not overwritten
-        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        Page<Ride> ridePage = rideRepository.findAll(spec, unsorted);
-
-        List<Ride> filtered = ridePage.getContent().stream()
+        List<Ride> filtered = matchPage.getContent().stream()
+                .map(RideMatch::ride)
                 .filter(ride -> hasAvailableSeatsForNearbySearch(ride, criteria))
                 .toList();
 
-        LOGGER.info("Proximity ride search: radiusKm={}, found={}, filtered={}",
-                radiusKm, ridePage.getTotalElements(), filtered.size());
+        LOGGER.info("Proximity ride search: found={}, filtered={}",
+                matchPage.getTotalElements(), filtered.size());
 
         List<RideListDto> dtos = filtered.stream()
                 .map(rideMapper::rideEntityToRideListDto)
                 .toList();
         List<RideListDto> enriched = rideResponseEnricher.enrichList(filtered, dtos);
-        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+        return new PageImpl<>(enriched, pageable, matchPage.getTotalElements());
     }
 
     private boolean hasAvailableSeatsForExactSearch(Ride ride, RideSearchCriteriaDto criteria) {
@@ -370,18 +374,6 @@ public class RideServiceImpl implements RideService {
     private static Instant clampToNow(Instant earliest) {
         Instant now = Instant.now();
         return earliest == null || earliest.isBefore(now) ? now : earliest;
-    }
-
-    private double resolveRadiusKm(RideSearchCriteriaDto criteria) {
-        if (criteria.radiusKm() != null) {
-            return criteria.radiusKm();
-        }
-        double distance = GeoUtils.haversineKm(
-                criteria.originLat(), criteria.originLon(),
-                criteria.destinationLat(), criteria.destinationLon());
-        return Math.max(
-                distance / searchProperties.proximity().radiusDivisor(),
-                searchProperties.proximity().minRadiusKm());
     }
 
     @Override

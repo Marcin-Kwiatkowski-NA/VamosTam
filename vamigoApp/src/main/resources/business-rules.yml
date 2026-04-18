@@ -36,7 +36,6 @@ search-alert:
   push-interval-hours: ${SEARCH_ALERT_PUSH_INTERVAL_HOURS:2}
   email-cron: ${SEARCH_ALERT_EMAIL_CRON:0 0 8 * * ?}
   max-alerts-per-user: ${SEARCH_ALERT_MAX_PER_USER:10}
-  proximity-radius-km: ${SEARCH_ALERT_PROXIMITY_RADIUS_KM:50}
   expiry-cron: ${SEARCH_ALERT_EXPIRY_CRON:0 5 0 * * ?}
   expiry-zone: ${SEARCH_ALERT_EXPIRY_ZONE:Europe/Warsaw}
 
@@ -68,11 +67,23 @@ location:
     "jablonka": 4585196
 
 search:
-  proximity:
-    radius-divisor: ${SEARCH_PROXIMITY_RADIUS_DIVISOR:3}
-    min-radius-km: ${SEARCH_PROXIMITY_MIN_RADIUS_KM:30}
   smart-match:
     radius-km: ${SEARCH_SMART_MATCH_RADIUS_KM:50}
     max-segments: ${SEARCH_SMART_MATCH_MAX_SEGMENTS:5}
     refresh-cooldown-seconds: ${SEARCH_SMART_MATCH_REFRESH_COOLDOWN_SECONDS:120}
     default-nearby-limit: ${SEARCH_DEFAULT_NEARBY_LIMIT:5}
+
+# Per-feature radius policy for the location-matching layer. Each feature
+# picks either a fixed km radius or a dynamic one (radius = distance / divisor,
+# clamped by min-km and optionally max-km).
+match:
+  ride-smart:
+    divisor: ${MATCH_RIDE_SMART_DIVISOR:3}
+    min-km: ${MATCH_RIDE_SMART_MIN_KM:30}
+  seat-smart:
+    divisor: ${MATCH_SEAT_SMART_DIVISOR:3}
+    min-km: ${MATCH_SEAT_SMART_MIN_KM:30}
+  alert:
+    fixed-km: ${MATCH_ALERT_FIXED_KM:50}
+  external-import:
+    fixed-km: ${MATCH_EXTERNAL_IMPORT_FIXED_KM:50}

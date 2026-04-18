@@ -3,6 +3,8 @@ package com.vamigo.search;
 import com.vamigo.email.BrevoClient;
 import com.vamigo.email.EmailSendException;
 import com.vamigo.location.LocationDto;
+import com.vamigo.match.GeoPoint;
+import com.vamigo.match.MatchProperties;
 import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
@@ -47,7 +49,6 @@ public class ExternalImportMatchListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExternalImportMatchListener.class);
     private static final int MAX_RESULTS = 20;
-    private static final double RADIUS_KM = 50.0;
     private static final String WIEN_NAME = "Wiedeń";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneOffset.UTC);
@@ -56,6 +57,7 @@ public class ExternalImportMatchListener {
     private final RideService rideService;
     private final BrevoClient brevoClient;
     private final ExternalImportProperties importProperties;
+    private final MatchProperties matchProperties;
     private final String senderAddress;
     private final String senderName;
     private final String frontendUrl;
@@ -64,6 +66,7 @@ public class ExternalImportMatchListener {
                                        RideService rideService,
                                        BrevoClient brevoClient,
                                        ExternalImportProperties importProperties,
+                                       MatchProperties matchProperties,
                                        @Value("${app.email.sender-address}") String senderAddress,
                                        @Value("${app.email.sender-name}") String senderName,
                                        @Value("${app.email.external-import-frontend-url}") String frontendUrl) {
@@ -71,9 +74,17 @@ public class ExternalImportMatchListener {
         this.rideService = rideService;
         this.brevoClient = brevoClient;
         this.importProperties = importProperties;
+        this.matchProperties = matchProperties;
         this.senderAddress = senderAddress;
         this.senderName = senderName;
         this.frontendUrl = frontendUrl;
+    }
+
+    private double radiusKmFor(LocationDto origin, LocationDto destination) {
+        return matchProperties.externalImportRadius().resolveMeters(
+                new GeoPoint(origin.latitude(), origin.longitude()),
+                new GeoPoint(destination.latitude(), destination.longitude())
+        ) / 1000.0;
     }
 
     @Async("emailExecutor")
@@ -109,7 +120,7 @@ public class ExternalImportMatchListener {
                         null, null,
                         boardLoc.latitude(), boardLoc.longitude(),
                         alightLoc.latitude(), alightLoc.longitude(),
-                        RADIUS_KM,
+                        radiusKmFor(boardLoc, alightLoc),
                         dayStart, dayEnd,
                         null
                 );
@@ -171,7 +182,7 @@ public class ExternalImportMatchListener {
                 null, null,
                 origin.latitude(), origin.longitude(),
                 destination.latitude(), destination.longitude(),
-                RADIUS_KM,
+                radiusKmFor(origin, destination),
                 dayStart, dayEnd,
                 1,
                 null

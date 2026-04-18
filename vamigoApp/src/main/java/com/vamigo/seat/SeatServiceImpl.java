@@ -6,8 +6,15 @@ import com.vamigo.exceptions.NoSuchSeatException;
 import com.vamigo.exceptions.NotSeatPassengerException;
 import com.vamigo.location.Location;
 import com.vamigo.location.LocationResolutionService;
-import com.vamigo.search.GeoUtils;
-import com.vamigo.search.SearchProperties;
+import com.vamigo.match.DateWindow;
+import com.vamigo.match.GeoPoint;
+import com.vamigo.match.LocationMatchingService;
+import com.vamigo.match.MatchFilters;
+import com.vamigo.match.MatchProperties;
+import com.vamigo.match.RadiusStrategy;
+import com.vamigo.match.RouteQuery;
+import com.vamigo.match.SeatMatch;
+import com.vamigo.match.SeatMatchQuery;
 import com.vamigo.seat.dto.SeatCreationDto;
 import com.vamigo.seat.dto.SeatListDto;
 import com.vamigo.seat.dto.SeatResponseDto;
@@ -19,11 +26,9 @@ import com.vamigo.user.capability.CapabilityService;
 import com.vamigo.user.exception.NoSuchUserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -34,7 +39,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@EnableConfigurationProperties(SearchProperties.class)
 public class SeatServiceImpl implements SeatService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SeatServiceImpl.class);
@@ -45,7 +49,8 @@ public class SeatServiceImpl implements SeatService {
     private final UserAccountRepository userAccountRepository;
     private final SeatResponseEnricher seatResponseEnricher;
     private final CapabilityService capabilityService;
-    private final SearchProperties searchProperties;
+    private final LocationMatchingService locationMatchingService;
+    private final MatchProperties matchProperties;
     private final ApplicationEventPublisher eventPublisher;
 
     public SeatServiceImpl(SeatRepository seatRepository,
@@ -54,7 +59,8 @@ public class SeatServiceImpl implements SeatService {
                             UserAccountRepository userAccountRepository,
                             SeatResponseEnricher seatResponseEnricher,
                             CapabilityService capabilityService,
-                            SearchProperties searchProperties,
+                            LocationMatchingService locationMatchingService,
+                            MatchProperties matchProperties,
                             ApplicationEventPublisher eventPublisher) {
         this.seatRepository = seatRepository;
         this.seatMapper = seatMapper;
@@ -62,7 +68,8 @@ public class SeatServiceImpl implements SeatService {
         this.userAccountRepository = userAccountRepository;
         this.seatResponseEnricher = seatResponseEnricher;
         this.capabilityService = capabilityService;
-        this.searchProperties = searchProperties;
+        this.locationMatchingService = locationMatchingService;
+        this.matchProperties = matchProperties;
         this.eventPublisher = eventPublisher;
     }
 
@@ -133,35 +140,30 @@ public class SeatServiceImpl implements SeatService {
 
     private Page<SeatListDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
-        double radiusKm = resolveRadiusKm(criteria);
-        double radiusMeters = radiusKm * 1000;
+        RadiusStrategy radius = criteria.radiusKm() != null
+                ? RadiusStrategy.fixedKm(criteria.radiusKm())
+                : matchProperties.seatSmartRadius();
 
-        Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
-                .and(SeatSpecifications.originWithinRadius(criteria.originLat(), criteria.originLon(), radiusMeters))
-                .and(SeatSpecifications.destinationWithinRadius(criteria.destinationLat(), criteria.destinationLon(), radiusMeters))
-                .and(SeatSpecifications.countAtMost(criteria.availableSeatsInCar()))
-                .and(SeatSpecifications.departsOnOrAfter(effectiveEarliest))
-                .and(SeatSpecifications.orderByCombinedDistance(
-                        criteria.originLat(), criteria.originLon(),
-                        criteria.destinationLat(), criteria.destinationLon()));
+        var query = new SeatMatchQuery(
+                new RouteQuery(
+                        new GeoPoint(criteria.originLat(), criteria.originLon()),
+                        new GeoPoint(criteria.destinationLat(), criteria.destinationLon()),
+                        criteria.originOsmId(), criteria.destinationOsmId()),
+                radius,
+                DateWindow.of(effectiveEarliest, criteria.latestDeparture()),
+                new MatchFilters(null, null, criteria.availableSeatsInCar())
+        );
 
-        if (criteria.latestDeparture() != null) {
-            spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
-        }
+        Page<SeatMatch> matchPage = locationMatchingService.findSeats(query, pageable);
+        List<Seat> seats = matchPage.getContent().stream().map(SeatMatch::seat).toList();
 
-        // Strip pageable sort so the Specification's distance-based orderBy is not overwritten
-        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        Page<Seat> seatPage = seatRepository.findAll(spec, unsorted);
-        List<Seat> seats = seatPage.getContent();
-
-        LOGGER.info("Proximity seat search: radiusKm={}, found={}",
-                radiusKm, seatPage.getTotalElements());
+        LOGGER.info("Proximity seat search: found={}", matchPage.getTotalElements());
 
         List<SeatListDto> dtos = seats.stream()
                 .map(seatMapper::seatEntityToSeatListDto)
                 .toList();
         List<SeatListDto> enriched = seatResponseEnricher.enrichList(seats, dtos);
-        return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
+        return new PageImpl<>(enriched, pageable, matchPage.getTotalElements());
     }
 
     @Override
@@ -240,17 +242,5 @@ public class SeatServiceImpl implements SeatService {
     private static Instant clampToNow(Instant earliest) {
         Instant now = Instant.now();
         return earliest == null || earliest.isBefore(now) ? now : earliest;
-    }
-
-    private double resolveRadiusKm(SeatSearchCriteriaDto criteria) {
-        if (criteria.radiusKm() != null) {
-            return criteria.radiusKm();
-        }
-        double distance = GeoUtils.haversineKm(
-                criteria.originLat(), criteria.originLon(),
-                criteria.destinationLat(), criteria.destinationLon());
-        return Math.max(
-                distance / searchProperties.proximity().radiusDivisor(),
-                searchProperties.proximity().minRadiusKm());
     }
 }

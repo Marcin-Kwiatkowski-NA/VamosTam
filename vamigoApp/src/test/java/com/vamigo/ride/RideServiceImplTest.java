@@ -10,7 +10,8 @@ import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.ride.dto.RideSearchCriteriaDto;
-import com.vamigo.search.SearchProperties;
+import com.vamigo.match.LocationMatchingService;
+import com.vamigo.match.MatchProperties;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
@@ -75,7 +76,10 @@ class RideServiceImplTest {
     RideBusinessProperties rideProperties;
 
     @Mock
-    SearchProperties searchProperties;
+    LocationMatchingService locationMatchingService;
+
+    @Mock
+    MatchProperties matchProperties;
 
     @Mock
     VehicleRepository vehicleRepository;

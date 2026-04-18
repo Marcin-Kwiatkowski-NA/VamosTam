@@ -1,13 +1,9 @@
 package com.vamigo.ride;
 
-import com.vamigo.domain.SpatialSpecifications;
 import com.vamigo.domain.Status;
-import com.vamigo.location.Location;
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
-import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
@@ -96,107 +92,4 @@ public class RideSpecifications {
         return (root, query, cb) ->
                 to == null ? null : cb.lessThan(root.get("departureTime"), to);
     }
-
-    public static Specification<Ride> hasStopNearOrigin(Double lat, Double lon, double radiusMeters) {
-        return (root, query, cb) -> {
-            if (lat == null || lon == null) return null;
-
-            Subquery<Long> stopExists = query.subquery(Long.class);
-            Root<RideStop> stopRoot = stopExists.from(RideStop.class);
-            Join<RideStop, Location> locJoin = stopRoot.join("location");
-
-            Subquery<Long> hasLaterStop = query.subquery(Long.class);
-            Root<RideStop> laterRoot = hasLaterStop.from(RideStop.class);
-            hasLaterStop.select(cb.literal(1L))
-                    .where(
-                            cb.equal(laterRoot.get("ride"), root),
-                            cb.greaterThan(laterRoot.get("stopOrder"), stopRoot.get("stopOrder"))
-                    );
-
-            stopExists.select(cb.literal(1L))
-                    .where(
-                            cb.equal(stopRoot.get("ride"), root),
-                            SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
-                            cb.exists(hasLaterStop)
-                    );
-
-            return cb.exists(stopExists);
-        };
-    }
-
-    public static Specification<Ride> hasStopNearDestination(Double lat, Double lon, double radiusMeters) {
-        return (root, query, cb) -> {
-            if (lat == null || lon == null) return null;
-
-            Subquery<Long> stopExists = query.subquery(Long.class);
-            Root<RideStop> stopRoot = stopExists.from(RideStop.class);
-            Join<RideStop, Location> locJoin = stopRoot.join("location");
-
-            Subquery<Long> hasEarlierStop = query.subquery(Long.class);
-            Root<RideStop> earlierRoot = hasEarlierStop.from(RideStop.class);
-            hasEarlierStop.select(cb.literal(1L))
-                    .where(
-                            cb.equal(earlierRoot.get("ride"), root),
-                            cb.lessThan(earlierRoot.get("stopOrder"), stopRoot.get("stopOrder"))
-                    );
-
-            stopExists.select(cb.literal(1L))
-                    .where(
-                            cb.equal(stopRoot.get("ride"), root),
-                            SpatialSpecifications.withinRadius(cb, locJoin.get("coordinates"), lon, lat, radiusMeters),
-                            cb.exists(hasEarlierStop)
-                    );
-
-            return cb.exists(stopExists);
-        };
-    }
-
-    public static Specification<Ride> orderByNearestStopDistance(
-            double originLat, double originLon,
-            double destLat, double destLon,
-            double radiusMeters) {
-        return (root, query, cb) -> {
-            @SuppressWarnings("unchecked")
-            Expression<Point> originPoint = (Expression<Point>) (Expression<?>) cb.function("st_setsrid",
-                    Object.class,
-                    cb.function("st_makepoint", Object.class, cb.literal(originLon), cb.literal(originLat)),
-                    cb.literal(4326));
-
-            @SuppressWarnings("unchecked")
-            Expression<Point> destPoint = (Expression<Point>) (Expression<?>) cb.function("st_setsrid",
-                    Object.class,
-                    cb.function("st_makepoint", Object.class, cb.literal(destLon), cb.literal(destLat)),
-                    cb.literal(4326));
-
-            Subquery<Double> minOriginDist = query.subquery(Double.class);
-            Root<RideStop> s1 = minOriginDist.from(RideStop.class);
-            Join<RideStop, Location> l1 = s1.join("location");
-            minOriginDist.select(cb.min(
-                    cb.function("st_distance", Double.class, l1.get("coordinates"), originPoint)
-            )).where(
-                    cb.equal(s1.get("ride"), root),
-                    SpatialSpecifications.withinRadius(cb, l1.get("coordinates"), originLon, originLat, radiusMeters)
-            );
-
-            Subquery<Double> minDestDist = query.subquery(Double.class);
-            Root<RideStop> s2 = minDestDist.from(RideStop.class);
-            Join<RideStop, Location> l2 = s2.join("location");
-            minDestDist.select(cb.min(
-                    cb.function("st_distance", Double.class, l2.get("coordinates"), destPoint)
-            )).where(
-                    cb.equal(s2.get("ride"), root),
-                    SpatialSpecifications.withinRadius(cb, l2.get("coordinates"), destLon, destLat, radiusMeters)
-            );
-
-            query.orderBy(cb.asc(
-                    cb.sum(
-                            cb.coalesce(minOriginDist, 99999999.9),
-                            cb.coalesce(minDestDist, 99999999.9)
-                    )
-            ));
-
-            return null;
-        };
-    }
-
 }
