@@ -5,6 +5,7 @@ import com.vamigo.notification.NotificationParamsEnricher;
 import com.vamigo.notification.NotificationRequest;
 import com.vamigo.notification.NotificationService;
 import com.vamigo.notification.NotificationType;
+import com.vamigo.notification.TargetType;
 import com.vamigo.review.ReviewRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public class ReviewEventListener {
                         .type(NotificationType.REVIEW_REMINDER)
                         .entityType(EntityType.RIDE)
                         .entityId(event.rideId().toString())
+                        .targetType(TargetType.ENTITY)
                         .params(bothParams)
                         .collapseKey("review-both:" + event.bookingId() + ":" + event.authorId())
                         .build());
@@ -69,6 +71,7 @@ public class ReviewEventListener {
                         .type(NotificationType.REVIEW_REMINDER)
                         .entityType(EntityType.RIDE)
                         .entityId(event.rideId().toString())
+                        .targetType(TargetType.ENTITY)
                         .params(baseParams)
                         .collapseKey("review-nudge:" + event.bookingId() + ":" + event.subjectId())
                         .build());

@@ -11,8 +11,19 @@ import com.vamigo.user.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -25,20 +36,31 @@ public class NotificationParamsEnricher {
     private static final Logger log = LoggerFactory.getLogger(NotificationParamsEnricher.class);
     private static final int MAX_CITY_LENGTH = 25;
     private static final int MAX_REASON_LENGTH = 100;
+    /** Per-row cap so 3 rows + separators stay under the FCM 4 KB limit. */
+    private static final int MAX_PREVIEW_NAME_LENGTH = 20;
+    private static final int MAX_PREVIEW_ROWS = 3;
+    private static final int MAX_BIG_BODY_LENGTH = 256;
+    /** Render preview times in the platform's default zone — Europe/Warsaw in production. */
+    private static final ZoneId PREVIEW_ZONE = ZoneId.systemDefault();
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FMT_EN = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH);
 
     private final RideBookingRepository bookingRepository;
     private final RideRepository rideRepository;
     private final UserProfileRepository userProfileRepository;
     private final PersonDisplayNameResolver displayNameResolver;
+    private final JsonMapper jsonMapper;
 
     public NotificationParamsEnricher(RideBookingRepository bookingRepository,
                                        RideRepository rideRepository,
                                        UserProfileRepository userProfileRepository,
-                                       PersonDisplayNameResolver displayNameResolver) {
+                                       PersonDisplayNameResolver displayNameResolver,
+                                       JsonMapper jsonMapper) {
         this.bookingRepository = bookingRepository;
         this.rideRepository = rideRepository;
         this.userProfileRepository = userProfileRepository;
         this.displayNameResolver = displayNameResolver;
+        this.jsonMapper = jsonMapper;
     }
 
     public record EnrichedParams(
@@ -203,6 +225,172 @@ public class NotificationParamsEnricher {
         String deepLink = "/user/" + subjectId + "/reviews";
         return new EnrichedParams(null, null, null, null, deepLink,
                 null, null, null, null, null);
+    }
+
+    /**
+     * Build the typed {@code listFilters} map + derived compat {@code deepLink}
+     * for a {@code SEARCH_ALERT_MATCH} LIST push. The scheduler decides the
+     * {@code resultKind} (RIDE vs SEAT) and the route prefix.
+     */
+    public SearchAlertListFilters buildSearchAlertListFilters(com.vamigo.searchalert.SavedSearch ss,
+                                                              String listRoutePrefix) {
+        Map<String, Object> filters = new LinkedHashMap<>();
+        filters.put("originOsmId", ss.getOriginOsmId());
+        filters.put("destinationOsmId", ss.getDestinationOsmId());
+        filters.put("originName", truncateCity(ss.getOriginName()));
+        filters.put("destinationName", truncateCity(ss.getDestinationName()));
+        filters.put("originLat", ss.getOriginLat());
+        filters.put("originLon", ss.getOriginLon());
+        filters.put("destinationLat", ss.getDestinationLat());
+        filters.put("destinationLon", ss.getDestinationLon());
+        filters.put("earliestDeparture", ss.getDepartureDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+
+        String deepLink = listRoutePrefix
+                + "?originOsmId=" + ss.getOriginOsmId()
+                + "&destinationOsmId=" + ss.getDestinationOsmId()
+                + "&originName=" + ss.getOriginName()
+                + "&destinationName=" + ss.getDestinationName()
+                + "&originLat=" + ss.getOriginLat()
+                + "&originLon=" + ss.getOriginLon()
+                + "&destinationLat=" + ss.getDestinationLat()
+                + "&destinationLon=" + ss.getDestinationLon()
+                + "&earliestDeparture=" + ss.getDepartureDate();
+
+        return new SearchAlertListFilters(filters, deepLink);
+    }
+
+    /**
+     * Deep link for a single-match SearchAlert (ENTITY target). Detail routes
+     * are owned by the frontend resolver; this string is a compat fallback only.
+     */
+    public String buildSearchAlertEntityDeepLink(ResultKind kind, long id) {
+        return kind == ResultKind.SEAT ? "/seats/offer/s-" + id : "/rides/offer/r-" + id;
+    }
+
+    public record SearchAlertListFilters(Map<String, Object> filters, String deepLink) { }
+
+    /**
+     * Compact summary of a single match used to render the rich SearchAlert
+     * push notification — caller supplies these from queried Ride/Seat rows.
+     */
+    public record SearchAlertMatchInfo(
+            java.time.Instant departureTime,
+            String counterpartyName,
+            BigDecimal price
+    ) { }
+
+    /**
+     * Build the rich-content keys for a single-match SearchAlert push.
+     * Adds {@code departureDateFmt} (title) and a single-line body via
+     * {@code earliestDeparture}, {@code minPrice}, and {@code previewRows}.
+     */
+    public Map<String, String> enrichSearchAlertSingle(com.vamigo.searchalert.SavedSearch ss,
+                                                        SearchAlertMatchInfo match) {
+        Map<String, String> rich = new LinkedHashMap<>();
+        rich.put("departureDateFmt", formatDate(ss.getDepartureDate()));
+        if (match == null) return rich;
+
+        String time = formatTime(match.departureTime());
+        if (time != null) rich.put("earliestDeparture", time);
+
+        String price = formatPrice(match.price());
+        if (price != null) rich.put("minPrice", price);
+
+        String name = truncatePreviewName(match.counterpartyName());
+        if (name != null) rich.put("driverName", name);
+
+        String previewJson = encodePreviewRows(List.of(match));
+        if (previewJson != null) rich.put("previewRows", previewJson);
+
+        return rich;
+    }
+
+    /**
+     * Build the rich-content keys for a multi-match SearchAlert push.
+     * Caller passes the matches sorted by departure ascending; we cap at
+     * {@link #MAX_PREVIEW_ROWS} and derive {@code earliestDeparture} +
+     * {@code minPrice} across the whole set.
+     */
+    public Map<String, String> enrichSearchAlertMulti(com.vamigo.searchalert.SavedSearch ss,
+                                                       List<SearchAlertMatchInfo> matches) {
+        Map<String, String> rich = new LinkedHashMap<>();
+        rich.put("departureDateFmt", formatDate(ss.getDepartureDate()));
+        if (matches == null || matches.isEmpty()) return rich;
+
+        String earliest = matches.stream()
+                .map(SearchAlertMatchInfo::departureTime)
+                .filter(java.util.Objects::nonNull)
+                .min(java.time.Instant::compareTo)
+                .map(this::formatTime)
+                .orElse(null);
+        if (earliest != null) rich.put("earliestDeparture", earliest);
+
+        BigDecimal min = matches.stream()
+                .map(SearchAlertMatchInfo::price)
+                .filter(java.util.Objects::nonNull)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
+        String minPrice = formatPrice(min);
+        if (minPrice != null) rich.put("minPrice", minPrice);
+
+        List<SearchAlertMatchInfo> previewRows = matches.size() > MAX_PREVIEW_ROWS
+                ? matches.subList(0, MAX_PREVIEW_ROWS)
+                : matches;
+        String previewJson = encodePreviewRows(previewRows);
+        if (previewJson != null) rich.put("previewRows", previewJson);
+
+        return rich;
+    }
+
+    private String encodePreviewRows(List<SearchAlertMatchInfo> matches) {
+        var rows = new ArrayList<Map<String, String>>(matches.size());
+        for (var m : matches) {
+            var row = new LinkedHashMap<String, String>();
+            String t = formatTime(m.departureTime());
+            if (t != null) row.put("time", t);
+            String n = truncatePreviewName(m.counterpartyName());
+            if (n != null) row.put("name", n);
+            String p = formatPrice(m.price());
+            if (p != null) row.put("price", p);
+            if (!row.isEmpty()) rows.add(row);
+        }
+        if (rows.isEmpty()) return null;
+        try {
+            return jsonMapper.writeValueAsString(rows);
+        } catch (JacksonException e) {
+            log.warn("Failed to encode SearchAlert previewRows: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String formatTime(java.time.Instant when) {
+        if (when == null) return null;
+        return ZonedDateTime.ofInstant(when, PREVIEW_ZONE).format(TIME_FMT);
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? null : date.format(DATE_FMT_EN);
+    }
+
+    private String formatPrice(BigDecimal price) {
+        if (price == null) return null;
+        return price.setScale(0, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static String truncatePreviewName(String name) {
+        if (name == null || name.isBlank()) return null;
+        return name.length() > MAX_PREVIEW_NAME_LENGTH
+                ? name.substring(0, MAX_PREVIEW_NAME_LENGTH - 1) + "\u2026"
+                : name;
+    }
+
+    /**
+     * Cap rendered bigBody at {@link #MAX_BIG_BODY_LENGTH} so we stay below
+     * the FCM 4 KB data-payload ceiling even with other rich fields present.
+     */
+    public static String capBigBody(String bigBody) {
+        if (bigBody == null || bigBody.length() <= MAX_BIG_BODY_LENGTH) return bigBody;
+        return bigBody.substring(0, MAX_BIG_BODY_LENGTH - 1) + "\u2026";
     }
 
     // -- Helpers --

@@ -3,6 +3,8 @@ package com.vamigo.notification;
 public enum EntityType {
     CONVERSATION,
     RIDE,
+    SEAT,
     REVIEW,
-    SAVED_SEARCH
+    SAVED_SEARCH,
+    USER
 }

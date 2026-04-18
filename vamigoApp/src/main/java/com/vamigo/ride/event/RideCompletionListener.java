@@ -6,6 +6,7 @@ import com.vamigo.notification.NotificationParamsEnricher;
 import com.vamigo.notification.NotificationRequest;
 import com.vamigo.notification.NotificationService;
 import com.vamigo.notification.NotificationType;
+import com.vamigo.notification.TargetType;
 import com.vamigo.ride.RideBooking;
 import com.vamigo.ride.RideBookingRepository;
 import com.vamigo.user.UserProfile;
@@ -93,6 +94,7 @@ public class RideCompletionListener {
                         .type(NotificationType.RIDE_COMPLETED)
                         .entityType(EntityType.RIDE)
                         .entityId(event.rideId().toString())
+                        .targetType(TargetType.ENTITY)
                         .params(params)
                         .collapseKey("ride-completed:" + event.rideId())
                         .build());
@@ -109,6 +111,7 @@ public class RideCompletionListener {
                     .type(NotificationType.RIDE_COMPLETED)
                     .entityType(EntityType.RIDE)
                     .entityId(event.rideId().toString())
+                    .targetType(TargetType.ENTITY)
                     .params(params)
                     .collapseKey("ride-completed:" + event.rideId())
                     .build());

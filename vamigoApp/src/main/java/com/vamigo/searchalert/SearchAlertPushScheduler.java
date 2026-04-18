@@ -1,6 +1,14 @@
 package com.vamigo.searchalert;
 
+import com.vamigo.domain.PersonDisplayNameResolver;
 import com.vamigo.notification.*;
+import com.vamigo.ride.Ride;
+import com.vamigo.ride.RideRepository;
+import com.vamigo.seat.Seat;
+import com.vamigo.seat.SeatRepository;
+import com.vamigo.user.UserAccount;
+import com.vamigo.user.UserProfile;
+import com.vamigo.user.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -12,6 +20,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,16 +36,31 @@ public class SearchAlertPushScheduler {
     private final SearchAlertMatchRepository matchRepository;
     private final NotificationPreferenceRepository preferenceRepository;
     private final NotificationService notificationService;
+    private final NotificationParamsEnricher enricher;
     private final SearchAlertProperties properties;
+    private final RideRepository rideRepository;
+    private final SeatRepository seatRepository;
+    private final UserProfileRepository userProfileRepository;
+    private final PersonDisplayNameResolver displayNameResolver;
 
     public SearchAlertPushScheduler(SearchAlertMatchRepository matchRepository,
                                     NotificationPreferenceRepository preferenceRepository,
                                     NotificationService notificationService,
-                                    SearchAlertProperties properties) {
+                                    NotificationParamsEnricher enricher,
+                                    SearchAlertProperties properties,
+                                    RideRepository rideRepository,
+                                    SeatRepository seatRepository,
+                                    UserProfileRepository userProfileRepository,
+                                    PersonDisplayNameResolver displayNameResolver) {
         this.matchRepository = matchRepository;
         this.preferenceRepository = preferenceRepository;
         this.notificationService = notificationService;
+        this.enricher = enricher;
         this.properties = properties;
+        this.rideRepository = rideRepository;
+        this.seatRepository = seatRepository;
+        this.userProfileRepository = userProfileRepository;
+        this.displayNameResolver = displayNameResolver;
     }
 
     @Scheduled(fixedDelayString = "${search-alert.push-check-interval-ms}")
@@ -80,34 +105,20 @@ public class SearchAlertPushScheduler {
                 continue;
             }
 
-            int matchCount = matches.size();
+            // Split matches by kind — emit separate notifications for rides vs seats
+            List<SearchAlertMatch> rideMatches = matches.stream()
+                    .filter(m -> m.getRideId() != null)
+                    .toList();
+            List<SearchAlertMatch> seatMatches = matches.stream()
+                    .filter(m -> m.getSeatId() != null)
+                    .toList();
 
-            // Build deep link with search criteria pre-filled
-            String deepLink = "/rides/list?originOsmId=" + ss.getOriginOsmId()
-                    + "&destinationOsmId=" + ss.getDestinationOsmId()
-                    + "&originName=" + ss.getOriginName()
-                    + "&destinationName=" + ss.getDestinationName()
-                    + "&originLat=" + ss.getOriginLat()
-                    + "&originLon=" + ss.getOriginLon()
-                    + "&destinationLat=" + ss.getDestinationLat()
-                    + "&destinationLon=" + ss.getDestinationLon()
-                    + "&earliestDeparture=" + ss.getDepartureDate();
-
-            var params = Map.of(
-                    "origin", ss.getOriginName(),
-                    "destination", ss.getDestinationName(),
-                    "matchCount", String.valueOf(matchCount),
-                    "deepLink", deepLink
-            );
-
-            notificationService.notify(NotificationRequest.builder()
-                    .recipientId(ss.getUser().getId())
-                    .type(NotificationType.SEARCH_ALERT_MATCH)
-                    .entityType(EntityType.SAVED_SEARCH)
-                    .entityId(ss.getId().toString())
-                    .params(params)
-                    .collapseKey("search-alert:" + ss.getId())
-                    .build());
+            if (!rideMatches.isEmpty()) {
+                emitKindNotification(ss, rideMatches, ResultKind.RIDE);
+            }
+            if (!seatMatches.isEmpty()) {
+                emitKindNotification(ss, seatMatches, ResultKind.SEAT);
+            }
 
             ss.setLastPushSentAt(now);
             markPushSentAndCollectDeletable(matches, toDelete);
@@ -118,6 +129,125 @@ public class SearchAlertPushScheduler {
         }
 
         log.debug("Push scheduler processed {} groups, deleted {} outbox rows", grouped.size(), toDelete.size());
+    }
+
+    private void emitKindNotification(SavedSearch ss, List<SearchAlertMatch> matches, ResultKind kind) {
+        int matchCount = matches.size();
+        EntityType entityType = kind == ResultKind.SEAT ? EntityType.SEAT : EntityType.RIDE;
+        List<NotificationParamsEnricher.SearchAlertMatchInfo> matchInfos =
+                buildMatchInfos(matches, kind);
+
+        if (matchCount == 1) {
+            long id = kind == ResultKind.SEAT
+                    ? matches.getFirst().getSeatId()
+                    : matches.getFirst().getRideId();
+            String deepLink = enricher.buildSearchAlertEntityDeepLink(kind, id);
+
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("origin", ss.getOriginName());
+            params.put("destination", ss.getDestinationName());
+            params.put("matchCount", "1");
+            params.put("deepLink", deepLink);
+            params.putAll(enricher.enrichSearchAlertSingle(
+                    ss, matchInfos.isEmpty() ? null : matchInfos.getFirst()));
+
+            notificationService.notify(NotificationRequest.builder()
+                    .recipientId(ss.getUser().getId())
+                    .type(NotificationType.SEARCH_ALERT_MATCH)
+                    .entityType(entityType)
+                    .entityId(String.valueOf(id))
+                    .targetType(TargetType.ENTITY)
+                    .params(params)
+                    .collapseKey("search-alert:" + ss.getId() + ":" + kind.name().toLowerCase() + ":" + id)
+                    .build());
+            return;
+        }
+
+        String listRoutePrefix = kind == ResultKind.SEAT ? "/seats/list" : "/rides/list";
+        var listFilters = enricher.buildSearchAlertListFilters(ss, listRoutePrefix);
+
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("origin", ss.getOriginName());
+        params.put("destination", ss.getDestinationName());
+        params.put("matchCount", String.valueOf(matchCount));
+        params.put("deepLink", listFilters.deepLink());
+        params.putAll(enricher.enrichSearchAlertMulti(ss, matchInfos));
+
+        notificationService.notify(NotificationRequest.builder()
+                .recipientId(ss.getUser().getId())
+                .type(NotificationType.SEARCH_ALERT_MATCH)
+                .entityType(EntityType.SAVED_SEARCH)
+                .entityId(ss.getId().toString())
+                .targetType(TargetType.LIST)
+                .resultKind(kind)
+                .listFilters(listFilters.filters())
+                .params(params)
+                .collapseKey("search-alert:" + ss.getId() + ":" + kind.name().toLowerCase())
+                .build());
+    }
+
+    /**
+     * Hydrate the rich preview info (departure time, counterparty name, price)
+     * for the matches that survived filtering. Sorted ascending by departure
+     * so the multi-match enricher can pick {@code earliestDeparture} and the
+     * preview rows render in chronological order.
+     */
+    private List<NotificationParamsEnricher.SearchAlertMatchInfo> buildMatchInfos(
+            List<SearchAlertMatch> matches, ResultKind kind) {
+        if (matches.isEmpty()) return List.of();
+
+        List<Long> ids = new ArrayList<>(matches.size());
+        for (var m : matches) {
+            Long id = kind == ResultKind.SEAT ? m.getSeatId() : m.getRideId();
+            if (id != null) ids.add(id);
+        }
+        if (ids.isEmpty()) return List.of();
+
+        List<NotificationParamsEnricher.SearchAlertMatchInfo> infos = new ArrayList<>();
+        if (kind == ResultKind.SEAT) {
+            var seats = seatRepository.findAllById(ids);
+            // Resolve passenger names in one pass to avoid N+1.
+            Map<Long, String> nameById = resolveDisplayNames(
+                    seats.stream().map(Seat::getPassenger).toList());
+            for (var s : seats) {
+                infos.add(new NotificationParamsEnricher.SearchAlertMatchInfo(
+                        s.getDepartureTime(),
+                        nameById.get(s.getPassenger() != null ? s.getPassenger().getId() : null),
+                        s.getPriceWillingToPay()));
+            }
+        } else {
+            var rides = rideRepository.findAllById(ids);
+            Map<Long, String> nameById = resolveDisplayNames(
+                    rides.stream().map(Ride::getDriver).toList());
+            for (var r : rides) {
+                infos.add(new NotificationParamsEnricher.SearchAlertMatchInfo(
+                        r.getDepartureTime(),
+                        nameById.get(r.getDriver() != null ? r.getDriver().getId() : null),
+                        r.getPricePerSeat()));
+            }
+        }
+        infos.sort(Comparator.comparing(
+                NotificationParamsEnricher.SearchAlertMatchInfo::departureTime,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+        return infos;
+    }
+
+    private Map<Long, String> resolveDisplayNames(List<UserAccount> users) {
+        Map<Long, String> result = new HashMap<>();
+        if (users == null || users.isEmpty()) return result;
+        List<Long> userIds = users.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(UserAccount::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, UserProfile> profiles = userProfileRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserProfile::getId, p -> p, (a, b) -> a));
+        for (Long uid : userIds) {
+            String name = displayNameResolver.resolveInternal(profiles.get(uid), uid);
+            if (name != null) result.put(uid, name);
+        }
+        return result;
     }
 
     private void markPushSentAndCollectDeletable(List<SearchAlertMatch> matches, List<Long> toDelete) {

@@ -5,6 +5,7 @@ import com.vamigo.notification.NotificationParamsEnricher;
 import com.vamigo.notification.NotificationRequest;
 import com.vamigo.notification.NotificationService;
 import com.vamigo.notification.NotificationType;
+import com.vamigo.notification.TargetType;
 import com.vamigo.user.UserProfile;
 import com.vamigo.user.UserProfileRepository;
 import org.slf4j.Logger;
@@ -72,7 +73,8 @@ public class ReviewPublishScheduler {
                         .recipientId(subjectId)
                         .type(NotificationType.REVIEW_RECEIVED)
                         .entityType(EntityType.REVIEW)
-                        .entityId(review.getId().toString())
+                        .entityId(subjectId.toString())
+                        .targetType(TargetType.ENTITY)
                         .params(params)
                         .collapseKey("review-received:" + subjectId)
                         .build());

@@ -1,5 +1,7 @@
 package com.vamigo.notification;
 
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -20,6 +22,8 @@ import java.util.Map;
 public class FcmPushNotificationService implements PushNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(FcmPushNotificationService.class);
+    /** Matches the Android channel created on the client in notification_channel.dart. */
+    private static final String DEFAULT_ANDROID_CHANNEL_ID = "vamigo_default";
 
     private final DeviceTokenRepository deviceTokenRepository;
 
@@ -41,16 +45,35 @@ public class FcmPushNotificationService implements PushNotificationService {
                 .setBody(body)
                 .build();
 
+        // Render BigText on Android when the renderer produced an expanded body.
+        // Firebase Admin auto-applies BigText style for multi-line bodies; we
+        // also pin the channel ID so collapsed display matches the in-app
+        // local-notification channel.
+        String bigBody = data.get("bigBody");
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setNotification(AndroidNotification.builder()
+                        .setTitle(title)
+                        .setBody(bigBody != null && !bigBody.isBlank() ? bigBody : body)
+                        .setChannelId(DEFAULT_ANDROID_CHANNEL_ID)
+                        .build())
+                .build();
+
         for (DeviceToken deviceToken : tokens) {
             try {
                 Message message = Message.builder()
                         .setToken(deviceToken.getToken())
                         .setNotification(notification)
+                        .setAndroidConfig(androidConfig)
                         .putAllData(data)
                         .build();
 
                 FirebaseMessaging.getInstance().send(message);
-                log.debug("Push sent to user {} on device {}", userId, deviceToken.getId());
+                log.info("[telemetry] push_received user={} type={} targetType={} entityType={} entityId={}",
+                        userId,
+                        data.getOrDefault("type", ""),
+                        data.getOrDefault("targetType", ""),
+                        data.getOrDefault("entityType", ""),
+                        data.getOrDefault("entityId", ""));
 
             } catch (FirebaseMessagingException e) {
                 if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED

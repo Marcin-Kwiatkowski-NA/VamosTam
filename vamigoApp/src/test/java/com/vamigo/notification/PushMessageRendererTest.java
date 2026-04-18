@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Map;
 
@@ -15,7 +16,7 @@ class PushMessageRendererTest {
 
     @BeforeEach
     void setUp() {
-        renderer = new PushMessageRenderer();
+        renderer = new PushMessageRenderer(JsonMapper.builder().build());
     }
 
     @Nested

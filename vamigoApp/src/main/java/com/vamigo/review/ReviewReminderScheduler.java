@@ -7,6 +7,7 @@ import com.vamigo.notification.NotificationParamsEnricher;
 import com.vamigo.notification.NotificationRequest;
 import com.vamigo.notification.NotificationService;
 import com.vamigo.notification.NotificationType;
+import com.vamigo.notification.TargetType;
 import com.vamigo.ride.Ride;
 import com.vamigo.ride.RideBooking;
 import com.vamigo.ride.RideBookingRepository;
@@ -114,6 +115,7 @@ public class ReviewReminderScheduler {
                     .type(NotificationType.REVIEW_REMINDER)
                     .entityType(EntityType.RIDE)
                     .entityId(ride.getId().toString())
+                    .targetType(TargetType.ENTITY)
                     .params(enriched.toMap())
                     .collapseKey("review-reminder:" + booking.getId() + ":" + userId)
                     .build());

@@ -1,8 +1,10 @@
 package com.vamigo.notification;
 
 import com.vamigo.auth.AppPrincipal;
+import com.vamigo.notification.dto.MarkReadByEntityRequest;
 import com.vamigo.notification.dto.NotificationPageDto;
 import com.vamigo.notification.dto.UnreadCountDto;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,6 +49,18 @@ public class NotificationController {
     public ResponseEntity<Void> markAllRead(
             @AuthenticationPrincipal AppPrincipal principal) {
         notificationService.markAllRead(principal.userId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Context-aware mark-read: clears the caller's unread bell rows targeting
+     * a single entity. Idempotent — returns 204 even if 0 rows match.
+     */
+    @PostMapping("/read-by-entity")
+    public ResponseEntity<Void> markReadByEntity(
+            @Valid @RequestBody MarkReadByEntityRequest request,
+            @AuthenticationPrincipal AppPrincipal principal) {
+        notificationService.markReadByEntity(principal.userId(), request.entityType(), request.entityId());
         return ResponseEntity.noContent().build();
     }
 }

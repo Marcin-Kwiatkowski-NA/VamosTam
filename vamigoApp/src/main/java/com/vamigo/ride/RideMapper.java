@@ -45,6 +45,8 @@ public abstract class RideMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "stops", ignore = true)
     @Mapping(target = "bookings", ignore = true)
+    @Mapping(target = "activeBookings", ignore = true)
+    @Mapping(target = "confirmedBookings", ignore = true)
     @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
     @Mapping(target = "timePrecision", ignore = true)

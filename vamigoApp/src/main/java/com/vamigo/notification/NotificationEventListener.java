@@ -77,6 +77,7 @@ public class NotificationEventListener {
                     .type(NotificationType.BOOKING_CANCELLED)
                     .entityType(EntityType.RIDE)
                     .entityId(event.rideId().toString())
+                    .targetType(TargetType.ENTITY)
                     .params(enriched.toMap())
                     .collapseKey("booking:" + event.bookingId())
                     .build());
@@ -124,6 +125,7 @@ public class NotificationEventListener {
                     .type(NotificationType.CHAT_MESSAGE_NEW)
                     .entityType(EntityType.CONVERSATION)
                     .entityId(event.conversationId().toString())
+                    .targetType(TargetType.ENTITY)
                     .params(enriched.toMap())
                     .collapseKey("conv:" + event.conversationId())
                     .build());
@@ -146,6 +148,7 @@ public class NotificationEventListener {
                     .type(type)
                     .entityType(EntityType.RIDE)
                     .entityId(rideId.toString())
+                    .targetType(TargetType.ENTITY)
                     .params(enriched.toMap())
                     .collapseKey("booking:" + bookingId)
                     .build());

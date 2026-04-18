@@ -12,10 +12,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,6 +37,7 @@ class NotificationServiceTest {
     @Mock private PushNotificationService pushNotificationService;
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private PushMessageRenderer pushMessageRenderer;
+    @Spy private JsonMapper jsonMapper = JsonMapper.builder().build();
     @InjectMocks private NotificationService notificationService;
 
     private UserAccount recipient;
@@ -90,7 +93,7 @@ class NotificationServiceTest {
             assertEquals(5L, alert.unreadCount());
 
             // Verify push uses renderer and includes deepLink
-            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
+            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.captor();
             verify(pushNotificationService).sendToUser(eq(1L),
                     eq("Krakow → Warsaw"), eq("Jan wants to join your ride"), dataCaptor.capture());
             assertEquals("/my-offer/r-42", dataCaptor.getValue().get("deepLink"));
@@ -162,7 +165,7 @@ class NotificationServiceTest {
                     eq("Message about Krakow → Warsaw"), anyMap());
 
             // Verify deep link is included in FCM data
-            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
+            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.captor();
             verify(pushNotificationService).sendToUser(eq(1L), anyString(), anyString(), dataCaptor.capture());
             assertEquals("/chat/conv-uuid", dataCaptor.getValue().get("deepLink"));
 
