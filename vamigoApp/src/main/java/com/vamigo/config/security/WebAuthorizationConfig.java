@@ -4,6 +4,7 @@ import com.vamigo.auth.AuthSecurityProperties;
 import com.vamigo.auth.filter.ApiKeyAuthenticationFilter;
 import com.vamigo.auth.filter.IpRateLimitFilter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -82,11 +83,20 @@ public class WebAuthorizationConfig {
     }
 
     @Bean
-    @Order(3)
-    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        var ipRateLimitFilter = new IpRateLimitFilter(
-                authSecurityProperties.rateLimit().requestsPerMinute());
+    IpRateLimitFilter ipRateLimitFilter() {
+        return new IpRateLimitFilter(authSecurityProperties.rateLimit().requestsPerMinute());
+    }
 
+    @Bean
+    FilterRegistrationBean<IpRateLimitFilter> ipRateLimitFilterRegistration(IpRateLimitFilter filter) {
+        FilterRegistrationBean<IpRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    @Order(3)
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, IpRateLimitFilter ipRateLimitFilter) throws Exception {
         http.formLogin(AbstractHttpConfigurer::disable);
 
         http

@@ -41,6 +41,7 @@
 		<bucket4j.version>8.16.1</bucket4j.version>
 		<firebase-admin.version>9.7.1</firebase-admin.version>
 		<wiremock.version>3.13.1</wiremock.version>
+		<wiremock-spring-boot.version>4.2.1</wiremock-spring-boot.version>
 		<awaitility.version>4.3.0</awaitility.version>
 		<archunit.version>1.4.1</archunit.version>
 	</properties>
@@ -135,6 +136,11 @@
 				<groupId>org.wiremock</groupId>
 				<artifactId>wiremock-standalone</artifactId>
 				<version>${wiremock.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.wiremock.integrations</groupId>
+				<artifactId>wiremock-spring-boot</artifactId>
+				<version>${wiremock-spring-boot.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.awaitility</groupId>

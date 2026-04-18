@@ -30,6 +30,10 @@ public class IpRateLimitFilter extends OncePerRequestFilter {
                 .build();
     }
 
+    public void reset() {
+        buckets.invalidateAll();
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !request.getRequestURI().startsWith("/auth/");

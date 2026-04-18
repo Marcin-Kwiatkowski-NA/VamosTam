@@ -13,6 +13,7 @@ import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.exceptions.RideDepartedException;
 import com.vamigo.exceptions.RideNotBookableException;
+import com.vamigo.domain.Status;
 import com.vamigo.ride.dto.BookRideRequest;
 import com.vamigo.ride.dto.BookingResponseDto;
 import com.vamigo.ride.event.BookingCancelledEvent;
@@ -106,7 +107,7 @@ public class BookingServiceImpl implements BookingService {
         UserAccount passenger = userAccountRepository.findById(passengerId)
                 .orElseThrow(() -> new NoSuchUserException(passengerId));
 
-        if (ride.getRideStatus() != RideStatus.OPEN) {
+        if (ride.getStatus() != Status.ACTIVE) {
             throw new RideNotBookableException(rideId, ride.getRideStatus().name());
         }
 
