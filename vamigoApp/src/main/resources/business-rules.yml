@@ -34,7 +34,8 @@ notification:
 search-alert:
   push-check-interval-ms: ${SEARCH_ALERT_PUSH_CHECK_INTERVAL_MS:300000}
   push-interval-hours: ${SEARCH_ALERT_PUSH_INTERVAL_HOURS:2}
-  email-cron: ${SEARCH_ALERT_EMAIL_CRON:0 0 8 * * ?}
+  email-cron: ${SEARCH_ALERT_EMAIL_CRON:0 0 7,14,20 * * ?}
+  email-zone: ${SEARCH_ALERT_EMAIL_ZONE:Europe/Warsaw}
   max-alerts-per-user: ${SEARCH_ALERT_MAX_PER_USER:10}
   expiry-cron: ${SEARCH_ALERT_EXPIRY_CRON:0 5 0 * * ?}
   expiry-zone: ${SEARCH_ALERT_EXPIRY_ZONE:Europe/Warsaw}

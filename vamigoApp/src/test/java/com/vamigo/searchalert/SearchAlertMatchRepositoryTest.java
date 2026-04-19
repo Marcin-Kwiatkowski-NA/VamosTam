@@ -61,8 +61,8 @@ class SearchAlertMatchRepositoryTest extends AbstractIntegrationTest {
     class FindUnsentEmailTests {
 
         @Test
-        @DisplayName("Returns only unsent matches that are flagged as exact")
-        void returnsOnlyUnsentExactMatches() {
+        @DisplayName("Returns every unsent match regardless of exact/nearby flag")
+        void returnsAllUnsentMatches() {
             em.persistAndFlush(match().rideId(10L).emailSent(false).exactMatch(true).build());
             em.persistAndFlush(match().rideId(11L).emailSent(false).exactMatch(false).build());
             em.persistAndFlush(match().rideId(12L).emailSent(true).exactMatch(true).build());
@@ -70,11 +70,10 @@ class SearchAlertMatchRepositoryTest extends AbstractIntegrationTest {
 
             List<SearchAlertMatch> result = repository.findUnsentEmail();
 
-            assertThat(result).hasSize(1)
-                    .first().satisfies(m -> {
-                        assertThat(m.isExactMatch()).isTrue();
-                        assertThat(m.isEmailSent()).isFalse();
-                    });
+            assertThat(result).hasSize(2)
+                    .allSatisfy(m -> assertThat(m.isEmailSent()).isFalse())
+                    .extracting(SearchAlertMatch::getRideId)
+                    .containsExactlyInAnyOrder(10L, 11L);
         }
     }
 

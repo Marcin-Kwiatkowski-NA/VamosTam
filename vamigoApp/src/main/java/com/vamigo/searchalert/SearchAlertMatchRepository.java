@@ -20,7 +20,7 @@ public interface SearchAlertMatchRepository extends JpaRepository<SearchAlertMat
     @Query("""
             SELECT m FROM SearchAlertMatch m
             JOIN FETCH m.savedSearch ss
-            WHERE m.emailSent = false AND m.exactMatch = true
+            WHERE m.emailSent = false
             ORDER BY ss.id, m.createdAt
             """)
     List<SearchAlertMatch> findUnsentEmail();

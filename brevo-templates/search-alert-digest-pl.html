@@ -20,8 +20,14 @@
                         <td style="padding:20px;">
                             <p style="margin:0 0 4px;font-size:14px;color:#666;">Trasa</p>
                             <p style="margin:0 0 12px;font-size:18px;font-weight:600;color:#1a1a1a;">{{params.ROUTE}}</p>
-                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Dopasowania</p>
-                            <p style="margin:0;font-size:18px;font-weight:600;color:#0d7377;">{{params.MATCH_COUNT}} nowych ofert</p>
+                            {% if params.HAS_EXACT == "1" %}
+                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Dopasowania dokładne</p>
+                            <p style="margin:0 0 12px;font-size:18px;font-weight:600;color:#0d7377;">{{params.EXACT_COUNT}} nowych ofert</p>
+                            {% endif %}
+                            {% if params.HAS_NEARBY == "1" %}
+                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Dopasowania w pobliżu (do ~50 km)</p>
+                            <p style="margin:0;font-size:18px;font-weight:600;color:#0d7377;">{{params.NEARBY_COUNT}} nowych ofert</p>
+                            {% endif %}
                         </td>
                     </tr>
                 </table>

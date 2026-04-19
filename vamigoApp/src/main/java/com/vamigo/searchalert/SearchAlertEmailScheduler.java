@@ -39,7 +39,7 @@ public class SearchAlertEmailScheduler {
         this.templateIdPl = templateIdPl;
     }
 
-    @Scheduled(cron = "${search-alert.email-cron}")
+    @Scheduled(cron = "${search-alert.email-cron}", zone = "${search-alert.email-zone}")
     @Transactional
     public void drainEmailOutbox() {
         List<SearchAlertMatch> unsentMatches = matchRepository.findUnsentEmail();
@@ -86,9 +86,14 @@ public class SearchAlertEmailScheduler {
                     unsubscribeToken = userPref.getUnsubscribeToken();
                 }
 
+                long exactCount = matches.stream().filter(SearchAlertMatch::isExactMatch).count();
+                long nearbyCount = matches.size() - exactCount;
+
                 alertItems.add(Map.of(
                         "ROUTE", ss.getLabel(),
                         "MATCH_COUNT", String.valueOf(matches.size()),
+                        "EXACT_COUNT", String.valueOf(exactCount),
+                        "NEARBY_COUNT", String.valueOf(nearbyCount),
                         "DEPARTURE_DATE", ss.getDepartureDate().toString(),
                         "DEEP_LINK", "/rides/list?originOsmId=" + ss.getOriginOsmId()
                                 + "&destinationOsmId=" + ss.getDestinationOsmId()
@@ -104,13 +109,22 @@ public class SearchAlertEmailScheduler {
             }
 
             try {
+                int exactTotal = alertItems.stream()
+                        .mapToInt(a -> Integer.parseInt(a.get("EXACT_COUNT")))
+                        .sum();
+                int nearbyTotal = alertItems.stream()
+                        .mapToInt(a -> Integer.parseInt(a.get("NEARBY_COUNT")))
+                        .sum();
+
                 Map<String, String> params = new LinkedHashMap<>();
                 params.put("ALERT_COUNT", String.valueOf(alertItems.size()));
                 // For simplicity, put first alert data + total count
                 params.put("ROUTE", alertItems.getFirst().get("ROUTE"));
-                params.put("MATCH_COUNT", alertItems.stream()
-                        .mapToInt(a -> Integer.parseInt(a.get("MATCH_COUNT")))
-                        .sum() + "");
+                params.put("MATCH_COUNT", String.valueOf(exactTotal + nearbyTotal));
+                params.put("EXACT_COUNT", String.valueOf(exactTotal));
+                params.put("NEARBY_COUNT", String.valueOf(nearbyTotal));
+                params.put("HAS_EXACT", exactTotal > 0 ? "1" : "0");
+                params.put("HAS_NEARBY", nearbyTotal > 0 ? "1" : "0");
                 params.put("UNSUBSCRIBE_LINK", "/public/search-alerts/unsubscribe?token=" + unsubscribeToken);
 
                 brevoClient.sendTemplateEmail(

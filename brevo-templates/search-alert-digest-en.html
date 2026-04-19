@@ -20,8 +20,14 @@
                         <td style="padding:20px;">
                             <p style="margin:0 0 4px;font-size:14px;color:#666;">Route</p>
                             <p style="margin:0 0 12px;font-size:18px;font-weight:600;color:#1a1a1a;">{{params.ROUTE}}</p>
-                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Matches</p>
-                            <p style="margin:0;font-size:18px;font-weight:600;color:#0d7377;">{{params.MATCH_COUNT}} new offers</p>
+                            {% if params.HAS_EXACT == "1" %}
+                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Exact matches</p>
+                            <p style="margin:0 0 12px;font-size:18px;font-weight:600;color:#0d7377;">{{params.EXACT_COUNT}} new offers</p>
+                            {% endif %}
+                            {% if params.HAS_NEARBY == "1" %}
+                            <p style="margin:0 0 4px;font-size:14px;color:#666;">Nearby matches (within ~50 km)</p>
+                            <p style="margin:0;font-size:18px;font-weight:600;color:#0d7377;">{{params.NEARBY_COUNT}} new offers</p>
+                            {% endif %}
                         </td>
                     </tr>
                 </table>
