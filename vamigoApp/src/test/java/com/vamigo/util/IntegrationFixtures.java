@@ -141,7 +141,7 @@ public class IntegrationFixtures {
                         .departureTime(i == 0 ? FUTURE_DEPARTURE : null)
                         .build())
                 .collect(Collectors.toCollection(ArrayList::new));
-        ride.setStops(stops);
+        ride.replaceStops(stops);
         return rideRepository.save(ride);
     }
 

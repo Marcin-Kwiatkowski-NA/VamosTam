@@ -158,10 +158,8 @@ class NotificationEventListenerTest {
         @Test
         @DisplayName("should notify non-sender participant with enriched chat params")
         void notifiesNonSender() {
-            UserAccount participantA = UserAccount.builder().build();
-            participantA.setId(1L);
-            UserAccount participantB = UserAccount.builder().build();
-            participantB.setId(2L);
+            UserAccount participantA = UserAccount.builder().id(1L).build();
+            UserAccount participantB = UserAccount.builder().id(2L).build();
 
             Message message = Message.builder().messageType(MessageType.USER).body("hello").build();
             Conversation conversation = mock(Conversation.class);

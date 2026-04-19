@@ -50,8 +50,9 @@ public class ReviewPublishScheduler {
 
         log.info("Publishing {} pending reviews", readyToPublish.size());
 
+        Instant now = Instant.now();
         for (Review review : readyToPublish) {
-            review.setStatus(ReviewStatus.PUBLISHED);
+            review.publish(now);
 
             // Update UserStats for the subject
             Long subjectId = review.getSubject().getId();

@@ -70,9 +70,12 @@ class VehicleServiceTest {
     @Test
     @DisplayName("Create a new vehicle successfully")
     void createNewVehicleSuccessfully() {
+        VehicleDetails details = new VehicleDetails(
+                VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, 2022,
+                VEHICLE_COLOR_BLUE, VEHICLE_LICENSE_PLATE_3, null);
         when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(owner));
-        when(vehicleMapper.vehicleCreationDtoToEntity(vehicleCreationDto)).thenReturn(vehicle);
-        when(vehicleRepository.save(vehicle)).thenReturn(vehicle);
+        when(vehicleMapper.vehicleCreationDtoToDetails(vehicleCreationDto)).thenReturn(details);
+        when(vehicleRepository.save(any(Vehicle.class))).thenReturn(vehicle);
         when(vehicleMapper.vehicleEntityToVehicleResponseDto(vehicle)).thenReturn(vehicleResponseDto);
         when(photoUrlResolver.resolve(vehicle)).thenReturn(null);
 
@@ -80,8 +83,8 @@ class VehicleServiceTest {
 
         assertNotNull(result);
         verify(userAccountRepository).findById(ID_ONE);
-        verify(vehicleMapper).vehicleCreationDtoToEntity(vehicleCreationDto);
-        verify(vehicleRepository).save(vehicle);
+        verify(vehicleMapper).vehicleCreationDtoToDetails(vehicleCreationDto);
+        verify(vehicleRepository).save(any(Vehicle.class));
     }
 
     @Test
@@ -97,8 +100,11 @@ class VehicleServiceTest {
     @Test
     @DisplayName("Update an existing vehicle successfully")
     void updateExistingVehicleSuccessfully() {
+        VehicleDetails details = new VehicleDetails(
+                VEHICLE_MAKE_TESLA, VEHICLE_MODEL_MODEL_S, 2022,
+                VEHICLE_COLOR_BLUE, VEHICLE_LICENSE_PLATE_3, null);
         when(vehicleRepository.findByIdAndOwnerId(ID_ONE, ID_ONE)).thenReturn(Optional.of(vehicle));
-        doNothing().when(vehicleMapper).update(vehicle, vehicleCreationDto);
+        when(vehicleMapper.vehicleCreationDtoToDetails(vehicleCreationDto)).thenReturn(details);
         when(vehicleRepository.save(vehicle)).thenReturn(vehicle);
         when(vehicleMapper.vehicleEntityToVehicleResponseDto(vehicle)).thenReturn(vehicleResponseDto);
         when(photoUrlResolver.resolve(vehicle)).thenReturn(null);
@@ -107,7 +113,7 @@ class VehicleServiceTest {
 
         assertNotNull(result);
         verify(vehicleRepository).findByIdAndOwnerId(ID_ONE, ID_ONE);
-        verify(vehicleMapper).update(vehicle, vehicleCreationDto);
+        verify(vehicleMapper).vehicleCreationDtoToDetails(vehicleCreationDto);
         verify(vehicleRepository).save(vehicle);
     }
 
@@ -118,7 +124,7 @@ class VehicleServiceTest {
 
         assertThrows(NoSuchElementException.class,
                 () -> vehicleService.update(ID_ONE, NON_EXISTENT_ID, vehicleCreationDto));
-        verify(vehicleMapper, never()).update(any(), any());
+        verify(vehicleMapper, never()).vehicleCreationDtoToDetails(any());
         verify(vehicleRepository, never()).save(any());
     }
 

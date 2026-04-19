@@ -2,7 +2,11 @@ package com.vamigo.searchalert;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -10,9 +14,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "notification_preference")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class NotificationPreference {
 
@@ -50,5 +53,13 @@ public class NotificationPreference {
     @PreUpdate
     void onUpdate() {
         this.updatedAt = Instant.now();
+    }
+
+    public void setSearchAlertsPushEnabled(boolean enabled) {
+        this.searchAlertsPushEnabled = enabled;
+    }
+
+    public void setSearchAlertsEmailEnabled(boolean enabled) {
+        this.searchAlertsEmailEnabled = enabled;
     }
 }

@@ -187,12 +187,7 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private void resetUnreadCount(Conversation conversation, Long userId) {
-        boolean isParticipantA = conversation.getParticipantA().getId().equals(userId);
-        if (isParticipantA) {
-            conversation.setParticipantAUnreadCount(0);
-        } else {
-            conversation.setParticipantBUnreadCount(0);
-        }
+        conversation.markRead(userId);
         // JPA flushes dirty entities on commit - no explicit save needed
     }
 

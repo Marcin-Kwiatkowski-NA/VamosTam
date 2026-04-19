@@ -50,7 +50,7 @@ class RideExternalMetaRepositoryTest extends AbstractIntegrationTest {
                 .id(null).driver(driver).vehicle(vehicle)
                 .status(Status.ACTIVE).source(RideSource.FACEBOOK)
                 .stops(new ArrayList<>()).bookings(new ArrayList<>()).build();
-        r.getStops().addAll(buildStops(r, origin, destination));
+        r.replaceStops(buildStops(r, origin, destination));
         return em.persistAndFlush(r);
     }
 

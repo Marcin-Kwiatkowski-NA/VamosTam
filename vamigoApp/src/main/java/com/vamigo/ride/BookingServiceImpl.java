@@ -3,17 +3,10 @@ package com.vamigo.ride;
 import com.vamigo.exceptions.AlreadyBookedException;
 import com.vamigo.exceptions.BookingNotFoundException;
 import com.vamigo.exceptions.CannotBookException;
-import com.vamigo.exceptions.CannotBookOwnRideException;
 import com.vamigo.exceptions.CarrierRideNotBookableException;
-import com.vamigo.exceptions.ExternalRideNotBookableException;
-import com.vamigo.exceptions.InsufficientSeatsException;
-import com.vamigo.exceptions.InvalidBookingSegmentException;
-import com.vamigo.exceptions.InvalidBookingTransitionException;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.exceptions.RideDepartedException;
-import com.vamigo.exceptions.RideNotBookableException;
-import com.vamigo.domain.Status;
 import com.vamigo.ride.dto.BookRideRequest;
 import com.vamigo.ride.dto.BookingResponseDto;
 import com.vamigo.ride.event.BookingCancelledEvent;
@@ -32,6 +25,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
@@ -50,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingResponseEnricher bookingResponseEnricher;
     private final CapabilityService capabilityService;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public BookingServiceImpl(RideRepository rideRepository,
                                RideBookingRepository bookingRepository,
@@ -59,7 +54,8 @@ public class BookingServiceImpl implements BookingService {
                                BookingMapper bookingMapper,
                                BookingResponseEnricher bookingResponseEnricher,
                                CapabilityService capabilityService,
-                               ApplicationEventPublisher eventPublisher) {
+                               ApplicationEventPublisher eventPublisher,
+                               Clock clock) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.userAccountRepository = userAccountRepository;
@@ -69,6 +65,7 @@ public class BookingServiceImpl implements BookingService {
         this.bookingResponseEnricher = bookingResponseEnricher;
         this.capabilityService = capabilityService;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Override
@@ -76,10 +73,6 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto createBooking(Long rideId, Long passengerId, BookRideRequest request) {
         Ride ride = rideRepository.findByIdForUpdate(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
-
-        if (ride.getSource() != RideSource.INTERNAL) {
-            throw new ExternalRideNotBookableException(rideId);
-        }
 
         userProfileRepository.findById(ride.getDriver().getId())
                 .filter(p -> p.getAccountType() == AccountType.CARRIER)
@@ -92,10 +85,6 @@ public class BookingServiceImpl implements BookingService {
                     }
                 });
 
-        if (ride.getDriver().getId().equals(passengerId)) {
-            throw new CannotBookOwnRideException(rideId);
-        }
-
         if (!capabilityService.canBook(passengerId)) {
             throw new CannotBookException(passengerId);
         }
@@ -107,46 +96,18 @@ public class BookingServiceImpl implements BookingService {
         UserAccount passenger = userAccountRepository.findById(passengerId)
                 .orElseThrow(() -> new NoSuchUserException(passengerId));
 
-        if (ride.getStatus() != Status.ACTIVE) {
-            throw new RideNotBookableException(rideId, ride.getRideStatus().name());
-        }
-
-        RideStop boardStop = findStop(ride, request.boardStopOsmId());
-        RideStop alightStop = findStop(ride, request.alightStopOsmId());
-
-        if (boardStop.getStopOrder() >= alightStop.getStopOrder()) {
-            throw new InvalidBookingSegmentException(rideId,
-                    "Board stop must come before alight stop");
-        }
-
-        int available = ride.getAvailableSeatsForSegment(
-                boardStop.getStopOrder(), alightStop.getStopOrder());
-        if (available < request.seatCount()) {
-            throw new InsufficientSeatsException(rideId, request.seatCount(), available);
-        }
-
-        BookingStatus initialStatus = ride.isAutoApprove()
-                ? BookingStatus.CONFIRMED
-                : BookingStatus.PENDING;
-
-        RideBooking booking = RideBooking.builder()
-                .ride(ride)
-                .passenger(passenger)
-                .boardStop(boardStop)
-                .alightStop(alightStop)
-                .status(initialStatus)
-                .seatCount(request.seatCount())
-                .proposedPrice(request.proposedPrice())
-                .bookedAt(Instant.now())
-                .resolvedAt(initialStatus == BookingStatus.CONFIRMED ? Instant.now() : null)
-                .build();
+        RideBooking booking = ride.addBooking(
+                passenger,
+                request.boardStopOsmId(),
+                request.alightStopOsmId(),
+                request.seatCount(),
+                request.proposedPrice(),
+                Instant.now(clock));
 
         bookingRepository.save(booking);
-        ride.setLastModified(Instant.now());
-        rideRepository.save(ride);
 
         Long driverId = ride.getDriver().getId();
-        if (initialStatus == BookingStatus.PENDING) {
+        if (booking.getStatus() == BookingStatus.PENDING) {
             eventPublisher.publishEvent(new BookingRequestedEvent(
                     booking.getId(), rideId, passengerId, driverId));
         } else {
@@ -161,7 +122,11 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public BookingResponseDto getBooking(Long rideId, Long bookingId, Long userId) {
-        RideBooking booking = findBookingForRide(rideId, bookingId);
+        RideBooking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(rideId, bookingId));
+        if (!booking.getRide().getId().equals(rideId)) {
+            throw new BookingNotFoundException(rideId, bookingId);
+        }
 
         Long driverId = booking.getRide().getDriver().getId();
         Long passengerId = booking.getPassenger().getId();
@@ -180,22 +145,9 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
         verifyDriver(ride, driverId);
+        verifyBookingBelongsToRide(ride, rideId, bookingId);
 
-        RideBooking booking = findBookingForRide(rideId, bookingId);
-        guardTransition(booking, BookingStatus.CONFIRMED);
-
-        int available = ride.getAvailableSeatsForSegment(
-                booking.getBoardStop().getStopOrder(),
-                booking.getAlightStop().getStopOrder());
-        // Subtract this booking's own seats since it's still PENDING (active) and counted
-        int availableExcludingSelf = available + booking.getSeatCount();
-        if (availableExcludingSelf < booking.getSeatCount()) {
-            throw new InsufficientSeatsException(rideId, booking.getSeatCount(), availableExcludingSelf);
-        }
-
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setResolvedAt(Instant.now());
-        ride.setLastModified(Instant.now());
+        RideBooking booking = ride.confirmBooking(bookingId, Instant.now(clock));
 
         eventPublisher.publishEvent(new BookingConfirmedEvent(
                 booking.getId(), rideId, booking.getPassenger().getId(), driverId));
@@ -211,13 +163,9 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
         verifyDriver(ride, driverId);
+        verifyBookingBelongsToRide(ride, rideId, bookingId);
 
-        RideBooking booking = findBookingForRide(rideId, bookingId);
-        guardTransition(booking, BookingStatus.REJECTED);
-
-        booking.setStatus(BookingStatus.REJECTED);
-        booking.setResolvedAt(Instant.now());
-        ride.setLastModified(Instant.now());
+        RideBooking booking = ride.rejectBooking(bookingId, Instant.now(clock));
 
         eventPublisher.publishEvent(new BookingRejectedEvent(
                 booking.getId(), rideId, booking.getPassenger().getId(), driverId));
@@ -232,9 +180,9 @@ public class BookingServiceImpl implements BookingService {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NoSuchRideException(rideId));
 
-        RideBooking booking = findBookingForRide(rideId, bookingId);
+        RideBooking booking = findBookingInRide(ride, rideId, bookingId);
 
-        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(Instant.now())) {
+        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(Instant.now(clock))) {
             throw new RideDepartedException(rideId);
         }
 
@@ -254,24 +202,14 @@ public class BookingServiceImpl implements BookingService {
         Long driverId = ride.getDriver().getId();
         Long passengerId = booking.getPassenger().getId();
 
-        BookingStatus targetStatus;
+        Instant now = Instant.now(clock);
         if (userId.equals(driverId)) {
-            targetStatus = BookingStatus.CANCELLED_BY_DRIVER;
+            ride.cancelBookingByDriver(bookingId, reason, now);
         } else if (userId.equals(passengerId)) {
-            targetStatus = BookingStatus.CANCELLED_BY_PASSENGER;
+            ride.cancelBookingByPassenger(bookingId, reason, now);
         } else {
             throw new NotRideDriverException(rideId, userId);
         }
-
-        guardTransition(booking, targetStatus);
-
-        booking.setStatus(targetStatus);
-        booking.setResolvedAt(Instant.now());
-        if (reason != null && !reason.isBlank()) {
-            booking.setCancellationReason(reason);
-        }
-        booking.setCancelledAt(Instant.now());
-        ride.setLastModified(Instant.now());
 
         eventPublisher.publishEvent(new BookingCancelledEvent(
                 booking.getId(), rideId, passengerId, driverId, userId, reason));
@@ -307,13 +245,11 @@ public class BookingServiceImpl implements BookingService {
         return bookingResponseEnricher.enrichForPassenger(bookings, dtos);
     }
 
-    private RideBooking findBookingForRide(Long rideId, Long bookingId) {
-        RideBooking booking = bookingRepository.findById(bookingId)
+    private RideBooking findBookingInRide(Ride ride, Long rideId, Long bookingId) {
+        return ride.getBookings().stream()
+                .filter(b -> bookingId.equals(b.getId()))
+                .findFirst()
                 .orElseThrow(() -> new BookingNotFoundException(rideId, bookingId));
-        if (!booking.getRide().getId().equals(rideId)) {
-            throw new BookingNotFoundException(rideId, bookingId);
-        }
-        return booking;
     }
 
     private void verifyDriver(Ride ride, Long userId) {
@@ -322,17 +258,11 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void guardTransition(RideBooking booking, BookingStatus target) {
-        if (!booking.getStatus().canTransitionTo(target)) {
-            throw new InvalidBookingTransitionException(booking.getId(), booking.getStatus(), target);
+    private void verifyBookingBelongsToRide(Ride ride, Long rideId, Long bookingId) {
+        boolean exists = ride.getBookings().stream()
+                .anyMatch(b -> bookingId.equals(b.getId()));
+        if (!exists) {
+            throw new BookingNotFoundException(rideId, bookingId);
         }
-    }
-
-    private RideStop findStop(Ride ride, Long osmId) {
-        return ride.getStops().stream()
-                .filter(s -> s.getLocation().getOsmId().equals(osmId))
-                .findFirst()
-                .orElseThrow(() -> new InvalidBookingSegmentException(
-                        ride.getId(), "Stop with osmId " + osmId + " not found on this ride"));
     }
 }

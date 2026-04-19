@@ -41,9 +41,9 @@ public class BookingExpiryScheduler {
 
         log.info("Expiring {} stale PENDING bookings (TTL: {} min)", stale.size(), pendingTtlMinutes);
 
+        Instant now = Instant.now();
         for (RideBooking booking : stale) {
-            booking.setStatus(BookingStatus.EXPIRED);
-            booking.setResolvedAt(Instant.now());
+            booking.expire(now);
 
             eventPublisher.publishEvent(new BookingExpiredEvent(
                     booking.getId(),

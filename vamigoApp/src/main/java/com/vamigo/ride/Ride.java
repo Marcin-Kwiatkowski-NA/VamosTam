@@ -1,7 +1,14 @@
 package com.vamigo.ride;
 
 import com.vamigo.domain.AbstractTrip;
+import com.vamigo.domain.Status;
 import com.vamigo.domain.TimePrecision;
+import com.vamigo.exceptions.BookingNotFoundException;
+import com.vamigo.exceptions.CannotBookOwnRideException;
+import com.vamigo.exceptions.ExternalRideNotBookableException;
+import com.vamigo.exceptions.InsufficientSeatsException;
+import com.vamigo.exceptions.InvalidBookingSegmentException;
+import com.vamigo.exceptions.RideNotBookableException;
 import com.vamigo.location.Location;
 import com.vamigo.user.UserAccount;
 import com.vamigo.vehicle.Vehicle;
@@ -13,22 +20,23 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @SuperBuilder
 public class Ride extends AbstractTrip {
 
@@ -72,6 +80,183 @@ public class Ride extends AbstractTrip {
 
     @Column(name = "estimated_arrival_at")
     private Instant estimatedArrivalAt;
+
+    public List<RideStop> getStops() {
+        return stops == null ? List.of() : Collections.unmodifiableList(stops);
+    }
+
+    public List<RideBooking> getBookings() {
+        return bookings == null ? List.of() : Collections.unmodifiableList(bookings);
+    }
+
+    public void replaceStops(List<RideStop> newStops) {
+        if (this.stops == null) {
+            this.stops = new ArrayList<>();
+        } else {
+            this.stops.clear();
+        }
+        if (newStops != null) {
+            this.stops.addAll(newStops);
+        }
+    }
+
+    public void replaceBookings(List<RideBooking> newBookings) {
+        if (this.bookings == null) {
+            this.bookings = new ArrayList<>();
+        } else {
+            this.bookings.clear();
+        }
+        if (newBookings != null) {
+            this.bookings.addAll(newBookings);
+        }
+    }
+
+    public void assignDriver(UserAccount driver) {
+        this.driver = driver;
+    }
+
+    public void assignVehicle(Vehicle vehicle) {
+        this.vehicle = vehicle;
+    }
+
+    public void clearVehicle() {
+        this.vehicle = null;
+    }
+
+    public void updateDetails(RideDetails details) {
+        this.departureTime = details.departureTime();
+        this.timePrecision = details.timePrecision();
+        this.totalSeats = details.totalSeats();
+        this.pricePerSeat = details.pricePerSeat();
+        this.autoApprove = details.timePrecision() != TimePrecision.EXACT ? false : details.autoApprove();
+        this.doorToDoor = details.doorToDoor();
+        this.acceptsPackages = details.acceptsPackages();
+        applyCommonDetails(details.description(), details.contactPhone(), details.currency());
+    }
+
+    public void recomputeArrival(Instant estimatedArrivalAt) {
+        this.estimatedArrivalAt = estimatedArrivalAt;
+    }
+
+    public RideBooking addBooking(UserAccount passenger,
+                                   Long boardStopOsmId,
+                                   Long alightStopOsmId,
+                                   int seatCount,
+                                   BigDecimal proposedPrice,
+                                   Instant now) {
+        if (getSource() != RideSource.INTERNAL) {
+            throw new ExternalRideNotBookableException(getId());
+        }
+        if (getStatus() != Status.ACTIVE) {
+            throw new RideNotBookableException(getId(), getRideStatus().name());
+        }
+        if (driver != null && driver.getId().equals(passenger.getId())) {
+            throw new CannotBookOwnRideException(getId());
+        }
+
+        RideStop boardStop = findStopByOsmId(boardStopOsmId);
+        RideStop alightStop = findStopByOsmId(alightStopOsmId);
+        if (boardStop.getStopOrder() >= alightStop.getStopOrder()) {
+            throw new InvalidBookingSegmentException(getId(),
+                    "Board stop must come before alight stop");
+        }
+
+        int available = getAvailableSeatsForSegment(
+                boardStop.getStopOrder(), alightStop.getStopOrder());
+        if (available < seatCount) {
+            throw new InsufficientSeatsException(getId(), seatCount, available);
+        }
+
+        BookingStatus initialStatus = autoApprove
+                ? BookingStatus.CONFIRMED
+                : BookingStatus.PENDING;
+
+        RideBooking booking = RideBooking.builder()
+                .ride(this)
+                .passenger(passenger)
+                .boardStop(boardStop)
+                .alightStop(alightStop)
+                .status(initialStatus)
+                .seatCount(seatCount)
+                .proposedPrice(proposedPrice)
+                .bookedAt(now)
+                .resolvedAt(initialStatus == BookingStatus.CONFIRMED ? now : null)
+                .build();
+
+        if (this.bookings == null) {
+            this.bookings = new ArrayList<>();
+        }
+        this.bookings.add(booking);
+        touchLastModified(now);
+        return booking;
+    }
+
+    public RideBooking confirmBooking(Long bookingId, Instant now) {
+        RideBooking booking = findBookingById(bookingId);
+        int available = getAvailableSeatsForSegment(
+                booking.getBoardStop().getStopOrder(),
+                booking.getAlightStop().getStopOrder());
+        // Booking is still PENDING so its seats are already counted; add them back to compare.
+        int availableExcludingSelf = available + booking.getSeatCount();
+        if (availableExcludingSelf < booking.getSeatCount()) {
+            throw new InsufficientSeatsException(getId(), booking.getSeatCount(), availableExcludingSelf);
+        }
+        booking.confirm(now);
+        touchLastModified(now);
+        return booking;
+    }
+
+    public RideBooking rejectBooking(Long bookingId, Instant now) {
+        RideBooking booking = findBookingById(bookingId);
+        booking.reject(now);
+        touchLastModified(now);
+        return booking;
+    }
+
+    public RideBooking cancelBookingByDriver(Long bookingId, String reason, Instant now) {
+        RideBooking booking = findBookingById(bookingId);
+        booking.cancelByDriver(reason, now);
+        touchLastModified(now);
+        return booking;
+    }
+
+    public RideBooking cancelBookingByPassenger(Long bookingId, String reason, Instant now) {
+        RideBooking booking = findBookingById(bookingId);
+        booking.cancelByPassenger(reason, now);
+        touchLastModified(now);
+        return booking;
+    }
+
+    private RideStop findStopByOsmId(Long osmId) {
+        return getStops().stream()
+                .filter(s -> s.getLocation().getOsmId().equals(osmId))
+                .findFirst()
+                .orElseThrow(() -> new InvalidBookingSegmentException(
+                        getId(), "Stop with osmId " + osmId + " not found on this ride"));
+    }
+
+    private RideBooking findBookingById(Long bookingId) {
+        if (bookings == null) {
+            throw new BookingNotFoundException(getId(), bookingId);
+        }
+        return bookings.stream()
+                .filter(b -> bookingId.equals(b.getId()))
+                .findFirst()
+                .orElseThrow(() -> new BookingNotFoundException(getId(), bookingId));
+    }
+
+    public void markCompleted(Instant now) {
+        changeStatus(Status.COMPLETED);
+        this.completedAt = now;
+    }
+
+    public void markExpired() {
+        changeStatus(Status.EXPIRED);
+    }
+
+    public void cancel() {
+        changeStatus(Status.CANCELLED);
+    }
 
     public Location getOrigin() {
         return stops.get(0).getLocation();

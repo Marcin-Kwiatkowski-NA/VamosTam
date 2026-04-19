@@ -34,15 +34,7 @@ public class UserProfileService {
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 
-        if (request.displayName() != null) {
-            profile.setDisplayName(request.displayName());
-        }
-        if (request.bio() != null) {
-            profile.setBio(request.bio());
-        }
-        if (request.phoneNumber() != null) {
-            profile.setPhoneNumber(request.phoneNumber());
-        }
+        profile.updateFrom(request);
 
         userProfileRepository.save(profile);
 

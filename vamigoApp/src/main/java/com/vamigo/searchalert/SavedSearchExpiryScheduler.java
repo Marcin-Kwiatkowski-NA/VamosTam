@@ -2,6 +2,7 @@ package com.vamigo.searchalert;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +18,8 @@ public class SavedSearchExpiryScheduler {
     private final SavedSearchRepository repository;
     private final Clock clock;
 
-    public SavedSearchExpiryScheduler(SavedSearchRepository repository, Clock clock) {
+    public SavedSearchExpiryScheduler(SavedSearchRepository repository,
+                                      @Qualifier("localBusinessClock") Clock clock) {
         this.repository = repository;
         this.clock = clock;
     }

@@ -76,7 +76,7 @@ class RideRepositoryLockIntegrationTest extends AbstractIntegrationTest {
                     .driver(driver).vehicle(vehicle).status(Status.ACTIVE)
                     .stops(new ArrayList<>()).bookings(new ArrayList<>())
                     .build();
-            ride.getStops().addAll(buildStops(ride, origin, destination));
+            ride.replaceStops(buildStops(ride, origin, destination));
             rideRepository.save(ride);
 
             rideId = ride.getId();

@@ -2,12 +2,15 @@ package com.vamigo.messaging;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -24,10 +27,10 @@ import java.util.UUID;
         @Index(name = "idx_conv_updated", columnList = "updated_at")
     }
 )
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class Conversation {
 
@@ -49,9 +52,11 @@ public class Conversation {
     @JoinColumn(name = "participant_b_id", nullable = false)
     private UserAccount participantB;
 
+    @CreatedDate
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;
 
+    @LastModifiedDate
     @Column(nullable = false, name = "updated_at")
     private Instant updatedAt;
 
@@ -87,15 +92,40 @@ public class Conversation {
     @Version
     private int version;
 
-    @PrePersist
-    void onCreate() {
-        Instant now = Instant.now();
-        this.createdAt = now;
-        this.updatedAt = now;
+    public void recordNewMessage(Message saved, Long senderId) {
+        this.lastMessageId = saved.getId();
+        this.lastMessageBody = saved.getBody();
+        this.lastMessageCreatedAt = saved.getCreatedAt();
+        this.lastMessageSenderId = senderId;
+        if (participantA.getId().equals(senderId)) {
+            this.participantBUnreadCount++;
+            this.participantAUnreadCount = 0;
+        } else {
+            this.participantAUnreadCount++;
+            this.participantBUnreadCount = 0;
+        }
     }
 
-    @PreUpdate
-    void onUpdate() {
-        this.updatedAt = Instant.now();
+    public void recordSystemMessage(Message saved, Long actorId) {
+        this.lastMessageId = saved.getId();
+        this.lastMessageBody = saved.getBody();
+        this.lastMessageCreatedAt = saved.getCreatedAt();
+        this.lastMessageSenderId = actorId;
+    }
+
+    public void markRead(Long participantId) {
+        if (participantA.getId().equals(participantId)) {
+            this.participantAUnreadCount = 0;
+        } else if (participantB.getId().equals(participantId)) {
+            this.participantBUnreadCount = 0;
+        }
+    }
+
+    public void recordEmailNotified(Long participantId, Instant when) {
+        if (participantA.getId().equals(participantId)) {
+            this.participantAEmailNotifiedAt = when;
+        } else if (participantB.getId().equals(participantId)) {
+            this.participantBEmailNotifiedAt = when;
+        }
     }
 }

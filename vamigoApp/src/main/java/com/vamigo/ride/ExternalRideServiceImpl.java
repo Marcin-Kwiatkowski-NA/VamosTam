@@ -92,7 +92,7 @@ public class ExternalRideServiceImpl implements ExternalRideService {
                 .departureTime(null)
                 .build());
 
-        saved.setStops(stops);
+        saved.replaceStops(stops);
         rideRepository.save(saved);
 
         RideExternalMeta meta = RideExternalMeta.builder()

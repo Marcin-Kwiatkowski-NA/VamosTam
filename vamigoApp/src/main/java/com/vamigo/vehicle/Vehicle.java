@@ -11,17 +11,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class Vehicle {
 
@@ -49,4 +48,25 @@ public class Vehicle {
     private String description;
 
     private String photoObjectKey;
+
+    public void assignOwner(UserAccount owner) {
+        this.owner = owner;
+    }
+
+    public void updateDetails(VehicleDetails details) {
+        this.make = details.make();
+        this.model = details.model();
+        this.productionYear = details.productionYear();
+        this.color = details.color();
+        this.licensePlate = details.licensePlate();
+        this.description = details.description();
+    }
+
+    public void updatePhoto(String objectKey) {
+        this.photoObjectKey = objectKey;
+    }
+
+    public void clearPhoto() {
+        this.photoObjectKey = null;
+    }
 }

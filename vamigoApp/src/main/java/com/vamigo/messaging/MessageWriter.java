@@ -53,22 +53,7 @@ public class MessageWriter {
 
         Message savedMessage = messageRepository.save(message);
 
-        // Update conversation denormalized fields
-        conversation.setLastMessageId(savedMessage.getId());
-        conversation.setLastMessageBody(savedMessage.getBody());
-        conversation.setLastMessageCreatedAt(savedMessage.getCreatedAt());
-        conversation.setLastMessageSenderId(senderId);
-
-        // Update unread counts
-        boolean isParticipantA = conversation.getParticipantA().getId().equals(senderId);
-        if (isParticipantA) {
-            conversation.setParticipantBUnreadCount(conversation.getParticipantBUnreadCount() + 1);
-            conversation.setParticipantAUnreadCount(0);
-        } else {
-            conversation.setParticipantAUnreadCount(conversation.getParticipantAUnreadCount() + 1);
-            conversation.setParticipantBUnreadCount(0);
-        }
-
+        conversation.recordNewMessage(savedMessage, senderId);
         conversationRepository.save(conversation);
 
         // Publish event (listener fires after commit)

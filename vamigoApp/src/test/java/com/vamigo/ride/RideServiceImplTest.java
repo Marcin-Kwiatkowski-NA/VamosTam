@@ -6,6 +6,8 @@ import com.vamigo.exceptions.NotRideDriverException;
 import com.vamigo.exceptions.RideHasBookingsException;
 import com.vamigo.location.Location;
 import com.vamigo.location.LocationResolutionService;
+import com.vamigo.domain.Currency;
+import com.vamigo.domain.TimePrecision;
 import com.vamigo.ride.dto.RideCreationDto;
 import com.vamigo.ride.dto.RideListDto;
 import com.vamigo.ride.dto.RideResponseDto;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -32,7 +35,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -86,6 +91,9 @@ class RideServiceImplTest {
 
     @Mock
     Vehicle vehicle;
+
+    @Spy
+    Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
 
     @InjectMocks
     private RideServiceImpl rideService;
@@ -149,9 +157,12 @@ class RideServiceImplTest {
 
         when(vehicleRepository.findByIdAndOwnerId(rideCreationDTO.vehicleId(), driverId))
                 .thenReturn(Optional.of(vehicle));
-        when(rideMapper.rideCreationDtoToEntity(rideCreationDTO)).thenReturn(ride);
-        when(rideRepository.save(ride)).thenReturn(ride);
-        when(rideMapper.rideEntityToRideResponseDto(ride)).thenReturn(rideResponseDto);
+        RideDetails details = new RideDetails(
+                FUTURE_DEPARTURE, TimePrecision.EXACT, ONE, BIG_DECIMAL,
+                true, false, false, RIDE_DESCRIPTION, null, Currency.PLN);
+        when(rideMapper.rideCreationDtoToDetails(rideCreationDTO)).thenReturn(details);
+        when(rideRepository.save(any(Ride.class))).thenReturn(ride);
+        when(rideMapper.rideEntityToRideResponseDto(any(Ride.class))).thenReturn(rideResponseDto);
 
         RideResponseDto result = rideService.createForCurrentUser(rideCreationDTO, driverId);
 
@@ -162,9 +173,9 @@ class RideServiceImplTest {
         verify(userAccountRepository).findById(driverId);
         verify(locationResolutionService).resolve(rideCreationDTO.origin());
         verify(locationResolutionService).resolve(rideCreationDTO.destination());
-        verify(rideMapper).rideCreationDtoToEntity(rideCreationDTO);
-        verify(rideRepository).save(ride);
-        verify(rideMapper).rideEntityToRideResponseDto(ride);
+        verify(rideMapper).rideCreationDtoToDetails(rideCreationDTO);
+        verify(rideRepository).save(any(Ride.class));
+        verify(rideMapper).rideEntityToRideResponseDto(any(Ride.class));
     }
 
     @Test
@@ -174,7 +185,7 @@ class RideServiceImplTest {
 
         assertThrows(NoSuchRideException.class, () -> rideService.update(rideCreationDTO, NON_EXISTENT_ID, ID_ONE));
         verify(rideRepository).findById(NON_EXISTENT_ID);
-        verify(rideMapper, never()).update(any(), any());
+        verify(rideMapper, never()).rideCreationDtoToDetails(any());
         verify(rideRepository, never()).save(any());
     }
 
@@ -321,7 +332,6 @@ class RideServiceImplTest {
         @BeforeEach
         void setUpCancelRide() {
             cancelableRide = buildRideWithStops(originLocation, destinationLocation);
-            cancelableRide.setStatus(Status.ACTIVE);
         }
 
         @Test
@@ -330,7 +340,7 @@ class RideServiceImplTest {
             UserAccount passenger = aPassengerAccount().build();
             RideBooking activeBooking = aBooking(cancelableRide, passenger)
                     .status(BookingStatus.CONFIRMED).build();
-            cancelableRide.setBookings(new ArrayList<>(List.of(activeBooking)));
+            cancelableRide.replaceBookings(List.of(activeBooking));
 
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(cancelableRide));
 

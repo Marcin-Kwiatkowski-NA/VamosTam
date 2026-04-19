@@ -83,8 +83,14 @@ class VehicleRepositoryTest extends AbstractIntegrationTest {
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
 
         // Update details
-        savedVehicle.setColor(VEHICLE_COLOR_BLUE);
-        savedVehicle.setLicensePlate(VEHICLE_LICENSE_PLATE_3);
+        savedVehicle.updateDetails(new VehicleDetails(
+                savedVehicle.getMake(),
+                savedVehicle.getModel(),
+                savedVehicle.getProductionYear(),
+                VEHICLE_COLOR_BLUE,
+                VEHICLE_LICENSE_PLATE_3,
+                savedVehicle.getDescription()
+        ));
 
         // Act
         Vehicle updatedVehicle = vehicleRepository.save(savedVehicle);

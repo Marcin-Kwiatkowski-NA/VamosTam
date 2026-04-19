@@ -2,17 +2,18 @@ package com.vamigo.user;
 
 import com.vamigo.auth.AuthProvider;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,9 +21,8 @@ import java.util.Set;
 @Table(name = "user_account")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class UserAccount {
 
@@ -89,6 +89,14 @@ public class UserAccount {
     @Column(name = "token_version", nullable = false, columnDefinition = "integer default 0")
     private int tokenVersion;
 
+    public Set<AuthProvider> getProviders() {
+        return providers == null ? Set.of() : Collections.unmodifiableSet(providers);
+    }
+
+    public Set<Role> getRoles() {
+        return roles == null ? Set.of() : Collections.unmodifiableSet(roles);
+    }
+
     public boolean hasRole(Role role) {
         return roles.contains(role);
     }
@@ -105,23 +113,57 @@ public class UserAccount {
         return providers.contains(provider);
     }
 
-    public boolean isTemporarilyLocked() {
-        return lockedUntil != null && Instant.now().isBefore(lockedUntil);
+    public boolean isTemporarilyLocked(Instant now) {
+        return lockedUntil != null && now.isBefore(lockedUntil);
     }
 
     public void incrementTokenVersion() {
         tokenVersion++;
     }
 
-    public void recordFailedLogin(int maxAttempts, int lockDurationMinutes) {
+    public void recordFailedLogin(Instant now, int maxAttempts, int lockDurationMinutes) {
         failedLoginAttempts++;
         if (failedLoginAttempts >= maxAttempts) {
-            lockedUntil = Instant.now().plus(Duration.ofMinutes(lockDurationMinutes));
+            lockedUntil = now.plus(Duration.ofMinutes(lockDurationMinutes));
         }
     }
 
     public void resetFailedLoginAttempts() {
         failedLoginAttempts = 0;
         lockedUntil = null;
+    }
+
+    public void linkGoogle(String googleId) {
+        this.googleId = googleId;
+        this.providers.add(AuthProvider.GOOGLE);
+    }
+
+    public void linkFacebook(String facebookId) {
+        this.facebookId = facebookId;
+        this.providers.add(AuthProvider.FACEBOOK);
+    }
+
+    public void markEmailVerified(Instant when) {
+        this.emailVerifiedAt = when;
+    }
+
+    public void markPhoneVerified(Instant when) {
+        this.phoneVerifiedAt = when;
+    }
+
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void deactivate() {
+        this.status = AccountStatus.DISABLED;
+    }
+
+    public void activate() {
+        this.status = AccountStatus.ACTIVE;
+    }
+
+    public void ban() {
+        this.status = AccountStatus.BANNED;
     }
 }

@@ -1,18 +1,18 @@
 package com.vamigo.user;
 
+import com.vamigo.user.dto.UpdateProfileRequest;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "user_profile")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class UserProfile {
 
@@ -44,4 +44,28 @@ public class UserProfile {
     @Embedded
     @Builder.Default
     private UserStats stats = new UserStats();
+
+    public void updateFrom(UpdateProfileRequest request) {
+        if (request.displayName() != null) {
+            this.displayName = request.displayName();
+        }
+        if (request.bio() != null) {
+            this.bio = request.bio();
+        }
+        if (request.phoneNumber() != null) {
+            this.phoneNumber = request.phoneNumber();
+        }
+    }
+
+    public void updateDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void updateAvatar(String objectKey) {
+        this.avatarObjectKey = objectKey;
+    }
+
+    public void clearAvatar() {
+        this.avatarObjectKey = null;
+    }
 }

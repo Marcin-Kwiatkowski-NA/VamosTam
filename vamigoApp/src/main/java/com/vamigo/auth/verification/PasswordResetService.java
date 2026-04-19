@@ -114,10 +114,10 @@ public class PasswordResetService {
             throw new InvalidTokenException("Password reset token has expired");
         }
 
-        token.setUsedAt(Instant.now());
+        token.markUsed(Instant.now());
 
         UserAccount user = token.getUser();
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.changePasswordHash(passwordEncoder.encode(newPassword));
         user.incrementTokenVersion();
         return userAccountRepository.save(user);
     }

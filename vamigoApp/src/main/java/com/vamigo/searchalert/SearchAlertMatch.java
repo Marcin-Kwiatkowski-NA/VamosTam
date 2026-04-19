@@ -1,7 +1,13 @@
 package com.vamigo.searchalert;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
@@ -11,10 +17,10 @@ import java.time.Instant;
         @Index(name = "idx_sam_email_exact", columnList = "email_sent, exact_match"),
         @Index(name = "idx_sam_saved_search", columnList = "saved_search_id")
 })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class SearchAlertMatch {
 
@@ -56,11 +62,15 @@ public class SearchAlertMatch {
     @Column(name = "email_sent", nullable = false)
     private boolean emailSent = false;
 
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @PrePersist
-    void onCreate() {
-        this.createdAt = Instant.now();
+    public void markPushSent() {
+        this.pushSent = true;
+    }
+
+    public void markEmailSent() {
+        this.emailSent = true;
     }
 }

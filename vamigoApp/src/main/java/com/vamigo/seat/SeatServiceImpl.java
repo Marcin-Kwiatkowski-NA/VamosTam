@@ -34,6 +34,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +53,7 @@ public class SeatServiceImpl implements SeatService {
     private final LocationMatchingService locationMatchingService;
     private final MatchProperties matchProperties;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public SeatServiceImpl(SeatRepository seatRepository,
                             SeatMapper seatMapper,
@@ -61,7 +63,8 @@ public class SeatServiceImpl implements SeatService {
                             CapabilityService capabilityService,
                             LocationMatchingService locationMatchingService,
                             MatchProperties matchProperties,
-                            ApplicationEventPublisher eventPublisher) {
+                            ApplicationEventPublisher eventPublisher,
+                            Clock clock) {
         this.seatRepository = seatRepository;
         this.seatMapper = seatMapper;
         this.locationResolutionService = locationResolutionService;
@@ -71,6 +74,7 @@ public class SeatServiceImpl implements SeatService {
         this.locationMatchingService = locationMatchingService;
         this.matchProperties = matchProperties;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Override
@@ -85,13 +89,9 @@ public class SeatServiceImpl implements SeatService {
         Location origin = locationResolutionService.resolve(dto.origin());
         Location destination = locationResolutionService.resolve(dto.destination());
 
-        Seat seat = seatMapper.seatCreationDtoToEntity(dto);
-        seat.setPassenger(passenger);
-        seat.setOrigin(origin);
-        seat.setDestination(destination);
-        seat.setDepartureTime(dto.departureTime());
-        seat.setTimePrecision(dto.timePrecision());
-        seat.setLastModified(Instant.now());
+        Seat seat = Seat.builder().build();
+        seat.assignPassenger(passenger);
+        seat.updateDetails(seatMapper.toDetails(dto, origin, destination));
 
         Seat saved = seatRepository.save(seat);
         SeatResponseDto response = seatResponseEnricher.enrich(saved, seatMapper.seatEntityToResponseDto(saved));
@@ -116,7 +116,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatListDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
-        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
 
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
                 .and(SeatSpecifications.originOsmIdEquals(criteria.originOsmId()))
@@ -139,7 +139,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatListDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
-        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
         RadiusStrategy radius = criteria.radiusKm() != null
                 ? RadiusStrategy.fixedKm(criteria.radiusKm())
                 : matchProperties.seatSmartRadius();
@@ -179,14 +179,7 @@ public class SeatServiceImpl implements SeatService {
         Location origin = locationResolutionService.resolve(dto.origin());
         Location destination = locationResolutionService.resolve(dto.destination());
 
-        seat.setOrigin(origin);
-        seat.setDestination(destination);
-        seat.setDepartureTime(dto.departureTime());
-        seat.setTimePrecision(dto.timePrecision());
-        seat.setCount(dto.count());
-        seat.setPriceWillingToPay(dto.priceWillingToPay());
-        seat.setDescription(dto.description());
-        seat.setLastModified(Instant.now());
+        seat.updateDetails(seatMapper.toDetails(dto, origin, destination));
 
         return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
     }
@@ -206,8 +199,7 @@ public class SeatServiceImpl implements SeatService {
             return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
         }
 
-        seat.setStatus(Status.CANCELLED);
-        seat.setLastModified(Instant.now());
+        seat.cancel();
 
         return seatResponseEnricher.enrich(seat, seatMapper.seatEntityToResponseDto(seat));
     }
@@ -239,8 +231,7 @@ public class SeatServiceImpl implements SeatService {
         return seatResponseEnricher.enrichList(seats, dtos);
     }
 
-    private static Instant clampToNow(Instant earliest) {
-        Instant now = Instant.now();
+    private static Instant clampToNow(Instant earliest, Instant now) {
         return earliest == null || earliest.isBefore(now) ? now : earliest;
     }
 }

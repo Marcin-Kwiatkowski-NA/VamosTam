@@ -114,7 +114,7 @@ public class AvatarService {
                 return;
             }
 
-            profile.setAvatarObjectKey(objectKey);
+            profile.updateAvatar(objectKey);
             userProfileRepository.save(profile);
             LOGGER.info("Imported Google avatar for user {}: {}", userId, objectKey);
         } catch (Exception e) {
@@ -194,7 +194,7 @@ public class AvatarService {
 
         String oldKey = profile.getAvatarObjectKey();
 
-        profile.setAvatarObjectKey(objectKey);
+        profile.updateAvatar(objectKey);
         userProfileRepository.save(profile);
 
         // Async-delete old avatar if it existed
@@ -213,7 +213,7 @@ public class AvatarService {
 
         String oldKey = profile.getAvatarObjectKey();
 
-        profile.setAvatarObjectKey(null);
+        profile.clearAvatar();
         userProfileRepository.save(profile);
 
         if (oldKey != null) {

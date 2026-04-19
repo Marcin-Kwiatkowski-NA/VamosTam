@@ -101,12 +101,7 @@ public class SystemMessageService {
 
         Message saved = messageRepository.save(message);
 
-        // Update conversation denormalized fields
-        conversation.setLastMessageId(saved.getId());
-        conversation.setLastMessageBody(saved.getBody());
-        conversation.setLastMessageCreatedAt(saved.getCreatedAt());
-        conversation.setLastMessageSenderId(actorId);
-
+        conversation.recordSystemMessage(saved, actorId);
         conversationRepository.save(conversation);
 
         eventPublisher.publishEvent(new MessageCreatedEvent(

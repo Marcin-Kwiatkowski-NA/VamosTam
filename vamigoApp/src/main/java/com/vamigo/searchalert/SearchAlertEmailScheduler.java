@@ -153,9 +153,9 @@ public class SearchAlertEmailScheduler {
             List<Long> toDelete, Instant now) {
         for (var searchEntry : searchEntries) {
             SavedSearch ss = searchEntry.getValue().getFirst().getSavedSearch();
-            ss.setLastEmailSentAt(now);
+            ss.recordEmailSent(now);
             for (SearchAlertMatch m : searchEntry.getValue()) {
-                m.setEmailSent(true);
+                m.markEmailSent();
                 if (m.isPushSent()) {
                     toDelete.add(m.getId());
                 }

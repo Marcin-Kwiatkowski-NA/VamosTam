@@ -44,7 +44,7 @@ class RideCompletionSchedulerIT extends AbstractFullStackTest {
 
         Ride ride = fx.persistSimpleRide(driver);
         // Force arrival into the past so the scheduler sees the ride on its next tick.
-        ride.setEstimatedArrivalAt(Instant.now().minus(5, ChronoUnit.MINUTES));
+        ride.recomputeArrival(Instant.now().minus(5, ChronoUnit.MINUTES));
         fx.rideRepository().saveAndFlush(ride);
 
         fx.persistBooking(ride, passenger, BookingStatus.CONFIRMED);

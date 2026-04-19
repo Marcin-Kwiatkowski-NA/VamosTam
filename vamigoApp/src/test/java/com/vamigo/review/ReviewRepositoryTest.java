@@ -61,7 +61,7 @@ class ReviewRepositoryTest extends AbstractIntegrationTest {
         Ride ride = aRide(origin, destination)
                 .id(null).driver(subject).vehicle(vehicle)
                 .status(Status.COMPLETED).stops(new java.util.ArrayList<>()).build();
-        ride.getStops().addAll(buildStops(ride, origin, destination));
+        ride.replaceStops(buildStops(ride, origin, destination));
         ride = em.persistAndFlush(ride);
 
         booking = em.persistAndFlush(aBooking(ride, author).id(null).status(BookingStatus.CONFIRMED).build());

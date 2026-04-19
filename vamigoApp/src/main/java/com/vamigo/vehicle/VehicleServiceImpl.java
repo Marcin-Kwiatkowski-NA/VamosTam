@@ -41,8 +41,9 @@ public class VehicleServiceImpl implements VehicleService {
         UserAccount owner = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 
-        Vehicle entity = vehicleMapper.vehicleCreationDtoToEntity(dto);
-        entity.setOwner(owner);
+        Vehicle entity = Vehicle.builder().build();
+        entity.assignOwner(owner);
+        entity.updateDetails(vehicleMapper.vehicleCreationDtoToDetails(dto));
 
         return toResponseDto(vehicleRepository.save(entity));
     }
@@ -53,7 +54,7 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle existing = vehicleRepository.findByIdAndOwnerId(vehicleId, userId)
                 .orElseThrow(() -> new NoSuchElementException("Vehicle with ID " + vehicleId + " not found."));
 
-        vehicleMapper.update(existing, dto);
+        existing.updateDetails(vehicleMapper.vehicleCreationDtoToDetails(dto));
         return toResponseDto(vehicleRepository.save(existing));
     }
 

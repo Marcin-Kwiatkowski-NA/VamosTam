@@ -279,7 +279,7 @@ public final class TestFixtures {
 
     public static Ride buildRideWithStops(Location origin, Location destination) {
         Ride ride = aRide(origin, destination).bookings(new ArrayList<>()).build();
-        ride.setStops(new ArrayList<>(buildStops(ride, origin, destination)));
+        ride.replaceStops(buildStops(ride, origin, destination));
         return ride;
     }
 

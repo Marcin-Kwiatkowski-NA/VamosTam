@@ -91,10 +91,11 @@ public class EmailVerificationService {
             throw new InvalidTokenException("Verification token has expired");
         }
 
-        token.setUsedAt(Instant.now());
+        Instant now = Instant.now();
+        token.markUsed(now);
 
         UserAccount user = token.getUser();
-        user.setEmailVerifiedAt(Instant.now());
+        user.markEmailVerified(now);
         userAccountRepository.save(user);
     }
 

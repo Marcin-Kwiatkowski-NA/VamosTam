@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -36,19 +38,22 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final PushMessageRenderer pushMessageRenderer;
     private final JsonMapper jsonMapper;
+    private final Clock clock;
 
     public NotificationService(NotificationRepository notificationRepository,
                                UserAccountRepository userAccountRepository,
                                PushNotificationService pushNotificationService,
                                SimpMessagingTemplate messagingTemplate,
                                PushMessageRenderer pushMessageRenderer,
-                               JsonMapper jsonMapper) {
+                               JsonMapper jsonMapper,
+                               Clock clock) {
         this.notificationRepository = notificationRepository;
         this.userAccountRepository = userAccountRepository;
         this.pushNotificationService = pushNotificationService;
         this.messagingTemplate = messagingTemplate;
         this.pushMessageRenderer = pushMessageRenderer;
         this.jsonMapper = jsonMapper;
+        this.clock = clock;
     }
 
     /**
@@ -153,7 +158,7 @@ public class NotificationService {
                     .findByRecipientIdAndCollapseKeyAndReadAtIsNull(request.recipientId(), request.collapseKey());
             if (existing.isPresent()) {
                 Notification n = existing.get();
-                n.collapse(augmentedParams);
+                n.collapse(Instant.now(clock), augmentedParams);
                 return notificationRepository.save(n);
             }
         }

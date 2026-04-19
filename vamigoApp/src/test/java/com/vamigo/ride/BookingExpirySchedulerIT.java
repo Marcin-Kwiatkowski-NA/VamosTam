@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,10 +40,20 @@ class BookingExpirySchedulerIT extends AbstractFullStackTest {
         UserAccount passenger = fx.persistUser();
         Ride ride = fx.persistSimpleRide(driver);
 
-        RideBooking booking = fx.persistBooking(ride, passenger, BookingStatus.PENDING);
-        // Explicitly backdate bookedAt so the TTL check trips on the very first scheduler tick.
-        booking.setBookedAt(Instant.now().minus(5, ChronoUnit.MINUTES));
-        fx.bookingRepository().saveAndFlush(booking);
+        // Build a PENDING booking with a stale bookedAt up front so the TTL check
+        // trips on the very first scheduler tick. Going through the repository
+        // directly keeps the entity encapsulated — no post-hoc setter mutation.
+        RideBooking booking = fx.bookingRepository().saveAndFlush(
+                RideBooking.builder()
+                        .ride(ride)
+                        .passenger(passenger)
+                        .boardStop(ride.getStops().get(0))
+                        .alightStop(ride.getStops().get(ride.getStops().size() - 1))
+                        .status(BookingStatus.PENDING)
+                        .seatCount(1)
+                        .bookedAt(Instant.now().minus(5, ChronoUnit.MINUTES))
+                        .proposedPrice(BigDecimal.valueOf(10))
+                        .build());
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             RideBooking loaded = fx.bookingRepository().findById(booking.getId()).orElseThrow();

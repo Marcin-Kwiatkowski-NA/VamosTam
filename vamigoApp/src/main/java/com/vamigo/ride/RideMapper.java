@@ -7,7 +7,6 @@ import com.vamigo.ride.dto.RideResponseDto;
 import com.vamigo.vehicle.VehicleMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = "spring",
@@ -20,39 +19,8 @@ public abstract class RideMapper {
     @Autowired
     protected RideStopMapper rideStopMapper;
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "driver", ignore = true)
-    @Mapping(target = "vehicle", ignore = true)
-    @Mapping(target = "status", constant = "ACTIVE")
-    @Mapping(target = "lastModified", ignore = true)
-    @Mapping(target = "version", ignore = true)
-    @Mapping(target = "source", constant = "INTERNAL")
-    @Mapping(target = "stops", ignore = true)
-    @Mapping(target = "bookings", ignore = true)
-    @Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "totalSeats", source = "availableSeats")
-    @Mapping(target = "timePrecision", ignore = true)
-    @Mapping(target = "completedAt", ignore = true)
-    @Mapping(target = "estimatedArrivalAt", ignore = true)
-    public abstract Ride rideCreationDtoToEntity(RideCreationDto rideCreationDto);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "driver", ignore = true)
-    @Mapping(target = "vehicle", ignore = true)
-    @Mapping(target = "lastModified", ignore = true)
-    @Mapping(target = "version", ignore = true)
-    @Mapping(target = "source", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "stops", ignore = true)
-    @Mapping(target = "bookings", ignore = true)
-    @Mapping(target = "activeBookings", ignore = true)
-    @Mapping(target = "confirmedBookings", ignore = true)
-    @Mapping(target = "departureTime", ignore = true)
-    @Mapping(target = "totalSeats", source = "availableSeats")
-    @Mapping(target = "timePrecision", ignore = true)
-    @Mapping(target = "completedAt", ignore = true)
-    @Mapping(target = "estimatedArrivalAt", ignore = true)
-    public abstract void update(@MappingTarget Ride ride, RideCreationDto rideDTO);
+    public abstract RideDetails rideCreationDtoToDetails(RideCreationDto rideCreationDto);
 
     @Mapping(target = "driver", ignore = true)
     @Mapping(target = "contactMethods", ignore = true)

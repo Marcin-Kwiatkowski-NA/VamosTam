@@ -53,15 +53,11 @@ class NotificationParamsEnricherTest {
     private Ride rideWithStops(Long rideId) {
         var originStop = RideStop.builder().stopOrder(0).location(krakowLocation).build();
         var destStop = RideStop.builder().stopOrder(1).location(warsawLocation).build();
-        var ride = Ride.builder().stops(List.of(originStop, destStop)).build();
-        ride.setId(rideId);
-        return ride;
+        return Ride.builder().id(rideId).stops(List.of(originStop, destStop)).build();
     }
 
     private RideBooking bookingWithRide(Long bookingId, Ride ride) {
-        var booking = RideBooking.builder().ride(ride).build();
-        booking.setId(bookingId);
-        return booking;
+        return RideBooking.builder().id(bookingId).ride(ride).build();
     }
 
     private void mockCounterpartyName(Long userId, String name) {
@@ -178,10 +174,10 @@ class NotificationParamsEnricherTest {
         @DisplayName("Resolves sender name, route from the conversation's offer key, and deep link to the chat")
         void enrichesChat() {
             var conversation = Conversation.builder()
+                    .id(UUID.randomUUID())
                     .topicKey("offer:r-42")
                     .offerKey("r-42")
                     .build();
-            conversation.setId(UUID.randomUUID());
 
             Ride ride = rideWithStops(42L);
             when(rideRepository.findByIdWithStopsAndLocations(42L)).thenReturn(Optional.of(ride));

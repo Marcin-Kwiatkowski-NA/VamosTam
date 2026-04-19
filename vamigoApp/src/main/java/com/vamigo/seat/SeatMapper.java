@@ -1,5 +1,6 @@
 package com.vamigo.seat;
 
+import com.vamigo.location.Location;
 import com.vamigo.location.LocationMapper;
 import com.vamigo.seat.dto.SeatCreationDto;
 import com.vamigo.seat.dto.SeatListDto;
@@ -14,17 +15,19 @@ public abstract class SeatMapper {
     @Autowired
     protected LocationMapper locationMapper;
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "passenger", ignore = true)
-    @Mapping(target = "origin", ignore = true)
-    @Mapping(target = "destination", ignore = true)
-    @Mapping(target = "departureTime", ignore = true)
-    @Mapping(target = "timePrecision", ignore = true)
-    @Mapping(target = "lastModified", ignore = true)
-    @Mapping(target = "version", ignore = true)
-    @Mapping(target = "source", constant = "INTERNAL")
-    @Mapping(target = "status", constant = "ACTIVE")
-    public abstract Seat seatCreationDtoToEntity(SeatCreationDto dto);
+    public SeatDetails toDetails(SeatCreationDto dto, Location origin, Location destination) {
+        return new SeatDetails(
+                origin,
+                destination,
+                dto.departureTime(),
+                dto.timePrecision(),
+                dto.count(),
+                dto.priceWillingToPay(),
+                dto.description(),
+                dto.contactPhone(),
+                dto.currency()
+        );
+    }
 
     @Mapping(target = "origin", expression = "java(locationMapper.locationToDto(seat.getOrigin()))")
     @Mapping(target = "destination", expression = "java(locationMapper.locationToDto(seat.getDestination()))")

@@ -19,7 +19,9 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +40,7 @@ class NotificationServiceTest {
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private PushMessageRenderer pushMessageRenderer;
     @Spy private JsonMapper jsonMapper = JsonMapper.builder().build();
+    @Spy private Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
     @InjectMocks private NotificationService notificationService;
 
     private UserAccount recipient;
@@ -46,6 +49,26 @@ class NotificationServiceTest {
     void setUp() {
         recipient = UserAccount.builder().build();
         lenient().when(userAccountRepository.findById(1L)).thenReturn(Optional.of(recipient));
+    }
+
+    /**
+     * Simulates what Hibernate does on persist: returns a fresh Notification with
+     * id and createdAt populated while preserving every field the service set.
+     * Keeps the encapsulated entity closed to post-hoc setter mutation from tests.
+     */
+    private static Notification simulatePersist(Notification n) {
+        return Notification.builder()
+                .id(UUID.randomUUID())
+                .createdAt(Instant.now())
+                .recipient(n.getRecipient())
+                .notificationType(n.getNotificationType())
+                .channel(n.getChannel())
+                .entityType(n.getEntityType())
+                .entityId(n.getEntityId())
+                .params(n.getParams())
+                .collapseKey(n.getCollapseKey())
+                .count(n.getCount())
+                .build();
     }
 
     @Nested
@@ -69,12 +92,7 @@ class NotificationServiceTest {
             when(notificationRepository.findByRecipientIdAndCollapseKeyAndReadAtIsNull(1L, "booking:99"))
                     .thenReturn(Optional.empty());
             when(notificationRepository.save(any(Notification.class)))
-                    .thenAnswer(inv -> {
-                        Notification n = inv.getArgument(0);
-                        n.setId(UUID.randomUUID());
-                        n.setCreatedAt(Instant.now());
-                        return n;
-                    });
+                    .thenAnswer(inv -> simulatePersist(inv.getArgument(0)));
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(5L);
             when(pushMessageRenderer.title(NotificationType.BOOKING_REQUESTED, params)).thenReturn("Krakow → Warsaw");
             when(pushMessageRenderer.body(NotificationType.BOOKING_REQUESTED, params)).thenReturn("Jan wants to join your ride");
@@ -103,6 +121,7 @@ class NotificationServiceTest {
         @DisplayName("Collapses into the existing unread notification when the collapse key already exists")
         void collapsesExistingNotification() {
             var existing = Notification.builder()
+                    .id(UUID.randomUUID())
                     .recipient(recipient)
                     .notificationType(NotificationType.BOOKING_REQUESTED)
                     .channel(NotificationChannel.BOOKING_UPDATES)
@@ -110,9 +129,8 @@ class NotificationServiceTest {
                     .entityId("42")
                     .collapseKey("booking:99")
                     .count(2)
+                    .createdAt(Instant.now().minusSeconds(60))
                     .build();
-            existing.setId(UUID.randomUUID());
-            existing.setCreatedAt(Instant.now().minusSeconds(60));
 
             var params = Map.of("offerKey", "r-42");
             var request = NotificationRequest.builder()
@@ -199,12 +217,7 @@ class NotificationServiceTest {
                     .build();
 
             when(notificationRepository.save(any(Notification.class)))
-                    .thenAnswer(inv -> {
-                        Notification n = inv.getArgument(0);
-                        n.setId(UUID.randomUUID());
-                        n.setCreatedAt(Instant.now());
-                        return n;
-                    });
+                    .thenAnswer(inv -> simulatePersist(inv.getArgument(0)));
             when(notificationRepository.countByRecipientIdAndReadAtIsNull(1L)).thenReturn(1L);
             lenient().when(pushMessageRenderer.title(any(), any())).thenReturn("Search alert");
             lenient().when(pushMessageRenderer.body(any(), any())).thenReturn("3 new matches");
@@ -251,15 +264,15 @@ class NotificationServiceTest {
         @DisplayName("Returns a page of notifications together with the current unread count")
         void returnsPaginatedNotifications() {
             var notification = Notification.builder()
+                    .id(UUID.randomUUID())
                     .recipient(recipient)
                     .notificationType(NotificationType.BOOKING_CONFIRMED)
                     .channel(NotificationChannel.BOOKING_UPDATES)
                     .entityType(EntityType.RIDE)
                     .entityId("42")
                     .params(Map.of("offerKey", "r-42"))
+                    .createdAt(Instant.now())
                     .build();
-            notification.setId(UUID.randomUUID());
-            notification.setCreatedAt(Instant.now());
 
             var slice = new SliceImpl<>(List.of(notification), PageRequest.of(0, 20), false);
             when(notificationRepository.findByRecipientIdAndNotificationTypeNotOrderByCreatedAtDesc(

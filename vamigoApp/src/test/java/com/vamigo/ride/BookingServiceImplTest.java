@@ -16,6 +16,7 @@ import com.vamigo.ride.event.BookingCancelledEvent;
 import com.vamigo.ride.event.BookingConfirmedEvent;
 import com.vamigo.ride.event.BookingRequestedEvent;
 import com.vamigo.ride.event.BookingRejectedEvent;
+import com.vamigo.user.CarrierProfileRepository;
 import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.UserProfileRepository;
@@ -26,11 +27,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,12 +50,14 @@ class BookingServiceImplTest {
     @Mock private RideBookingRepository bookingRepository;
     @Mock private UserAccountRepository userAccountRepository;
     @Mock private UserProfileRepository userProfileRepository;
+    @Mock private CarrierProfileRepository carrierProfileRepository;
     @Mock private BookingMapper bookingMapper;
     @Mock private BookingResponseEnricher bookingResponseEnricher;
     @Mock private CapabilityService capabilityService;
     @Mock private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
+    private final Clock clock = Clock.fixed(Instant.parse("2026-04-19T12:00:00Z"), ZoneOffset.UTC);
+
     private BookingServiceImpl bookingService;
 
     private Ride ride;
@@ -63,13 +69,25 @@ class BookingServiceImplTest {
     void setUp() {
         origin = anOriginLocation().build();
         destination = aDestinationLocation().build();
-        ride = buildRideWithStops(origin, destination);
-        ride.setSource(RideSource.INTERNAL);
-        ride.setStatus(Status.ACTIVE);
-        ride.setTotalSeats(3);
-        ride.setAutoApprove(true);
+        ride = buildRide(3, true);
         passenger = aPassengerAccount().build();
         lenient().when(userProfileRepository.findById(any())).thenReturn(Optional.empty());
+
+        bookingService = new BookingServiceImpl(
+                rideRepository, bookingRepository, userAccountRepository,
+                userProfileRepository, carrierProfileRepository,
+                bookingMapper, bookingResponseEnricher, capabilityService,
+                eventPublisher, clock);
+    }
+
+    private Ride buildRide(int totalSeats, boolean autoApprove) {
+        Ride r = aRide(origin, destination)
+                .totalSeats(totalSeats)
+                .autoApprove(autoApprove)
+                .bookings(new ArrayList<>())
+                .build();
+        r.replaceStops(buildStops(r, origin, destination));
+        return r;
     }
 
     private void stubEnricher() {
@@ -86,7 +104,7 @@ class BookingServiceImplTest {
         @Test
         @DisplayName("Creates a CONFIRMED booking when the ride has auto-approve enabled")
         void autoApproveCreatesConfirmedBooking() {
-            ride.setAutoApprove(true);
+            ride = buildRide(3, true);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
             when(bookingRepository.existsByRideIdAndPassengerIdAndStatusIn(eq(ID_100), eq(2L), any()))
@@ -106,7 +124,7 @@ class BookingServiceImplTest {
         @Test
         @DisplayName("Creates a PENDING booking when the ride requires driver approval")
         void manualApproveCreatesPendingBooking() {
-            ride.setAutoApprove(false);
+            ride = buildRide(3, false);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
             when(bookingRepository.existsByRideIdAndPassengerIdAndStatusIn(eq(ID_100), eq(2L), any()))
@@ -144,7 +162,7 @@ class BookingServiceImplTest {
         @Test
         @DisplayName("Throws InsufficientSeatsException when the ride has fewer seats than requested")
         void throwsWhenInsufficientSeats() {
-            ride.setTotalSeats(1);
+            ride = buildRide(1, true);
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
             when(bookingRepository.existsByRideIdAndPassengerIdAndStatusIn(eq(ID_100), eq(2L), any()))
@@ -181,6 +199,8 @@ class BookingServiceImplTest {
         @DisplayName("Throws CannotBookOwnRideException when the driver tries to book their own ride")
         void throwsWhenDriverBooksOwnRide() {
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
+            when(capabilityService.canBook(ID_ONE)).thenReturn(true);
+            when(userAccountRepository.findById(ID_ONE)).thenReturn(Optional.of(ride.getDriver()));
 
             assertThrows(CannotBookOwnRideException.class,
                     () -> bookingService.createBooking(ID_100, ID_ONE, aBookRideRequest().build()));
@@ -189,8 +209,14 @@ class BookingServiceImplTest {
         @Test
         @DisplayName("Throws ExternalRideNotBookableException when the ride was imported from Facebook")
         void throwsForExternalRide() {
-            ride.setSource(RideSource.FACEBOOK);
-            when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
+            Ride externalRide = aRide(origin, destination)
+                    .bookings(new java.util.ArrayList<>())
+                    .source(RideSource.FACEBOOK)
+                    .build();
+            externalRide.replaceStops(buildStops(externalRide, origin, destination));
+            when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(externalRide));
+            when(capabilityService.canBook(2L)).thenReturn(true);
+            when(userAccountRepository.findById(2L)).thenReturn(Optional.of(passenger));
 
             assertThrows(ExternalRideNotBookableException.class,
                     () -> bookingService.createBooking(ID_100, 2L, aBookRideRequest().build()));
@@ -199,7 +225,7 @@ class BookingServiceImplTest {
         @Test
         @DisplayName("Throws RideNotBookableException when the ride has been cancelled")
         void throwsForCancelledRide() {
-            ride.setStatus(Status.CANCELLED);
+            ride.cancel();
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
             when(capabilityService.canBook(2L)).thenReturn(true);
             when(bookingRepository.existsByRideIdAndPassengerIdAndStatusIn(eq(ID_100), eq(2L), any()))
@@ -220,8 +246,8 @@ class BookingServiceImplTest {
         void confirmsPendingBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
             bookingService.confirmBooking(ID_100, 1L, ID_ONE);
@@ -245,8 +271,8 @@ class BookingServiceImplTest {
         void throwsForAlreadyConfirmed() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findByIdForUpdate(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(InvalidBookingTransitionException.class,
                     () -> bookingService.confirmBooking(ID_100, 1L, ID_ONE));
@@ -262,8 +288,8 @@ class BookingServiceImplTest {
         void rejectsPendingBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
             bookingService.rejectBooking(ID_100, 1L, ID_ONE);
@@ -278,8 +304,8 @@ class BookingServiceImplTest {
         void throwsForConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(InvalidBookingTransitionException.class,
                     () -> bookingService.rejectBooking(ID_100, 1L, ID_ONE));
@@ -295,8 +321,8 @@ class BookingServiceImplTest {
         void passengerCancelsConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
             bookingService.cancelBooking(ID_100, 1L, 2L, "No longer need this ride");
@@ -310,8 +336,8 @@ class BookingServiceImplTest {
         void driverCancelsConfirmedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
             bookingService.cancelBooking(ID_100, 1L, ID_ONE, "Cancelling this booking");
@@ -324,8 +350,8 @@ class BookingServiceImplTest {
         void passengerCancelsPendingBookingWithoutReason() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.PENDING).resolvedAt(null).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
             stubEnricher();
 
             bookingService.cancelBooking(ID_100, 1L, 2L, null);
@@ -339,8 +365,8 @@ class BookingServiceImplTest {
         void throwsWhenCancellingConfirmedWithoutReason() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(IllegalArgumentException.class,
                     () -> bookingService.cancelBooking(ID_100, 1L, 2L, null));
@@ -351,8 +377,8 @@ class BookingServiceImplTest {
         void throwsForRejectedBooking() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.REJECTED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(InvalidBookingTransitionException.class,
                     () -> bookingService.cancelBooking(ID_100, 1L, 2L, "Some reason"));
@@ -363,8 +389,8 @@ class BookingServiceImplTest {
         void throwsForUnrelatedUser() {
             RideBooking booking = aBooking(ride, passenger)
                     .status(BookingStatus.CONFIRMED).build();
+            ride.replaceBookings(List.of(booking));
             when(rideRepository.findById(ID_100)).thenReturn(Optional.of(ride));
-            when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             assertThrows(NotRideDriverException.class,
                     () -> bookingService.cancelBooking(ID_100, 1L, 999L, "Some reason"));

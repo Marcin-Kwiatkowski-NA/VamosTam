@@ -1,7 +1,6 @@
 package com.vamigo.ride;
 
 import com.vamigo.domain.Status;
-import com.vamigo.domain.TimePrecision;
 import com.vamigo.exceptions.CannotCreateRideException;
 import com.vamigo.exceptions.NoSuchRideException;
 import com.vamigo.exceptions.NotRideDriverException;
@@ -44,6 +43,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -73,6 +73,7 @@ public class RideServiceImpl implements RideService {
     private final MatchProperties matchProperties;
     private final RideBusinessProperties rideProperties;
     private final VehicleRepository vehicleRepository;
+    private final Clock clock;
 
     public RideServiceImpl(RideRepository rideRepository,
                            RideBookingRepository bookingRepository,
@@ -86,7 +87,8 @@ public class RideServiceImpl implements RideService {
                            LocationMatchingService locationMatchingService,
                            MatchProperties matchProperties,
                            RideBusinessProperties rideProperties,
-                           VehicleRepository vehicleRepository) {
+                           VehicleRepository vehicleRepository,
+                           Clock clock) {
         this.rideRepository = rideRepository;
         this.bookingRepository = bookingRepository;
         this.rideMapper = rideMapper;
@@ -100,6 +102,7 @@ public class RideServiceImpl implements RideService {
         this.matchProperties = matchProperties;
         this.rideProperties = rideProperties;
         this.vehicleRepository = vehicleRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -120,25 +123,21 @@ public class RideServiceImpl implements RideService {
         UserAccount driver = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchUserException(userId));
 
-        var newRide = rideMapper.rideCreationDtoToEntity(dto);
-        newRide.setDriver(driver);
-        newRide.setLastModified(Instant.now());
+        Ride newRide = Ride.builder().build();
+        newRide.assignDriver(driver);
 
         if (dto.vehicleId() != null) {
             Vehicle vehicle = vehicleRepository.findByIdAndOwnerId(dto.vehicleId(), userId)
                     .orElseThrow(() -> new IllegalArgumentException("Vehicle not found or not owned"));
-            newRide.setVehicle(vehicle);
+            newRide.assignVehicle(vehicle);
         }
+
+        newRide.updateDetails(rideMapper.rideCreationDtoToDetails(dto));
 
         List<RideStop> stops = buildStops(newRide, dto);
-        newRide.setStops(stops);
-        newRide.setDepartureTime(dto.departureTime());
-        newRide.setTimePrecision(dto.timePrecision());
-        if (dto.timePrecision() != TimePrecision.EXACT) {
-            newRide.setAutoApprove(false);
-        }
+        newRide.replaceStops(stops);
 
-        newRide.setEstimatedArrivalAt(arrivalEstimator.estimate(newRide));
+        newRide.recomputeArrival(arrivalEstimator.estimate(newRide));
 
         Ride saved = rideRepository.save(newRide);
         RideResponseDto response = rideResponseEnricher.enrich(saved, rideMapper.rideEntityToRideResponseDto(saved));
@@ -161,23 +160,18 @@ public class RideServiceImpl implements RideService {
         }
         validateMinDepartureNotice(dto.departureTime());
 
-        rideMapper.update(existingRide, dto);
+        existingRide.updateDetails(rideMapper.rideCreationDtoToDetails(dto));
         updateStops(existingRide, dto);
-        existingRide.setDepartureTime(dto.departureTime());
-        existingRide.setTimePrecision(dto.timePrecision());
-        if (dto.timePrecision() != TimePrecision.EXACT) {
-            existingRide.setAutoApprove(false);
-        }
-        existingRide.setLastModified(Instant.now());
-        existingRide.setEstimatedArrivalAt(arrivalEstimator.estimate(existingRide));
 
         if (dto.vehicleId() != null) {
             Vehicle vehicle = vehicleRepository.findByIdAndOwnerId(dto.vehicleId(), driverId)
                     .orElseThrow(() -> new IllegalArgumentException("Vehicle not found or not owned"));
-            existingRide.setVehicle(vehicle);
+            existingRide.assignVehicle(vehicle);
         } else {
-            existingRide.setVehicle(null);
+            existingRide.clearVehicle();
         }
+
+        existingRide.recomputeArrival(arrivalEstimator.estimate(existingRide));
 
         return rideResponseEnricher.enrich(existingRide, rideMapper.rideEntityToRideResponseDto(existingRide));
     }
@@ -214,8 +208,7 @@ public class RideServiceImpl implements RideService {
             throw new RideHasBookingsException(id);
         }
 
-        ride.setStatus(Status.CANCELLED);
-        ride.setLastModified(Instant.now());
+        ride.cancel();
     }
 
     @Override
@@ -237,7 +230,8 @@ public class RideServiceImpl implements RideService {
             throw new IllegalStateException("Ride " + rideId + " cannot be completed from status " + ride.getStatus());
         }
 
-        if (!ride.getDepartureTime().isBefore(Instant.now())) {
+        Instant now = Instant.now(clock);
+        if (!ride.getDepartureTime().isBefore(now)) {
             throw new IllegalStateException("Ride " + rideId + " has not departed yet");
         }
 
@@ -246,9 +240,7 @@ public class RideServiceImpl implements RideService {
             throw new IllegalStateException("Ride " + rideId + " has no confirmed bookings");
         }
 
-        ride.setStatus(Status.COMPLETED);
-        ride.setCompletedAt(Instant.now());
-        ride.setLastModified(Instant.now());
+        ride.markCompleted(now);
 
         List<Long> confirmedBookingIds = confirmedBookings.stream()
                 .map(RideBooking::getId)
@@ -269,7 +261,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private Page<RideListDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
-        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
                 .and(RideSpecifications.hasDriverId(criteria.driverId()))
@@ -297,7 +289,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private Page<RideListDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
-        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture());
+        Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
         RadiusStrategy radius = criteria.radiusKm() != null
                 ? RadiusStrategy.fixedKm(criteria.radiusKm())
                 : matchProperties.rideSmartRadius();
@@ -371,8 +363,7 @@ public class RideServiceImpl implements RideService {
                 .orElse(-1);
     }
 
-    private static Instant clampToNow(Instant earliest) {
-        Instant now = Instant.now();
+    private static Instant clampToNow(Instant earliest, Instant now) {
         return earliest == null || earliest.isBefore(now) ? now : earliest;
     }
 
@@ -433,27 +424,25 @@ public class RideServiceImpl implements RideService {
     }
 
     private void updateStops(Ride existingRide, RideCreationDto dto) {
-        List<Long> existingOsmIds = existingRide.getStops().stream()
+        List<RideStop> existingStops = existingRide.getStops();
+        List<Long> existingOsmIds = existingStops.stream()
                 .map(s -> s.getLocation().getOsmId())
                 .toList();
 
         List<Long> newOsmIds = buildNewOsmIdSequence(dto);
 
         if (existingOsmIds.equals(newOsmIds)) {
-            existingRide.getStops().get(0).setDepartureTime(dto.departureTime());
-            existingRide.getStops().get(0).setLegPrice(dto.originLegPrice());
+            existingStops.get(0).updateLeg(dto.departureTime(), dto.originLegPrice());
             if (dto.intermediateStops() != null) {
                 for (int i = 0; i < dto.intermediateStops().size(); i++) {
-                    existingRide.getStops().get(i + 1)
-                            .setDepartureTime(dto.intermediateStops().get(i).departureTime());
-                    existingRide.getStops().get(i + 1)
-                            .setLegPrice(dto.intermediateStops().get(i).legPrice());
+                    existingStops.get(i + 1).updateLeg(
+                            dto.intermediateStops().get(i).departureTime(),
+                            dto.intermediateStops().get(i).legPrice());
                 }
             }
-            validateStopTimeOrdering(existingRide.getStops());
+            validateStopTimeOrdering(existingStops);
         } else {
-            existingRide.getStops().clear();
-            existingRide.getStops().addAll(buildStops(existingRide, dto));
+            existingRide.replaceStops(buildStops(existingRide, dto));
         }
     }
 
@@ -468,7 +457,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private void validateMinDepartureNotice(Instant departureTime) {
-        Instant earliest = Instant.now().plus(rideProperties.minDepartureNoticeMinutes(), ChronoUnit.MINUTES);
+        Instant earliest = Instant.now(clock).plus(rideProperties.minDepartureNoticeMinutes(), ChronoUnit.MINUTES);
         if (departureTime.isBefore(earliest)) {
             throw new IllegalArgumentException(
                     "Departure must be at least " + rideProperties.minDepartureNoticeMinutes() + " minutes from now");

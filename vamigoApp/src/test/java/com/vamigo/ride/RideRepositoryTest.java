@@ -72,14 +72,26 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     }
 
     private Ride createRideWithStops(Location orig, Location dest) {
+        return createRideWithStops(orig, dest, FUTURE_DEPARTURE, null);
+    }
+
+    private Ride createRideWithStops(Location orig, Location dest,
+                                     Instant departureTime, Instant estimatedArrival) {
         Ride ride = aRide(orig, dest)
                 .id(null)
                 .driver(driver)
                 .vehicle(vehicle)
                 .status(Status.ACTIVE)
+                .departureTime(departureTime)
+                .estimatedArrivalAt(estimatedArrival)
                 .stops(new ArrayList<>())
                 .build();
-        ride.getStops().addAll(buildStops(ride, orig, dest));
+        ride.replaceStops(List.of(
+                RideStop.builder().ride(ride).location(orig).stopOrder(0)
+                        .departureTime(departureTime).build(),
+                RideStop.builder().ride(ride).location(dest).stopOrder(1)
+                        .departureTime(null).build()
+        ));
         return ride;
     }
 
@@ -101,7 +113,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
                 () -> assertEquals(BIG_DECIMAL, savedRide.getPricePerSeat(), "Price per seat should match"),
                 () -> assertEquals(vehicle.getId(), savedRide.getVehicle().getId(), "Vehicle should match"),
                 () -> assertEquals(Status.ACTIVE, savedRide.getStatus(), "Status should match"),
-                () -> assertEquals(INSTANT, savedRide.getLastModified(), "Last modified should match"),
+                () -> assertNotNull(savedRide.getLastModified(), "Last modified should be set by auditing"),
                 () -> assertEquals(RIDE_DESCRIPTION, savedRide.getDescription(), "Description should match")
         );
     }
@@ -127,18 +139,29 @@ class RideRepositoryTest extends AbstractIntegrationTest {
         Ride ride = createRideWithStops(origin, destination);
         Ride savedRide = rideRepository.save(ride);
 
-        savedRide.setTotalSeats(2);
-        savedRide.setPricePerSeat(BIG_DECIMAL.add(BigDecimal.ONE));
-        savedRide.setLastModified(INSTANT.plusSeconds(60));
-        savedRide.setStatus(Status.CANCELLED);
-        savedRide.setDescription("Updated description");
+        Instant before = savedRide.getLastModified();
+        savedRide.updateDetails(new RideDetails(
+                savedRide.getDepartureTime(),
+                savedRide.getTimePrecision(),
+                2,
+                BIG_DECIMAL.add(BigDecimal.ONE),
+                savedRide.isAutoApprove(),
+                savedRide.isDoorToDoor(),
+                savedRide.isAcceptsPackages(),
+                "Updated description",
+                savedRide.getContactPhone(),
+                savedRide.getCurrency()
+        ));
+        savedRide.cancel();
 
-        Ride updatedRide = rideRepository.save(savedRide);
+        Ride updatedRide = rideRepository.saveAndFlush(savedRide);
 
         assertAll(
                 () -> assertEquals(2, updatedRide.getTotalSeats(), "Total seats should be updated"),
                 () -> assertEquals(BIG_DECIMAL.add(BigDecimal.ONE), updatedRide.getPricePerSeat(), "Price per seat should be updated"),
-                () -> assertEquals(INSTANT.plusSeconds(60), updatedRide.getLastModified(), "Last modified should be updated"),
+                () -> assertThat(updatedRide.getLastModified())
+                        .as("Last modified should advance via auditing")
+                        .isAfterOrEqualTo(before),
                 () -> assertEquals(Status.CANCELLED, updatedRide.getStatus(), "Status should be updated"),
                 () -> assertEquals("Updated description", updatedRide.getDescription(), "Description should be updated")
         );
@@ -178,9 +201,8 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     @DisplayName("Find all rides returns list bigger than 0")
     void findAllRidesTest() {
         Ride ride1 = createRideWithStops(origin, destination);
-        Ride ride2 = createRideWithStops(origin, destination);
-        ride2.setDepartureTime(FUTURE_DEPARTURE.plusSeconds(3600));
-        ride2.getStops().get(0).setDepartureTime(FUTURE_DEPARTURE.plusSeconds(3600));
+        Ride ride2 = createRideWithStops(origin, destination,
+                FUTURE_DEPARTURE.plusSeconds(3600), null);
 
         rideRepository.save(ride1);
         rideRepository.save(ride2);
@@ -193,10 +215,11 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Attempt to update a non-existent ride returns exception")
     void updateNonExistentRide() {
-        Ride nonExistentRide = new Ride();
-        nonExistentRide.setId(NON_EXISTENT_ID);
-        nonExistentRide.setDepartureTime(FUTURE_DEPARTURE);
-        nonExistentRide.setDescription(RIDE_DESCRIPTION);
+        Ride nonExistentRide = Ride.builder()
+                .id(NON_EXISTENT_ID)
+                .departureTime(FUTURE_DEPARTURE)
+                .description(RIDE_DESCRIPTION)
+                .build();
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
             rideRepository.save(nonExistentRide);
@@ -211,10 +234,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
     }
 
     private Ride persistActiveRide(Instant departureTime, Instant estimatedArrival) {
-        Ride r = createRideWithStops(origin, destination);
-        r.setDepartureTime(departureTime);
-        r.setEstimatedArrivalAt(estimatedArrival);
-        r.getStops().get(0).setDepartureTime(departureTime);
+        Ride r = createRideWithStops(origin, destination, departureTime, estimatedArrival);
         return rideRepository.saveAndFlush(r);
     }
 
@@ -436,8 +456,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
         @DisplayName("Returns rides with the given status completed within the time window")
         void returnsRidesWithinRange() {
             Ride ride = persistActiveRide();
-            ride.setStatus(Status.COMPLETED);
-            ride.setCompletedAt(Instant.now().minus(30, ChronoUnit.MINUTES));
+            ride.markCompleted(Instant.now().minus(30, ChronoUnit.MINUTES));
             rideRepository.saveAndFlush(ride);
             entityManager.clear();
 
@@ -453,8 +472,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
         @DisplayName("Excludes rides completed outside the requested time window")
         void excludesRidesOutsideRange() {
             Ride ride = persistActiveRide();
-            ride.setStatus(Status.COMPLETED);
-            ride.setCompletedAt(Instant.now().minus(2, ChronoUnit.HOURS));
+            ride.markCompleted(Instant.now().minus(2, ChronoUnit.HOURS));
             rideRepository.saveAndFlush(ride);
             entityManager.clear();
 

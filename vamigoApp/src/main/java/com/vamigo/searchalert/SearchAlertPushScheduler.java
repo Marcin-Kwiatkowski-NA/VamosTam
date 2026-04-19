@@ -101,7 +101,7 @@ public class SearchAlertPushScheduler {
                 emitKindNotification(ss, seatMatches, ResultKind.SEAT);
             }
 
-            ss.setLastPushSentAt(now);
+            ss.recordPushSent(now);
             markPushSentAndCollectDeletable(matches, toDelete);
         }
 
@@ -224,7 +224,7 @@ public class SearchAlertPushScheduler {
 
     private void markPushSentAndCollectDeletable(List<SearchAlertMatch> matches, List<Long> toDelete) {
         for (SearchAlertMatch m : matches) {
-            m.setPushSent(true);
+            m.markPushSent();
             // Delete if: push sent AND (email already sent OR not exact match — proximity-only rows don't need email)
             if (m.isEmailSent() || !m.isExactMatch()) {
                 toDelete.add(m.getId());

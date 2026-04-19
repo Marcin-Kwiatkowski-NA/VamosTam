@@ -31,9 +31,7 @@ public class DeviceTokenService {
         Instant now = Instant.now();
         DeviceToken token = deviceTokenRepository.findByToken(request.token())
                 .map(existing -> {
-                    existing.setUser(user);
-                    existing.setPlatform(request.platform());
-                    existing.setUpdatedAt(now);
+                    existing.refresh(user, request.platform(), now);
                     return existing;
                 })
                 .orElseGet(() -> DeviceToken.builder()

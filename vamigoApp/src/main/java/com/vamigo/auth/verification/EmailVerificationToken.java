@@ -2,7 +2,11 @@ package com.vamigo.auth.verification;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -12,9 +16,8 @@ import java.time.Instant;
 @Table(name = "email_verification_token")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class EmailVerificationToken {
 
@@ -45,5 +48,9 @@ public class EmailVerificationToken {
 
     public boolean isUsed() {
         return usedAt != null;
+    }
+
+    public void markUsed(Instant now) {
+        this.usedAt = now;
     }
 }

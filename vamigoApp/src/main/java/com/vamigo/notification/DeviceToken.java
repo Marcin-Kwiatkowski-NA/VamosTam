@@ -13,11 +13,11 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.Instant;
 
@@ -26,9 +26,8 @@ import java.time.Instant;
         @Index(name = "idx_device_token_user_id", columnList = "user_id")
 })
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class DeviceToken {
 
@@ -52,4 +51,10 @@ public class DeviceToken {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    public void refresh(UserAccount user, Platform platform, Instant when) {
+        this.user = user;
+        this.platform = platform;
+        this.updatedAt = when;
+    }
 }

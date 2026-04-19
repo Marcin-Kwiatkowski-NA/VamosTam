@@ -2,10 +2,16 @@ package com.vamigo.notification;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.Map;
@@ -16,10 +22,10 @@ import java.util.UUID;
         @Index(name = "idx_notif_recipient_created", columnList = "recipient_id, created_at DESC"),
         @Index(name = "idx_notif_recipient_unread", columnList = "recipient_id, read_at")
 })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class Notification {
 
@@ -57,16 +63,12 @@ public class Notification {
     @Column(nullable = false)
     private int count = 1;
 
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "read_at")
     private Instant readAt;
-
-    @PrePersist
-    void onCreate() {
-        this.createdAt = Instant.now();
-    }
 
     public boolean isRead() {
         return readAt != null;
@@ -75,9 +77,9 @@ public class Notification {
     /**
      * Collapse: bump count and refresh timestamp for repeated events.
      */
-    public void collapse(Map<String, String> newParams) {
+    public void collapse(Instant when, Map<String, String> newParams) {
         this.count++;
-        this.createdAt = Instant.now();
+        this.createdAt = when;
         if (newParams != null) {
             this.params = newParams;
         }

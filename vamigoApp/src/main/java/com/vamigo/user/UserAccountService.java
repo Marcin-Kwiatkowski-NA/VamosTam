@@ -166,7 +166,7 @@ public class UserAccountService {
         Optional<UserAccount> existingByGoogleId = userAccountRepository.findByGoogleId(googleId);
         if (existingByGoogleId.isPresent()) {
             UserAccount account = existingByGoogleId.get();
-            account.setEmailVerifiedAt(Instant.now());
+            account.markEmailVerified(Instant.now());
 
             return userAccountRepository.save(account);
         }
@@ -176,9 +176,8 @@ public class UserAccountService {
         if (existingByEmail.isPresent()) {
             UserAccount account = existingByEmail.get();
             // Link Google account
-            account.addProvider(AuthProvider.GOOGLE);
-            account.setGoogleId(googleId);
-            account.setEmailVerifiedAt(Instant.now());
+            account.linkGoogle(googleId);
+            account.markEmailVerified(Instant.now());
 
             return userAccountRepository.save(account);
         }
@@ -219,7 +218,7 @@ public class UserAccountService {
         Optional<UserAccount> existingByFacebookId = userAccountRepository.findByFacebookId(facebookId);
         if (existingByFacebookId.isPresent()) {
             UserAccount account = existingByFacebookId.get();
-            account.setEmailVerifiedAt(Instant.now());
+            account.markEmailVerified(Instant.now());
 
             return userAccountRepository.save(account);
         }
@@ -227,9 +226,8 @@ public class UserAccountService {
         Optional<UserAccount> existingByEmail = userAccountRepository.findByEmail(normalizedEmail);
         if (existingByEmail.isPresent()) {
             UserAccount account = existingByEmail.get();
-            account.addProvider(AuthProvider.FACEBOOK);
-            account.setFacebookId(facebookId);
-            account.setEmailVerifiedAt(Instant.now());
+            account.linkFacebook(facebookId);
+            account.markEmailVerified(Instant.now());
 
             return userAccountRepository.save(account);
         }

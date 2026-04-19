@@ -43,22 +43,19 @@ public class CarrierProfileController {
         CarrierProfile carrier = carrierProfileRepository.findById(principal.userId())
                 .orElseThrow(() -> new NoSuchUserException(principal.userId()));
 
+        String companyName = null;
         if (request.companyName() != null && !request.companyName().isBlank()) {
-            carrier.setCompanyName(request.companyName());
+            companyName = request.companyName();
 
             UserProfile profile = userProfileRepository.findById(principal.userId())
                     .orElseThrow(() -> new NoSuchUserException(principal.userId()));
-            profile.setDisplayName(request.companyName());
+            profile.updateDisplayName(companyName);
             userProfileRepository.save(profile);
         }
-        if (request.websiteUrl() != null) {
-            carrier.setWebsiteUrl(request.websiteUrl().isBlank() ? null : request.websiteUrl());
-        }
-        if (request.bookingEnabled() != null) {
-            carrier.setBookingEnabled(request.bookingEnabled());
-        }
+
+        String normalizedSlug = null;
         if (request.slug() != null && !request.slug().isBlank()) {
-            String normalizedSlug = request.slug().toLowerCase();
+            normalizedSlug = request.slug().toLowerCase();
             if (SlugUtils.isReserved(normalizedSlug)) {
                 throw new IllegalArgumentException("This slug is reserved");
             }
@@ -66,7 +63,20 @@ public class CarrierProfileController {
                     && carrierProfileRepository.existsBySlug(normalizedSlug)) {
                 throw new DuplicateSlugException(normalizedSlug);
             }
-            carrier.setSlug(normalizedSlug);
+        }
+
+        carrier.updateDetails(new CarrierProfileDetails(companyName, normalizedSlug));
+
+        if (request.websiteUrl() != null) {
+            carrier.updateWebsite(request.websiteUrl().isBlank() ? null : request.websiteUrl());
+        }
+
+        if (request.bookingEnabled() != null) {
+            if (request.bookingEnabled()) {
+                carrier.enableBooking();
+            } else {
+                carrier.disableBooking();
+            }
         }
 
         carrierProfileRepository.save(carrier);

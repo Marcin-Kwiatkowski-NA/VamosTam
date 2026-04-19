@@ -2,7 +2,13 @@ package com.vamigo.searchalert;
 
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,10 +20,10 @@ import java.time.LocalDate;
         @Index(name = "idx_ss_origin_coords", columnList = "origin_lat, origin_lon"),
         @Index(name = "idx_ss_dest_coords", columnList = "destination_lat, destination_lon")
 })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class SavedSearch {
 
@@ -80,11 +86,19 @@ public class SavedSearch {
     @Column(name = "last_email_sent_at")
     private Instant lastEmailSentAt;
 
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @PrePersist
-    void onCreate() {
-        this.createdAt = Instant.now();
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public void recordPushSent(Instant when) {
+        this.lastPushSentAt = when;
+    }
+
+    public void recordEmailSent(Instant when) {
+        this.lastEmailSentAt = when;
     }
 }

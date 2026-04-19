@@ -97,11 +97,7 @@ public class UnreadMessageEmailScheduler {
                     unreadMessageTemplateIdPl,
                     params);
 
-            if (isParticipantA) {
-                conversation.setParticipantAEmailNotifiedAt(now);
-            } else {
-                conversation.setParticipantBEmailNotifiedAt(now);
-            }
+            conversation.recordEmailNotified(recipient.getId(), now);
 
             log.info("Unread message email sent to user {} for conversation {}", recipient.getId(), conversation.getId());
         } catch (Exception e) {

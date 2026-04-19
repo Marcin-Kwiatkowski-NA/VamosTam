@@ -262,7 +262,7 @@ public class AuthService {
             throw new BadCredentialsException("Current password is incorrect");
         }
 
-        account.setPasswordHash(passwordEncoder.encode(newPassword));
+        account.changePasswordHash(passwordEncoder.encode(newPassword));
         account.incrementTokenVersion();
         userAccountRepository.save(account);
 

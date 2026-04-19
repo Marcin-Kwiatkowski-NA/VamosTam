@@ -10,12 +10,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
+
 @Configuration
 public class UserManagementConfig {
 
     @Bean
-    public UserDetailsService userDetailsService(UserAccountRepository userAccountRepository) {
-        return new UserSecurityService(userAccountRepository);
+    public UserDetailsService userDetailsService(UserAccountRepository userAccountRepository, Clock clock) {
+        return new UserSecurityService(userAccountRepository, clock);
     }
 
     @Bean

@@ -10,6 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +31,7 @@ class LoginAttemptServiceTest {
     private UserAccountRepository userAccountRepository;
 
     private LoginAttemptService loginAttemptService;
+    private Clock clock;
 
     @BeforeEach
     void setUp() {
@@ -35,7 +39,8 @@ class LoginAttemptServiceTest {
                 new AuthSecurityProperties.RateLimit(20),
                 new AuthSecurityProperties.AccountLock(MAX_ATTEMPTS, LOCK_MINUTES)
         );
-        loginAttemptService = new LoginAttemptService(userAccountRepository, properties);
+        clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
+        loginAttemptService = new LoginAttemptService(userAccountRepository, properties, clock);
     }
 
     @Test
@@ -60,7 +65,7 @@ class LoginAttemptServiceTest {
 
         assertThat(account.getFailedLoginAttempts()).isEqualTo(MAX_ATTEMPTS);
         assertThat(account.getLockedUntil()).isNotNull();
-        assertThat(account.isTemporarilyLocked()).isTrue();
+        assertThat(account.isTemporarilyLocked(Instant.now(clock))).isTrue();
     }
 
     @Test

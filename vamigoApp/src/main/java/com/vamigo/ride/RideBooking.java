@@ -1,5 +1,6 @@
 package com.vamigo.ride;
 
+import com.vamigo.exceptions.InvalidBookingTransitionException;
 import com.vamigo.user.UserAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,11 +14,11 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,9 +30,8 @@ import java.time.Instant;
         @Index(name = "idx_ride_booking_status", columnList = "status")
 })
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class RideBooking {
 
@@ -79,5 +79,45 @@ public class RideBooking {
 
     public boolean isActive() {
         return status.isActive();
+    }
+
+    public void confirm(Instant now) {
+        transitionTo(BookingStatus.CONFIRMED);
+        this.resolvedAt = now;
+    }
+
+    public void reject(Instant now) {
+        transitionTo(BookingStatus.REJECTED);
+        this.resolvedAt = now;
+    }
+
+    public void cancelByDriver(String reason, Instant now) {
+        transitionTo(BookingStatus.CANCELLED_BY_DRIVER);
+        applyCancellation(reason, now);
+    }
+
+    public void cancelByPassenger(String reason, Instant now) {
+        transitionTo(BookingStatus.CANCELLED_BY_PASSENGER);
+        applyCancellation(reason, now);
+    }
+
+    public void expire(Instant now) {
+        transitionTo(BookingStatus.EXPIRED);
+        this.resolvedAt = now;
+    }
+
+    private void transitionTo(BookingStatus target) {
+        if (!status.canTransitionTo(target)) {
+            throw new InvalidBookingTransitionException(id, status, target);
+        }
+        this.status = target;
+    }
+
+    private void applyCancellation(String reason, Instant now) {
+        this.resolvedAt = now;
+        this.cancelledAt = now;
+        if (reason != null && !reason.isBlank()) {
+            this.cancellationReason = reason;
+        }
     }
 }

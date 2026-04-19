@@ -4,12 +4,14 @@ import com.vamigo.user.UserAccount;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,10 +21,10 @@ import java.util.UUID;
     @Index(name = "idx_msg_conv_created", columnList = "conversation_id, created_at"),
     @Index(name = "idx_msg_status_update", columnList = "conversation_id, sender_id, created_at")
 })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @Builder
 public class Message {
 
@@ -48,6 +50,7 @@ public class Message {
     @Column(nullable = false, length = 2000)
     private String body;
 
+    @CreatedDate
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;
 
@@ -57,12 +60,22 @@ public class Message {
     @Column(name = "read_at")
     private Instant readAt;
 
-    @PrePersist
-    void onCreate() {
-        this.createdAt = Instant.now();
-    }
-
     public MessageStatus getDerivedStatus() {
         return MessageStatus.fromTimestamps(deliveredAt, readAt);
+    }
+
+    public void markDelivered(Instant when) {
+        if (this.deliveredAt == null) {
+            this.deliveredAt = when;
+        }
+    }
+
+    public void markRead(Instant when) {
+        if (this.readAt == null) {
+            this.readAt = when;
+        }
+        if (this.deliveredAt == null) {
+            this.deliveredAt = when;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.vamigo.seat;
 
 import com.vamigo.domain.AbstractTrip;
+import com.vamigo.domain.Status;
 import com.vamigo.domain.TimePrecision;
 import com.vamigo.location.Location;
 import com.vamigo.user.UserAccount;
@@ -11,11 +12,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
@@ -23,9 +24,8 @@ import java.time.Instant;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 @SuperBuilder
 public class Seat extends AbstractTrip {
 
@@ -52,6 +52,32 @@ public class Seat extends AbstractTrip {
 
     @Column(name = "price_willing_to_pay", precision = 6, scale = 2)
     private BigDecimal priceWillingToPay;
+
+    public void assignPassenger(UserAccount passenger) {
+        this.passenger = passenger;
+    }
+
+    public void updateDetails(SeatDetails details) {
+        this.origin = details.origin();
+        this.destination = details.destination();
+        this.departureTime = details.departureTime();
+        this.timePrecision = details.timePrecision();
+        this.count = details.count();
+        this.priceWillingToPay = details.priceWillingToPay();
+        applyCommonDetails(details.description(), details.contactPhone(), details.currency());
+    }
+
+    public void markCompleted() {
+        changeStatus(Status.COMPLETED);
+    }
+
+    public void markExpired() {
+        changeStatus(Status.EXPIRED);
+    }
+
+    public void cancel() {
+        changeStatus(Status.CANCELLED);
+    }
 
     public SeatStatus computeSeatStatus() {
         return switch (getStatus()) {

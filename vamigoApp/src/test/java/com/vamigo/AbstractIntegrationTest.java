@@ -1,6 +1,7 @@
 package com.vamigo;
 
 import com.vamigo.config.JpaConfig;
+import com.vamigo.config.TimeConfig;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
@@ -8,7 +9,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({JpaConfig.class, TestFirebaseConfig.class})
+@Import({JpaConfig.class, TimeConfig.class, TestFirebaseConfig.class})
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection

@@ -2,6 +2,7 @@ package com.vamigo.domain;
 
 import com.vamigo.ride.RideSource;
 import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -10,20 +11,22 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 public abstract class AbstractTrip {
 
@@ -50,9 +53,24 @@ public abstract class AbstractTrip {
     @Column(name = "currency", nullable = false, length = 3)
     private Currency currency;
 
-    @Column(name = "last_modified")
+    @LastModifiedDate
+    @Column(name = "last_modified", nullable = false)
     private Instant lastModified;
 
     @Version
     private int version;
+
+    protected void changeStatus(Status status) {
+        this.status = status;
+    }
+
+    protected void applyCommonDetails(String description, String contactPhone, Currency currency) {
+        this.description = description;
+        this.contactPhone = contactPhone;
+        this.currency = currency;
+    }
+
+    protected void touchLastModified(Instant now) {
+        this.lastModified = now;
+    }
 }

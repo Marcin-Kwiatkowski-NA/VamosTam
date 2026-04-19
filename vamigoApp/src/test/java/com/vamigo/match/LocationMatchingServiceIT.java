@@ -139,7 +139,7 @@ class LocationMatchingServiceIT extends AbstractIntegrationTest {
         @DisplayName("Excludes rides that are not ACTIVE")
         void excludesNonActiveRides() {
             Ride ride = persistRide(Instant.now().plus(1, ChronoUnit.DAYS), krakow, warsaw);
-            ride.setStatus(Status.CANCELLED);
+            ride.cancel();
             rideRepository.saveAndFlush(ride);
 
             var query = new RideMatchQuery(
@@ -504,13 +504,15 @@ class LocationMatchingServiceIT extends AbstractIntegrationTest {
                 .departureTime(departure)
                 .stops(new ArrayList<>())
                 .build();
+        List<RideStop> stops = new ArrayList<>();
         for (int i = 0; i < stopLocations.length; i++) {
-            ride.getStops().add(RideStop.builder()
+            stops.add(RideStop.builder()
                     .ride(ride).location(stopLocations[i])
                     .stopOrder(i)
                     .departureTime(i == 0 ? departure : null)
                     .build());
         }
+        ride.replaceStops(stops);
         return rideRepository.saveAndFlush(ride);
     }
 

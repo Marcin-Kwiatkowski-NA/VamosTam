@@ -4,15 +4,19 @@ import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 
 public class SecurityUser implements UserDetails, CredentialsContainer {
 
     private final UserAccount account;
+    private final Clock clock;
     private String passwordHash;
 
-    public SecurityUser(UserAccount account) {
+    public SecurityUser(UserAccount account, Clock clock) {
         this.account = account;
+        this.clock = clock;
         this.passwordHash = account.getPasswordHash();
     }
 
@@ -46,7 +50,8 @@ public class SecurityUser implements UserDetails, CredentialsContainer {
 
     @Override
     public boolean isAccountNonLocked() {
-        return account.getStatus() != AccountStatus.BANNED && !account.isTemporarilyLocked();
+        return account.getStatus() != AccountStatus.BANNED
+                && !account.isTemporarilyLocked(Instant.now(clock));
     }
 
     @Override

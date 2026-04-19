@@ -124,7 +124,7 @@ public class VehiclePhotoService {
         }
 
         String oldKey = vehicle.getPhotoObjectKey();
-        vehicle.setPhotoObjectKey(objectKey);
+        vehicle.updatePhoto(objectKey);
         vehicleRepository.save(vehicle);
 
         if (oldKey != null) {
@@ -141,7 +141,7 @@ public class VehiclePhotoService {
                 .orElseThrow(() -> new NoSuchElementException("Vehicle with ID " + vehicleId + " not found."));
 
         String oldKey = vehicle.getPhotoObjectKey();
-        vehicle.setPhotoObjectKey(null);
+        vehicle.clearPhoto();
         vehicleRepository.save(vehicle);
 
         if (oldKey != null) {

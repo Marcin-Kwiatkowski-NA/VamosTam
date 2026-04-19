@@ -88,7 +88,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
                 .stops(new ArrayList<>())
                 .bookings(new ArrayList<>())
                 .build();
-        r.getStops().addAll(buildStops(r, origin, destination));
+        r.replaceStops(buildStops(r, origin, destination));
         return rideRepository.save(r);
     }
 
@@ -365,8 +365,7 @@ class RideBookingRepositoryTest extends AbstractIntegrationTest {
     class FindConfirmedBookingsOnCompletedRidesTests {
 
         private void markCompleted(Ride r, Instant completedAt) {
-            r.setStatus(Status.COMPLETED);
-            r.setCompletedAt(completedAt);
+            r.markCompleted(completedAt);
             rideRepository.save(r);
         }
 
