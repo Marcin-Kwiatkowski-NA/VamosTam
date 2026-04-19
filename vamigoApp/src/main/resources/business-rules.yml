@@ -86,5 +86,8 @@ match:
     min-km: ${MATCH_SEAT_SMART_MIN_KM:30}
   alert:
     fixed-km: ${MATCH_ALERT_FIXED_KM:50}
+    short-trip:
+      threshold-km: ${MATCH_ALERT_SHORT_TRIP_THRESHOLD_KM:150}
+      radius-km: ${MATCH_ALERT_SHORT_TRIP_RADIUS_KM:20}
   external-import:
     fixed-km: ${MATCH_EXTERNAL_IMPORT_FIXED_KM:50}

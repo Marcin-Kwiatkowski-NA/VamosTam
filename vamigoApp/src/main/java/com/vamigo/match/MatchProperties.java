@@ -41,18 +41,35 @@ public record MatchProperties(
             Double fixedKm,
             Double divisor,
             Double minKm,
-            Double maxKm
+            Double maxKm,
+            ShortTrip shortTrip
     ) {
 
         public RadiusStrategy toStrategy() {
+            RadiusStrategy base;
             if (fixedKm != null) {
-                return RadiusStrategy.fixedKm(fixedKm);
-            }
-            if (divisor == null || minKm == null) {
+                base = RadiusStrategy.fixedKm(fixedKm);
+            } else if (divisor != null && minKm != null) {
+                base = RadiusStrategy.dynamic(divisor, minKm, maxKm != null ? maxKm : 0);
+            } else {
                 throw new IllegalStateException(
                         "match radius must specify either fixed-km or divisor+min-km");
             }
-            return RadiusStrategy.dynamic(divisor, minKm, maxKm != null ? maxKm : 0);
+            if (shortTrip == null) {
+                return base;
+            }
+            if (shortTrip.thresholdKm() == null || shortTrip.radiusKm() == null) {
+                throw new IllegalStateException(
+                        "match radius short-trip requires both threshold-km and radius-km");
+            }
+            return RadiusStrategy.shortTripOverride(base, shortTrip.thresholdKm(), shortTrip.radiusKm());
         }
     }
+
+    /**
+     * Optional override that swaps the feature's base radius for a tighter
+     * {@code radius-km} when origin↔destination distance is below
+     * {@code threshold-km}. Both values must be set when the block is present.
+     */
+    public record ShortTrip(Double thresholdKm, Double radiusKm) { }
 }

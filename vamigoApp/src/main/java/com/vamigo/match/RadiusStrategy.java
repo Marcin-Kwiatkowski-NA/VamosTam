@@ -7,7 +7,7 @@ import com.vamigo.search.GeoUtils;
  * computed from the great-circle distance between origin and destination.
  */
 public sealed interface RadiusStrategy
-        permits RadiusStrategy.Fixed, RadiusStrategy.Dynamic {
+        permits RadiusStrategy.Fixed, RadiusStrategy.Dynamic, RadiusStrategy.ShortTripOverride {
 
     double resolveMeters(GeoPoint origin, GeoPoint destination);
 
@@ -21,6 +21,10 @@ public sealed interface RadiusStrategy
 
     static Dynamic dynamic(double divisor, double minKm, double maxKm) {
         return new Dynamic(divisor, minKm, maxKm);
+    }
+
+    static ShortTripOverride shortTripOverride(RadiusStrategy base, double thresholdKm, double shortRadiusKm) {
+        return new ShortTripOverride(base, thresholdKm, shortRadiusKm);
     }
 
     record Fixed(double meters) implements RadiusStrategy {
@@ -56,6 +60,32 @@ public sealed interface RadiusStrategy
                 radiusKm = maxKm;
             }
             return radiusKm * 1000;
+        }
+    }
+
+    /**
+     * Wraps a base strategy and substitutes a tighter fixed radius when the
+     * great-circle distance between origin and destination is below
+     * {@code thresholdKm}. Used so notification alerts stay tight on short
+     * routes where a generous default radius would match unrelated city pairs.
+     */
+    record ShortTripOverride(RadiusStrategy base, double thresholdKm, double shortRadiusKm)
+            implements RadiusStrategy {
+        public ShortTripOverride {
+            if (base == null) throw new IllegalArgumentException("base strategy required");
+            if (thresholdKm <= 0) throw new IllegalArgumentException("thresholdKm must be > 0");
+            if (shortRadiusKm <= 0) throw new IllegalArgumentException("shortRadiusKm must be > 0");
+        }
+
+        @Override
+        public double resolveMeters(GeoPoint origin, GeoPoint destination) {
+            double distKm = GeoUtils.haversineKm(
+                    origin.lat(), origin.lon(),
+                    destination.lat(), destination.lon());
+            if (distKm < thresholdKm) {
+                return shortRadiusKm * 1000;
+            }
+            return base.resolveMeters(origin, destination);
         }
     }
 }
