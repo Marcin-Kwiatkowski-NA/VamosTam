@@ -63,12 +63,6 @@ public class PasswordResetService {
 
         UserAccount user = optionalUser.get();
 
-        // Skip if user has no password (Google-only account)
-        if (!user.hasProvider(AuthProvider.EMAIL)) {
-            LOGGER.debug("Password reset requested for Google-only account: {}", email);
-            return;
-        }
-
         checkCooldown(user.getId());
 
         tokenRepository.invalidateAllForUser(user.getId());
@@ -118,6 +112,7 @@ public class PasswordResetService {
 
         UserAccount user = token.getUser();
         user.changePasswordHash(passwordEncoder.encode(newPassword));
+        user.addProvider(AuthProvider.EMAIL);
         user.incrementTokenVersion();
         return userAccountRepository.save(user);
     }

@@ -122,6 +122,10 @@ public class UserAccount {
     }
 
     public void recordFailedLogin(Instant now, int maxAttempts, int lockDurationMinutes) {
+        if (lockedUntil != null && !now.isBefore(lockedUntil)) {
+            failedLoginAttempts = 0;
+            lockedUntil = null;
+        }
         failedLoginAttempts++;
         if (failedLoginAttempts >= maxAttempts) {
             lockedUntil = now.plus(Duration.ofMinutes(lockDurationMinutes));

@@ -175,7 +175,7 @@ Driven by Spring Security events (`AuthenticationFailureBadCredentialsEvent` / `
 - IP rate limit exceeded: **429** Too Many Requests
 - Account locked: **403** Forbidden with `errorCode: ACCOUNT_TEMPORARILY_LOCKED`
 
-Successful login resets the failure counter. Lock expires automatically after the configured duration.
+Successful login resets the failure counter. When the lock window elapses, the next failed attempt starts a fresh counter, so the user gets the full quota of retries again.
 
 ## Password Hashing
 
