@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static com.vamigo.utils.ControllersUtil.getUriFromId;
+import static com.vamigo.utils.PageableUtils.withStableSort;
 import static com.vamigo.utils.SortMappingUtil.translateSort;
 
 @RestController
@@ -106,7 +107,7 @@ public class RidesController {
             @RequestParam(defaultValue = "asc") String sortDir) {
 
         Sort sort = resolveSort(sortBy, sortDir);
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = withStableSort(PageRequest.of(page, size, sort));
 
         return ResponseEntity.ok(rideService.getAllRides(pageable));
     }

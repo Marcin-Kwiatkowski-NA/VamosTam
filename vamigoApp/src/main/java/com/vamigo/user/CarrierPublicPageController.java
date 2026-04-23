@@ -20,10 +20,12 @@ import com.vamigo.vehicle.VehiclePhotoUrlResolver;
 import com.vamigo.vehicle.VehicleRepository;
 import com.vamigo.vehicle.VehicleResponseDto;
 import com.vamigo.vehicle.LicensePlateMasker;
+import com.vamigo.utils.PageableUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,8 +73,9 @@ public class CarrierPublicPageController {
         CarrierProfileDto carrierDto = toCarrierDto(carrier, userProfile);
         UserCardDto userCard = buildUserCard(userId, userProfile);
 
-        Pageable pageable = PageRequest.of(page, Math.min(size, 50));
-        Page<Ride> ridePage = rideRepository.findByDriverIdAndStatusAndDepartureTimeAfterOrderByDepartureTimeAsc(
+        Pageable pageable = PageableUtils.withStableSort(PageRequest.of(
+                page, Math.min(size, 50), Sort.by(Sort.Direction.ASC, "departureTime")));
+        Page<Ride> ridePage = rideRepository.findByDriverIdAndStatusAndDepartureTimeAfter(
                 userId, Status.ACTIVE, Instant.now(), pageable);
 
         List<Ride> rides = ridePage.getContent();

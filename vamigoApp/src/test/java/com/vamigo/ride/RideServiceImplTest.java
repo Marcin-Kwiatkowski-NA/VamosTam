@@ -234,14 +234,14 @@ class RideServiceImplTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
-            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
             Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
-            verify(rideRepository).findAll(any(Specification.class), eq(pageable));
+            verify(rideRepository).findAll(any(Specification.class), any(Pageable.class));
         }
 
         @Test
@@ -254,7 +254,7 @@ class RideServiceImplTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
-            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
             Page<RideListDto> result = rideService.searchRides(criteria, pageable);
@@ -276,14 +276,14 @@ class RideServiceImplTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
-            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
             Page<RideListDto> result = rideService.searchRides(criteria, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
-            verify(rideRepository).findAll(any(Specification.class), eq(pageable));
+            verify(rideRepository).findAll(any(Specification.class), any(Pageable.class));
         }
 
         @Test
@@ -297,7 +297,7 @@ class RideServiceImplTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
-            when(rideRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(ridePage);
+            when(rideRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
             Page<RideListDto> result = rideService.searchRides(criteria, pageable);
@@ -312,14 +312,14 @@ class RideServiceImplTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<Ride> ridePage = new PageImpl<>(List.of(ride));
 
-            when(rideRepository.findAll(pageable)).thenReturn(ridePage);
+            when(rideRepository.findAll(any(Pageable.class))).thenReturn(ridePage);
             when(rideMapper.rideEntityToRideListDto(ride)).thenReturn(rideListDto);
 
             Page<RideListDto> result = rideService.getAllRides(pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getContent().size());
-            verify(rideRepository).findAll(pageable);
+            verify(rideRepository).findAll(any(Pageable.class));
         }
     }
 

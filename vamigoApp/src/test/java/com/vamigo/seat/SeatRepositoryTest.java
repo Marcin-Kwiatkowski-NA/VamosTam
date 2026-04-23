@@ -60,7 +60,7 @@ class SeatRepositoryTest extends AbstractIntegrationTest {
                     .departureTime(Instant.now().plus(3, ChronoUnit.HOURS)).build());
             em.clear();
 
-            List<Seat> seats = repository.findByPassengerIdOrderByDepartureTimeAsc(passenger.getId());
+            List<Seat> seats = repository.findByPassengerIdOrderByDepartureTimeAscIdAsc(passenger.getId());
 
             assertThat(seats).hasSize(2)
                     .isSortedAccordingTo((a, b) -> a.getDepartureTime().compareTo(b.getDepartureTime()));

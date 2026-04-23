@@ -418,7 +418,7 @@ class RideRepositoryTest extends AbstractIntegrationTest {
             Ride earlier = persistActiveRide(Instant.now().plus(1, ChronoUnit.HOURS), null);
             entityManager.clear();
 
-            List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(driver.getId());
+            List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAscIdAsc(driver.getId());
 
             assertThat(rides).extracting(Ride::getId)
                     .containsExactly(earlier.getId(), later.getId());

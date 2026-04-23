@@ -21,9 +21,9 @@ import java.util.Optional;
 @Repository
 public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificationExecutor<Ride> {
 
-    List<Ride> findByDriverIdOrderByDepartureTimeAsc(Long driverId);
+    List<Ride> findByDriverIdOrderByDepartureTimeAscIdAsc(Long driverId);
 
-    Page<Ride> findByDriverIdAndStatusAndDepartureTimeAfterOrderByDepartureTimeAsc(
+    Page<Ride> findByDriverIdAndStatusAndDepartureTimeAfter(
             Long driverId, Status status, Instant after, Pageable pageable);
 
     boolean existsByIdAndDriverId(Long id, Long driverId);

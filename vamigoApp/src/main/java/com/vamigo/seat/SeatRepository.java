@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface SeatRepository extends JpaRepository<Seat, Long>, JpaSpecificationExecutor<Seat> {
 
-    List<Seat> findByPassengerIdOrderByDepartureTimeAsc(Long passengerId);
+    List<Seat> findByPassengerIdOrderByDepartureTimeAscIdAsc(Long passengerId);
 
     boolean existsByIdAndPassengerId(Long id, Long passengerId);
 

@@ -24,6 +24,7 @@ import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
 import com.vamigo.user.exception.NoSuchUserException;
+import com.vamigo.utils.PageableUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -116,6 +117,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     private Page<SeatListDto> searchSeatsExact(SeatSearchCriteriaDto criteria, Pageable pageable) {
+        Pageable stablePageable = PageableUtils.withStableSort(pageable);
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
 
         Specification<Seat> spec = Specification.where(SeatSpecifications.hasStatus(Status.ACTIVE))
@@ -128,14 +130,14 @@ public class SeatServiceImpl implements SeatService {
             spec = spec.and(SeatSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
-        Page<Seat> seatPage = seatRepository.findAll(spec, pageable);
+        Page<Seat> seatPage = seatRepository.findAll(spec, stablePageable);
         List<Seat> seats = seatPage.getContent();
 
         List<SeatListDto> dtos = seats.stream()
                 .map(seatMapper::seatEntityToSeatListDto)
                 .toList();
         List<SeatListDto> enriched = seatResponseEnricher.enrichList(seats, dtos);
-        return new PageImpl<>(enriched, pageable, seatPage.getTotalElements());
+        return new PageImpl<>(enriched, stablePageable, seatPage.getTotalElements());
     }
 
     private Page<SeatListDto> searchSeatsNearby(SeatSearchCriteriaDto criteria, Pageable pageable) {
@@ -224,7 +226,7 @@ public class SeatServiceImpl implements SeatService {
             throw new NoSuchUserException(passengerId);
         }
 
-        List<Seat> seats = seatRepository.findByPassengerIdOrderByDepartureTimeAsc(passengerId);
+        List<Seat> seats = seatRepository.findByPassengerIdOrderByDepartureTimeAscIdAsc(passengerId);
         List<SeatListDto> dtos = seats.stream()
                 .map(seatMapper::seatEntityToSeatListDto)
                 .toList();

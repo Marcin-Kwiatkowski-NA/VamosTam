@@ -42,7 +42,10 @@ public final class SeatProximitySpecs {
                     cb, originJoin.get("coordinates"), originLon, originLat);
             Expression<Double> destDist = GeoMatchPredicates.distanceMeters(
                     cb, destJoin.get("coordinates"), destLon, destLat);
-            query.orderBy(cb.asc(cb.sum(originDist, destDist)));
+            query.orderBy(
+                    cb.asc(cb.sum(originDist, destDist)),
+                    cb.asc(root.get("id"))
+            );
             return null;
         };
     }

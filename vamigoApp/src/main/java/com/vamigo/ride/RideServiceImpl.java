@@ -26,6 +26,7 @@ import com.vamigo.user.UserAccount;
 import com.vamigo.user.UserAccountRepository;
 import com.vamigo.user.capability.CapabilityService;
 import com.vamigo.user.exception.NoSuchUserException;
+import com.vamigo.utils.PageableUtils;
 import com.vamigo.vehicle.Vehicle;
 import com.vamigo.vehicle.VehicleRepository;
 import org.locationtech.jts.geom.Coordinate;
@@ -261,6 +262,7 @@ public class RideServiceImpl implements RideService {
     }
 
     private Page<RideListDto> searchRidesExact(RideSearchCriteriaDto criteria, Pageable pageable) {
+        Pageable stablePageable = PageableUtils.withStableSort(pageable);
         Instant effectiveEarliest = clampToNow(criteria.earliestDeparture(), Instant.now(clock));
 
         Specification<Ride> spec = Specification.where(RideSpecifications.hasStatus(Status.ACTIVE))
@@ -275,7 +277,7 @@ public class RideServiceImpl implements RideService {
             spec = spec.and(RideSpecifications.departsBefore(criteria.latestDeparture()));
         }
 
-        Page<Ride> ridePage = rideRepository.findAll(spec, pageable);
+        Page<Ride> ridePage = rideRepository.findAll(spec, stablePageable);
 
         List<Ride> filtered = ridePage.getContent().stream()
                 .filter(ride -> hasAvailableSeatsForExactSearch(ride, criteria))
@@ -285,7 +287,7 @@ public class RideServiceImpl implements RideService {
                 .map(rideMapper::rideEntityToRideListDto)
                 .toList();
         List<RideListDto> enriched = rideResponseEnricher.enrichList(filtered, dtos);
-        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+        return new PageImpl<>(enriched, stablePageable, ridePage.getTotalElements());
     }
 
     private Page<RideListDto> searchRidesNearby(RideSearchCriteriaDto criteria, Pageable pageable) {
@@ -370,13 +372,14 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional(readOnly = true)
     public Page<RideListDto> getAllRides(Pageable pageable) {
-        Page<Ride> ridePage = rideRepository.findAll(pageable);
+        Pageable stablePageable = PageableUtils.withStableSort(pageable);
+        Page<Ride> ridePage = rideRepository.findAll(stablePageable);
         List<Ride> rides = ridePage.getContent();
         List<RideListDto> dtos = rides.stream()
                 .map(rideMapper::rideEntityToRideListDto)
                 .toList();
         List<RideListDto> enriched = rideResponseEnricher.enrichList(rides, dtos);
-        return new PageImpl<>(enriched, pageable, ridePage.getTotalElements());
+        return new PageImpl<>(enriched, stablePageable, ridePage.getTotalElements());
     }
 
     @Override
@@ -386,7 +389,7 @@ public class RideServiceImpl implements RideService {
             throw new NoSuchUserException(driverId);
         }
 
-        List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAsc(driverId);
+        List<Ride> rides = rideRepository.findByDriverIdOrderByDepartureTimeAscIdAsc(driverId);
         List<RideListDto> dtos = rides.stream()
                 .map(rideMapper::rideEntityToRideListDto)
                 .toList();

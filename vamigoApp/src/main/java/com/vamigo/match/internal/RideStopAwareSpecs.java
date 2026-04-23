@@ -106,7 +106,10 @@ public final class RideStopAwareSpecs {
                             GeoMatchPredicates.withinRadius(cb, l2.get("coordinates"), destLon, destLat, radiusMeters)
                     );
 
-            query.orderBy(cb.asc(GeoMatchPredicates.combinedScore(cb, minOriginDist, minDestDist)));
+            query.orderBy(
+                    cb.asc(GeoMatchPredicates.combinedScore(cb, minOriginDist, minDestDist)),
+                    cb.asc(root.get("id"))
+            );
             return null;
         };
     }
