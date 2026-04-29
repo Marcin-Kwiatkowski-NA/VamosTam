@@ -2,14 +2,19 @@ package com.vamigo.auth.service;
 
 import com.vamigo.user.Role;
 import com.vamigo.user.UserAccount;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
-import java.util.Date;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -20,62 +25,68 @@ public class JwtTokenProvider {
     private static final String TOKEN_TYPE_REFRESH = "refresh";
     private static final String TOKEN_VERSION_CLAIM = "tv";
 
-    private final SecretKey key;
+    private static final JwsHeader HS256_HEADER = JwsHeader.with(MacAlgorithm.HS256).build();
+
+    private final JwtEncoder encoder;
+    private final JwtDecoder decoder;
+    private final Clock clock;
     private final long jwtExpirationMs;
     private final long jwtRefreshExpirationMs;
 
     public JwtTokenProvider(
-            SecretKey jwtSecretKey,
+            JwtEncoder jwtEncoder,
+            JwtDecoder jwtDecoder,
+            Clock clock,
             @Value("${app.jwt.expiration-ms}") long jwtExpirationMs,
             @Value("${app.jwt.refresh-expiration-ms:604800000}") long jwtRefreshExpirationMs) {
-        this.key = jwtSecretKey;
+        this.encoder = jwtEncoder;
+        this.decoder = jwtDecoder;
+        this.clock = clock;
         this.jwtExpirationMs = jwtExpirationMs;
         this.jwtRefreshExpirationMs = jwtRefreshExpirationMs;
     }
 
     public String generateToken(UserAccount user) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
-
+        Instant now = clock.instant();
         List<String> roleNames = user.getRoles().stream()
                 .map(Role::name)
                 .toList();
 
-        return Jwts.builder()
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(now.plusMillis(jwtExpirationMs))
                 .claim("userId", user.getId())
                 .claim("email", user.getEmail())
                 .claim("roles", roleNames)
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS)
                 .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(key, Jwts.SIG.HS256)
-                .compact();
+                .build();
+
+        return encoder.encode(JwtEncoderParameters.from(HS256_HEADER, claims)).getTokenValue();
     }
 
     public String generateRefreshToken(UserAccount user) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationMs);
+        Instant now = clock.instant();
 
-        return Jwts.builder()
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(now.plusMillis(jwtRefreshExpirationMs))
                 .claim("userId", user.getId())
                 .claim(TOKEN_TYPE_CLAIM, TOKEN_TYPE_REFRESH)
                 .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(key, Jwts.SIG.HS256)
-                .compact();
+                .build();
+
+        return encoder.encode(JwtEncoderParameters.from(HS256_HEADER, claims)).getTokenValue();
     }
 
     public Long getUserIdFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims.get("userId", Long.class);
+        Object userId = decoder.decode(token).getClaim("userId");
+        return userId instanceof Number n ? n.longValue() : null;
     }
 
     public boolean isRefreshToken(String token) {
         try {
-            Claims claims = getClaimsFromToken(token);
-            return TOKEN_TYPE_REFRESH.equals(claims.get(TOKEN_TYPE_CLAIM));
+            return TOKEN_TYPE_REFRESH.equals(decoder.decode(token).getClaimAsString(TOKEN_TYPE_CLAIM));
         } catch (JwtException e) {
             return false;
         }
@@ -83,10 +94,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parser()
-                    .verifyWith(key)
-                    .build()
-                    .parseSignedClaims(authToken);
+            decoder.decode(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
@@ -102,27 +110,15 @@ public class JwtTokenProvider {
     }
 
     public String getEmailFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims.get("email", String.class);
+        return decoder.decode(token).getClaimAsString("email");
     }
 
-    @SuppressWarnings("unchecked")
     public List<String> getRolesFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims.get("roles", List.class);
+        return decoder.decode(token).getClaimAsStringList("roles");
     }
 
     public int getTokenVersionFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        Integer v = claims.get(TOKEN_VERSION_CLAIM, Integer.class);
-        return v != null ? v : 0;
-    }
-
-    private Claims getClaimsFromToken(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        Object v = decoder.decode(token).getClaim(TOKEN_VERSION_CLAIM);
+        return v instanceof Number n ? n.intValue() : 0;
     }
 }
